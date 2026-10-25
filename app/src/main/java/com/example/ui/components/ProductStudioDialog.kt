@@ -152,6 +152,60 @@ fun ProductStudioDialog(
                     }
                 }
 
+                // Specifications Table
+                if (pkg.specificationsTable.isNotEmpty()) {
+                    item {
+                        Card(
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                            shape = RoundedCornerShape(10.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column(modifier = Modifier.padding(10.dp)) {
+                                Text(text = "جدول مشخصات و مقایسه فنی کالا:", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = GliseoPrimary)
+                                Spacer(modifier = Modifier.height(4.dp))
+                                pkg.specificationsTable.forEach { (specKey, specVal) ->
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(vertical = 2.dp),
+                                        horizontalArrangement = Arrangement.SpaceBetween
+                                    ) {
+                                        Text(text = "• $specKey:", fontSize = 10.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                        Text(text = specVal, fontSize = 10.sp, fontWeight = FontWeight.Medium)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Internal Links Section
+                if (pkg.internalLinks.isNotEmpty()) {
+                    item {
+                        Card(
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                            shape = RoundedCornerShape(10.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column(modifier = Modifier.padding(10.dp)) {
+                                Text(text = "لینک‌سازی داخلی هوشمند و محصولات مرتبط:", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = GliseoSecondary)
+                                Spacer(modifier = Modifier.height(4.dp))
+                                pkg.internalLinks.forEach { link ->
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Text(text = "🔗 ${link.anchorText}", fontSize = 10.sp, color = GliseoPrimary, fontWeight = FontWeight.Medium)
+                                        Text(text = "${link.relevanceScore}٪", fontSize = 9.sp, color = GliseoSuccess, fontWeight = FontWeight.Bold)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+
                 // FAQs
                 item {
                     Card(

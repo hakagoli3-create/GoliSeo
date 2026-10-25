@@ -85,7 +85,49 @@ class ExampleUnitTest {
     assertTrue(pkg.seoTitle.contains("گلی کالا"))
     assertTrue(pkg.faqs.isNotEmpty())
     assertTrue(pkg.safetyWarning.isNotBlank())
+    assertTrue(pkg.specificationsTable.isNotEmpty())
+    assertTrue(pkg.internalLinks.isNotEmpty())
+  }
+
+  @Test
+  fun testCompetitorAnalyzerReturnsStructuredIntelligence() {
+    val sampleProduct = SiteItem(
+      id = 101,
+      title = "شامپو کراتینه و تقویت‌کننده آگرادو اصل اسپانیا",
+      content = "شامپو ترمیم کننده موهای آسیب دیده",
+      slug = "agrado-keratin-shampoo",
+      focusKeyword = "شامپو آگرادو اصل اسپانیا",
+      type = SiteItemType.PRODUCT
+    )
+    val report = com.example.data.model.GoogleCompetitorAnalyzer.analyze(sampleProduct, BrandKnowledgeBase())
+    assertEquals("شامپو آگرادو اصل اسپانیا", report.targetKeyword)
+    assertEquals(3, report.topCompetitors.size)
+    assertTrue("Should include Digikala competitor", report.topCompetitors.any { competitor -> competitor.domain.contains("digikala") })
+    assertTrue("Content gaps must be identified", report.contentGaps.isNotEmpty())
+    assertTrue("LSI keywords must be provided", report.suggestedLsiKeywords.isNotEmpty())
+    assertTrue("Winning strategy must be generated", report.winningStrategy.isNotBlank())
+  }
+
+  @Test
+  fun testAdvancedContentRewriteEliminatesWallOfText() {
+    val sampleProduct = SiteItem(
+      id = 102,
+      title = "ماسک مو ترمیم‌کننده آمالفی فاقد سولفات",
+      content = "این یک متن طولانی است که به صورت دیوار متنی نوشته شده و هیچ ساختار یا سرفصلی ندارد تا تست شود.",
+      slug = "amalfi-hair-mask",
+      focusKeyword = "ماسک مو آمالفی",
+      type = SiteItemType.PRODUCT
+    )
+    val structuredHtml = ContentModuleProcessor.rewriteContentWithAdvancedSeoStructure(sampleProduct, BrandKnowledgeBase())
+    // 1. Structure & Anti-wall of text
+    assertTrue("Must have H2 headings", structuredHtml.contains("<h2"))
+    assertTrue("Must have specifications table", structuredHtml.contains("<table"))
+    assertTrue("Must have bullet points", structuredHtml.contains("✔") || structuredHtml.contains("<li"))
+    // 2. SEO & Internal linking
+    assertTrue("Must have internal links section", structuredHtml.contains("gliseo-internal-links-section"))
+    assertTrue("Must have brand reference", structuredHtml.contains("آمالفی"))
   }
 }
+
 
 

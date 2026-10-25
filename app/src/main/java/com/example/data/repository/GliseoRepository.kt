@@ -2017,4 +2017,32 @@ class GliseoRepository(private val context: Context) {
     fun normalizePersianText(text: String): String {
         return PersianNormalizer.normalize(text)
     }
+
+    // --- Phase 3: Real Google Competitor Intelligence & Advanced Content Rewriting ---
+    suspend fun analyzeCompetitors(itemId: Long): CompetitorAnalysisReport? = withContext(Dispatchers.IO) {
+        val item = _items.value.find { it.id == itemId } ?: return@withContext null
+        val profile = BrandProfile(brandName = _brandKnowledgeBase.value.storeName)
+        val kb = _brandKnowledgeBase.value
+        geminiService.analyzeGoogleCompetitors(item, profile, kb)
+    }
+
+    suspend fun rewriteItemContentAdvanced(itemId: Long) = withContext(Dispatchers.IO) {
+        val item = _items.value.find { it.id == itemId } ?: return@withContext
+        val kb = _brandKnowledgeBase.value
+        val structuredContent = ContentModuleProcessor.rewriteContentWithAdvancedSeoStructure(
+            originalTitle = item.title,
+            originalContent = item.content,
+            focusKeyword = item.focusKeyword,
+            itemType = item.type,
+            brandKnowledge = kb
+        )
+        val changes = mapOf("content" to structuredContent)
+        applyItemUpdate(
+            targetId = itemId,
+            proposedChanges = changes,
+            actionName = "بازنویسی پیشرفته سئو",
+            reason = "حذف دیوار متنی، جدول مشخصات، تگ‌های H2/H3 و لینک‌های داخلی"
+        )
+    }
 }
+

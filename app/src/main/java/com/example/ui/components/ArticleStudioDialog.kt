@@ -145,6 +145,31 @@ fun ArticleStudioDialog(
                         }
                     }
 
+                    // Comparison or Specs Table
+                    if (previewArticle.specificationsOrComparisonTable.isNotEmpty()) {
+                        item {
+                            Card(
+                                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                                shape = RoundedCornerShape(8.dp),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Column(modifier = Modifier.padding(10.dp)) {
+                                    Text(text = "جدول مقایسه کیفی و استانداردهای بهداشتی:", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = GliseoPrimary)
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    previewArticle.specificationsOrComparisonTable.forEach { (k, v) ->
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp),
+                                            horizontalArrangement = Arrangement.SpaceBetween
+                                        ) {
+                                            Text(text = "• $k:", fontSize = 9.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                            Text(text = v, fontSize = 9.sp)
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
                     item {
                         Card(
                             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
@@ -160,6 +185,32 @@ fun ArticleStudioDialog(
                             }
                         }
                     }
+
+                    // Internal Links Footer
+                    if (previewArticle.internalLinks.isNotEmpty()) {
+                        item {
+                            Card(
+                                colors = CardDefaults.cardColors(containerColor = GliseoPrimary.copy(alpha = 0.08f)),
+                                shape = RoundedCornerShape(8.dp),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Column(modifier = Modifier.padding(10.dp)) {
+                                    Text(text = "🔗 لینک‌های داخلی و پیشنهاد خرید/مطالعه:", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = GliseoPrimary)
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    previewArticle.internalLinks.forEach { link ->
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp),
+                                            horizontalArrangement = Arrangement.SpaceBetween
+                                        ) {
+                                            Text(text = "✦ ${link.anchorText}", fontSize = 9.sp, color = GliseoPrimary)
+                                            Text(text = link.contentType, fontSize = 8.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
 
                     // Scheduling Option inside Preview
                     item {

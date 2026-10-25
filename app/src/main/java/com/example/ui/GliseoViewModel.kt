@@ -108,9 +108,17 @@ class GliseoViewModel(application: Application) : AndroidViewModel(application) 
     private val _generatedArticlePreview = MutableStateFlow<GeneratedArticle?>(null)
     val generatedArticlePreview: StateFlow<GeneratedArticle?> = _generatedArticlePreview.asStateFlow()
 
+    // Competitor Analysis State
+    private val _activeCompetitorReport = MutableStateFlow<CompetitorAnalysisReport?>(null)
+    val activeCompetitorReport: StateFlow<CompetitorAnalysisReport?> = _activeCompetitorReport.asStateFlow()
+
+    private val _analyzingCompetitors = MutableStateFlow(false)
+    val analyzingCompetitors: StateFlow<Boolean> = _analyzingCompetitors.asStateFlow()
+
     // Transient UI Messages
     private val _uiMessages = MutableSharedFlow<UiMessage>()
     val uiMessages = _uiMessages.asSharedFlow()
+
 
     fun navigateTo(destination: AppNavDestination) {
         _currentNav.value = destination
@@ -529,7 +537,52 @@ class GliseoViewModel(application: Application) : AndroidViewModel(application) 
         }
     }
 
+    fun analyzeCompetitors(item: SiteItem) {
+        viewModelScope.launch {
+            _analyzingCompetitors.value = true
+            val report = repository.analyzeCompetitors(item.id)
+            _analyzingCompetitors.value = false
+            _activeCompetitorReport.value = report
+            if (report != null) {
+                _uiMessages.emit(UiMessage("تحلیل عمیق رقبا در گوگل برای «${item.title}» استخراج شد."))
+            } else {
+                _uiMessages.emit(UiMessage("خطا در تحلیل رقبا در گوگل.", isError = true))
+            }
+        }
+    }
+
+    fun dismissCompetitorReport() {
+        _activeCompetitorReport.value = null
+    }
+
+    fun rewriteItemContentAdvanced(item: SiteItem) {
+        viewModelScope.launch {
+            repository.rewriteItemContentAdvanced(item.id)
+            _uiMessages.emit(UiMessage("محتوای «${item.title}» با حذف دیوار متنی، افزودن جدول، بولت‌پوینت‌ها و لینک‌های داخلی بازنویسی شد."))
+        }
+    }
+
+    fun applyWinningCompetitorStrategy(item: SiteItem, report: CompetitorAnalysisReport) {
+        viewModelScope.launch {
+            repository.rewriteItemContentAdvanced(item.id)
+            val changes = mapOf(
+                "focusKeyword" to report.targetKeyword,
+                "metaTitle" to "${report.targetKeyword} اصل | گارانتی اصالت گلی کالا".take(60),
+                "seoScore" to 95
+            )
+            repository.applyItemUpdate(
+                targetId = item.id,
+                proposedChanges = changes,
+                actionName = "اعمال استراتژی رقبا",
+                reason = "اعمال استراتژی پیروزی بر رقبای گوگل"
+            )
+            _activeCompetitorReport.value = null
+            _uiMessages.emit(UiMessage("استراتژی پیروزی بر رقبای گوگل بر روی «${item.title}» اعمال گردید."))
+        }
+    }
+
     fun normalizePersianText(text: String): String {
         return repository.normalizePersianText(text)
     }
 }
+

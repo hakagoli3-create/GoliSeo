@@ -77,8 +77,12 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.material.icons.filled.Insights
+import androidx.compose.material.icons.filled.Link
+import androidx.compose.material.icons.filled.TableChart
 import com.example.data.model.ArticleTopicSuggestion
 import com.example.data.model.BrandKnowledgeBase
+import com.example.data.model.CompetitorAnalysisReport
 import com.example.data.model.ContentModuleProcessor
 import com.example.data.model.ElementorPageDesign
 import com.example.data.model.FreeformCommandPlan
@@ -93,6 +97,7 @@ import com.example.data.model.ValidationCheckResult
 import com.example.data.remote.SeoAiResult
 import com.example.ui.components.ArticleStudioDialog
 import com.example.ui.components.BrandKnowledgeBaseDialog
+import com.example.ui.components.CompetitorAnalysisDialog
 import com.example.ui.components.ElementorStudioDialog
 import com.example.ui.components.FreeformCommandDialog
 import com.example.ui.components.JalaliSchedulerDialog
@@ -148,8 +153,15 @@ fun ContentStudioScreen(
     onCreateElementorPage: (ElementorPageDesign) -> Unit = {},
     onAutoOptimizeFullItem: (SiteItem) -> Unit = {},
     onBatchOptimizeTab: (SiteItemType?) -> Unit = {},
+    competitorReport: CompetitorAnalysisReport? = null,
+    analyzingCompetitors: Boolean = false,
+    onAnalyzeCompetitors: (SiteItem) -> Unit = {},
+    onDismissCompetitorReport: () -> Unit = {},
+    onRewriteContentAdvanced: (SiteItem) -> Unit = {},
+    onApplyWinningStrategy: (SiteItem, CompetitorAnalysisReport) -> Unit = { _, _ -> },
     modifier: Modifier = Modifier
 ) {
+
     var showFreeformDialog by remember { mutableStateOf(false) }
     var showArticleStudioDialog by remember { mutableStateOf(false) }
     var showBrandKnowledgeDialog by remember { mutableStateOf(false) }
@@ -165,9 +177,12 @@ fun ContentStudioScreen(
             aiOptimizing = aiOptimizing,
             aiResult = aiResult,
             dryRunPreview = dryRunPreviewItem,
+            brandKnowledgeBase = brandKnowledgeBase,
             onClose = { onSelectItem(null) },
             onGenerateAiSeo = onGenerateAiSeo,
             onAutoOptimizeFull = { onAutoOptimizeFullItem(selectedItem) },
+            onAnalyzeCompetitors = { onAnalyzeCompetitors(selectedItem) },
+            onRewriteContentAdvanced = { onRewriteContentAdvanced(selectedItem) },
             onRunDryRun = onRunDryRun,
             onDismissDryRun = onDismissDryRun,
             onCommit = onCommitUpdate,
@@ -186,6 +201,7 @@ fun ContentStudioScreen(
             items = items,
             onSelectItem = onSelectItem,
             onAutoOptimizeItem = onAutoOptimizeFullItem,
+            onAnalyzeCompetitors = onAnalyzeCompetitors,
             onOpenFreeform = { showFreeformDialog = true },
             onOpenArticleStudio = { showArticleStudioDialog = true },
             onOpenBrandKnowledge = { showBrandKnowledgeDialog = true },
@@ -199,6 +215,7 @@ fun ContentStudioScreen(
             modifier = modifier
         )
     }
+
 
     // Modal Dialogs
     if (showFreeformDialog || freeformPlan != null) {
@@ -312,6 +329,16 @@ fun ContentStudioScreen(
             onDismiss = { showImageStudioForItem = null }
         )
     }
+
+    if (competitorReport != null && selectedItem != null) {
+        CompetitorAnalysisDialog(
+            report = competitorReport,
+            onApplyWinningStrategy = {
+                onApplyWinningStrategy(selectedItem, competitorReport)
+            },
+            onDismiss = onDismissCompetitorReport
+        )
+    }
 }
 
 @Composable
@@ -319,6 +346,7 @@ fun ItemListView(
     items: List<SiteItem>,
     onSelectItem: (SiteItem) -> Unit,
     onAutoOptimizeItem: (SiteItem) -> Unit,
+    onAnalyzeCompetitors: (SiteItem) -> Unit = {},
     onOpenFreeform: () -> Unit,
     onOpenArticleStudio: () -> Unit,
     onOpenBrandKnowledge: () -> Unit,
@@ -331,6 +359,7 @@ fun ItemListView(
     syncStatusMessage: String = "",
     modifier: Modifier = Modifier
 ) {
+
     // 0: All, 1: Products, 2: Articles, 3: Pages
     var selectedCategoryTab by remember { mutableIntStateOf(1) } // Default to Products
     var selectedSubFilter by remember { mutableStateOf("ALL") }
@@ -706,7 +735,8 @@ fun ItemListView(
                     SiteItemCard(
                         item = item,
                         onClick = { onSelectItem(item) },
-                        onQuickAutoOptimize = { onAutoOptimizeItem(item) }
+                        onQuickAutoOptimize = { onAutoOptimizeItem(item) },
+                        onQuickAnalyzeCompetitors = { onAnalyzeCompetitors(item) }
                     )
                 }
             }
@@ -730,7 +760,8 @@ fun CategoryBadge(count: Int, color: Color) {
 fun SiteItemCard(
     item: SiteItem,
     onClick: () -> Unit,
-    onQuickAutoOptimize: () -> Unit
+    onQuickAutoOptimize: () -> Unit,
+    onQuickAnalyzeCompetitors: () -> Unit = {}
 ) {
     Card(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
@@ -825,7 +856,7 @@ fun SiteItemCard(
 
             Spacer(modifier = Modifier.height(10.dp))
 
-            // Bottom details and quick auto-optimize
+            // Bottom details and quick actions
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -849,16 +880,28 @@ fun SiteItemCard(
                     )
                 }
 
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Card(
+                        colors = CardDefaults.cardColors(containerColor = GliseoSecondary.copy(alpha = 0.1f)),
+                        shape = RoundedCornerShape(6.dp),
+                        modifier = Modifier.clickable { onQuickAnalyzeCompetitors() }
+                    ) {
+                        Row(modifier = Modifier.padding(horizontal = 6.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Icon(imageVector = Icons.Default.Insights, contentDescription = null, tint = GliseoSecondary, modifier = Modifier.size(11.dp))
+                            Spacer(modifier = Modifier.width(3.dp))
+                            Text("تحلیل رقبا", fontSize = 9.sp, color = GliseoSecondary, fontWeight = FontWeight.Bold)
+                        }
+                    }
+
                     Card(
                         colors = CardDefaults.cardColors(containerColor = GliseoPrimary.copy(alpha = 0.1f)),
                         shape = RoundedCornerShape(6.dp),
                         modifier = Modifier.clickable { onQuickAutoOptimize() }
                     ) {
-                        Row(modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Icon(imageVector = Icons.Default.AutoAwesome, contentDescription = null, tint = GliseoPrimary, modifier = Modifier.size(12.dp))
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text("سئو هوشمند", fontSize = 10.sp, color = GliseoPrimary, fontWeight = FontWeight.Bold)
+                        Row(modifier = Modifier.padding(horizontal = 6.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Icon(imageVector = Icons.Default.AutoAwesome, contentDescription = null, tint = GliseoPrimary, modifier = Modifier.size(11.dp))
+                            Spacer(modifier = Modifier.width(3.dp))
+                            Text("سئو هوشمند", fontSize = 9.sp, color = GliseoPrimary, fontWeight = FontWeight.Bold)
                         }
                     }
 
@@ -874,15 +917,19 @@ fun SiteItemCard(
     }
 }
 
+
 @Composable
 fun ItemEditorView(
     item: SiteItem,
     aiOptimizing: Boolean,
     aiResult: SeoAiResult?,
     dryRunPreview: SiteItem?,
+    brandKnowledgeBase: BrandKnowledgeBase,
     onClose: () -> Unit,
     onGenerateAiSeo: () -> Unit,
     onAutoOptimizeFull: () -> Unit,
+    onAnalyzeCompetitors: () -> Unit = {},
+    onRewriteContentAdvanced: () -> Unit = {},
     onRunDryRun: (Map<String, Any?>) -> Unit,
     onDismissDryRun: () -> Unit,
     onCommit: (Map<String, Any?>, String) -> Unit,
@@ -896,6 +943,7 @@ fun ItemEditorView(
     onLearnEdit: (String, String, String) -> Unit,
     modifier: Modifier = Modifier
 ) {
+
     var editorTab by remember { mutableIntStateOf(0) } // 0: Text & Content, 1: Rank Math & SEO, 2: Media, 3: Schema, 4: Elementor
 
     var title by remember(item) { mutableStateOf(item.title) }
@@ -1156,13 +1204,19 @@ fun ItemEditorView(
             0 -> {
                 // Text & Content Tab
                 item {
+                    val hasH2orH3 = content.contains("<h2") || content.contains("<h3")
+                    val hasTable = content.contains("<table")
+                    val hasBullets = content.contains("<ul") || content.contains("<li") || content.contains("•") || content.contains("✔") || content.contains("✦")
+                    val hasInternalLinks = content.contains("gliseo-internal-links") || content.contains("محصولات مرتبط") || content.contains("پیشنهاد خرید") || content.contains("پیشنهاد مطالعه") || content.contains("<a href")
+                    val isWallOfText = content.length > 350 && !hasH2orH3 && !hasTable
+
                     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text(text = "مشخصات محتوای متنی", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                            Text(text = "مشخصات محتوای متنی و سئو", fontSize = 12.sp, fontWeight = FontWeight.Bold)
                             OutlinedButton(
                                 onClick = { normalizeAllFields() },
                                 shape = RoundedCornerShape(6.dp)
@@ -1173,10 +1227,190 @@ fun ItemEditorView(
                             }
                         }
 
+                        // Advanced Content Optimization & SEO Structure Banner
+                        Card(
+                            colors = CardDefaults.cardColors(containerColor = GliseoSecondary.copy(alpha = 0.08f)),
+                            shape = RoundedCornerShape(12.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column(modifier = Modifier.padding(12.dp)) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Icon(imageVector = Icons.Default.AutoAwesome, contentDescription = null, tint = GliseoSecondary, modifier = Modifier.size(18.dp))
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Text(
+                                            text = "ارتقای پیشرفته ساختار محتوا (ضد دیوار متنی)",
+                                            fontSize = 11.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = GliseoSecondary
+                                        )
+                                    }
+                                }
+
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    text = "شکستن متن‌های طولانی به سرفصل‌های منطقی H2/H3، جدول مشخصات، بولت‌پوینت‌های جذاب و لینک‌های داخلی در انتهای متن",
+                                    fontSize = 10.sp,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+
+                                Spacer(modifier = Modifier.height(8.dp))
+
+                                // Real-time Structural Health Badges
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    val badgeH2Color = if (hasH2orH3) GliseoSuccess else GliseoError
+                                    Box(
+                                        modifier = Modifier
+                                            .clip(RoundedCornerShape(4.dp))
+                                            .background(badgeH2Color.copy(alpha = 0.12f))
+                                            .padding(horizontal = 6.dp, vertical = 2.dp)
+                                    ) {
+                                        Text(text = if (hasH2orH3) "✓ سرفصل H2/H3" else "✗ فاقد H2/H3", fontSize = 9.sp, color = badgeH2Color, fontWeight = FontWeight.Bold)
+                                    }
+
+                                    val badgeTableColor = if (hasTable) GliseoSuccess else MaterialTheme.colorScheme.onSurfaceVariant
+                                    Box(
+                                        modifier = Modifier
+                                            .clip(RoundedCornerShape(4.dp))
+                                            .background(badgeTableColor.copy(alpha = 0.12f))
+                                            .padding(horizontal = 6.dp, vertical = 2.dp)
+                                    ) {
+                                        Text(text = if (hasTable) "✓ جدول مقایسه/مشخصات" else "○ بدون جدول", fontSize = 9.sp, color = badgeTableColor, fontWeight = FontWeight.Bold)
+                                    }
+
+                                    val badgeBulletsColor = if (hasBullets) GliseoSuccess else MaterialTheme.colorScheme.onSurfaceVariant
+                                    Box(
+                                        modifier = Modifier
+                                            .clip(RoundedCornerShape(4.dp))
+                                            .background(badgeBulletsColor.copy(alpha = 0.12f))
+                                            .padding(horizontal = 6.dp, vertical = 2.dp)
+                                    ) {
+                                        Text(text = if (hasBullets) "✓ لیست نقطه‌ای" else "○ بدون بولت", fontSize = 9.sp, color = badgeBulletsColor, fontWeight = FontWeight.Bold)
+                                    }
+
+                                    val badgeLinksColor = if (hasInternalLinks) GliseoSuccess else GliseoError
+                                    Box(
+                                        modifier = Modifier
+                                            .clip(RoundedCornerShape(4.dp))
+                                            .background(badgeLinksColor.copy(alpha = 0.12f))
+                                            .padding(horizontal = 6.dp, vertical = 2.dp)
+                                    ) {
+                                        Text(text = if (hasInternalLinks) "✓ لینک داخلی پایان متن" else "✗ بدون لینک داخلی", fontSize = 9.sp, color = badgeLinksColor, fontWeight = FontWeight.Bold)
+                                    }
+                                }
+
+                                if (isWallOfText) {
+                                    Spacer(modifier = Modifier.height(6.dp))
+                                    Text(
+                                        text = "⚠️ متن فعلی حالت پیوسته (دیوار متنی) دارد و تجربه کاربری را کاهش می‌دهد. روی دکمه بازنویسی پیشرفته زیر کلیک کنید.",
+                                        fontSize = 10.sp,
+                                        color = GliseoError,
+                                        fontWeight = FontWeight.Medium
+                                    )
+                                }
+
+                                Spacer(modifier = Modifier.height(8.dp))
+
+                                // Quick Action Buttons
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    Button(
+                                        onClick = {
+                                            val rewritten = ContentModuleProcessor.rewriteContentWithAdvancedSeoStructure(
+                                                item.copy(title = title, content = content, excerpt = excerpt, focusKeyword = focusKeyword),
+                                                brandKnowledgeBase
+                                            )
+                                            content = rewritten
+                                            onRewriteContentAdvanced()
+                                        },
+                                        colors = ButtonDefaults.buttonColors(containerColor = GliseoSecondary),
+                                        shape = RoundedCornerShape(8.dp),
+                                        modifier = Modifier.weight(1.3f)
+                                    ) {
+                                        Icon(imageVector = Icons.Default.AutoAwesome, contentDescription = null, modifier = Modifier.size(14.dp))
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                        Text("بازنویسی پیشرفته سئو", fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                    }
+
+                                    OutlinedButton(
+                                        onClick = { onAnalyzeCompetitors() },
+                                        shape = RoundedCornerShape(8.dp),
+                                        modifier = Modifier.weight(1f)
+                                    ) {
+                                        Icon(imageVector = Icons.Default.Insights, contentDescription = null, modifier = Modifier.size(14.dp), tint = GliseoPrimary)
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                        Text("تحلیل رقبا در گوگل", fontSize = 10.sp, color = GliseoPrimary)
+                                    }
+                                }
+
+                                Spacer(modifier = Modifier.height(6.dp))
+
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    OutlinedButton(
+                                        onClick = {
+                                            val specs = ContentModuleProcessor.generateProductPackage(item.copy(title = title, focusKeyword = focusKeyword)).specificationsTable
+                                            val tableHtml = buildString {
+                                                append("\n\n<!-- جدول مشخصات و مقایسه کالا -->\n")
+                                                append("<div class=\"wp-block-table is-style-stripes\" style=\"margin:16px 0; overflow-x:auto;\">\n")
+                                                append("<table style=\"width:100%; border-collapse:collapse; font-size:13px;\">\n")
+                                                append("<thead><tr style=\"background:#6366F1; color:#fff;\"><th style=\"padding:8px 12px; text-align:right;\">مشخصه کالا</th><th style=\"padding:8px 12px; text-align:right;\">توضیحات و مقادیر</th></tr></thead>\n<tbody>\n")
+                                                specs.forEach { (k, v) ->
+                                                    append("<tr><td style=\"padding:8px 12px; font-weight:bold; border-bottom:1px solid #E2E8F0; width:35%;\">$k</td><td style=\"padding:8px 12px; border-bottom:1px solid #E2E8F0;\">$v</td></tr>\n")
+                                                }
+                                                append("</tbody>\n</table>\n</div>\n")
+                                            }
+                                            content = content + tableHtml
+                                        },
+                                        shape = RoundedCornerShape(8.dp),
+                                        modifier = Modifier.weight(1f)
+                                    ) {
+                                        Icon(imageVector = Icons.Default.TableChart, contentDescription = null, modifier = Modifier.size(14.dp))
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                        Text("+ درج جدول مشخصات", fontSize = 10.sp)
+                                    }
+
+                                    OutlinedButton(
+                                        onClick = {
+                                            val linksHtml = buildString {
+                                                append("\n\n<!-- بخش محصولات مرتبط و پیشنهاد خرید -->\n")
+                                                append("<div class=\"gliseo-internal-links-section\" style=\"margin-top:24px; padding:16px; background:#F8FAFC; border-right:4px solid #6366F1; border-radius:8px;\">\n")
+                                                append("<h3 style=\"margin-top:0; color:#1E293B; font-size:15px;\">🔗 محصولات مرتبط و پیشنهاد مطالعه/خرید</h3>\n")
+                                                append("<p style=\"font-size:12px; color:#64748B;\">برای بررسی محصولات مکمل و مقایسه دقیق‌تر، از صفحات زیر دیدن فرمایید:</p>\n")
+                                                append("<ul style=\"padding-right:20px; line-height:2;\">\n")
+                                                append("<li><a href=\"/shop\" style=\"color:#6366F1; text-decoration:underline; font-weight:bold;\">مشاهده تمامی محصولات آرایشی و بهداشتی اصل</a></li>\n")
+                                                append("<li><a href=\"/category/hair-care\" style=\"color:#6366F1; text-decoration:underline;\">خرید محصولات مراقبت مو آمالفی، آگرادو و سایرو</a></li>\n")
+                                                append("<li><a href=\"/blog\" style=\"color:#6366F1; text-decoration:underline;\">راهنمای تخصصی مراقبت از پوست و مو</a></li>\n")
+                                                append("</ul>\n</div>\n")
+                                            }
+                                            content = content + linksHtml
+                                        },
+                                        shape = RoundedCornerShape(8.dp),
+                                        modifier = Modifier.weight(1f)
+                                    ) {
+                                        Icon(imageVector = Icons.Default.Link, contentDescription = null, modifier = Modifier.size(14.dp))
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                        Text("+ لینک داخلی انتهای متن", fontSize = 10.sp)
+                                    }
+                                }
+                            }
+                        }
+
                         OutlinedTextField(
                             value = title,
                             onValueChange = { title = it },
-                            label = { Text("عنوان کامل") },
+                            label = { Text("عنوان اصلی (تنها تگ H1 صفحه)") },
                             shape = RoundedCornerShape(10.dp),
                             modifier = Modifier.fillMaxWidth()
                         )
@@ -1193,9 +1427,9 @@ fun ItemEditorView(
                         OutlinedTextField(
                             value = content,
                             onValueChange = { content = it },
-                            label = { Text("توضیحات کامل / متن محتوا (Content)") },
+                            label = { Text("توضیحات کامل و ساختاریافته (Content - شامل جدول و H2/H3)") },
                             shape = RoundedCornerShape(10.dp),
-                            minLines = 5,
+                            minLines = 8,
                             modifier = Modifier.fillMaxWidth()
                         )
                         Text(

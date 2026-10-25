@@ -81,6 +81,8 @@ fun GliseoApp(viewModel: GliseoViewModel) {
     val articlePreview by viewModel.generatedArticlePreview.collectAsState()
     val isSyncing by viewModel.isSyncing.collectAsState()
     val syncStatusMessage by viewModel.syncStatusMessage.collectAsState()
+    val competitorReport by viewModel.activeCompetitorReport.collectAsState()
+    val analyzingCompetitors by viewModel.analyzingCompetitors.collectAsState()
 
     val snackbarHostState = remember { SnackbarHostState() }
 
@@ -184,6 +186,12 @@ fun GliseoApp(viewModel: GliseoViewModel) {
                     onCreateElementorPage = { design -> viewModel.createNewElementorPage(design) },
                     onAutoOptimizeFullItem = { item -> viewModel.autoOptimizeFullItem(item) },
                     onBatchOptimizeTab = { type -> viewModel.batchOptimizeTabItems(type) },
+                    competitorReport = competitorReport,
+                    analyzingCompetitors = analyzingCompetitors,
+                    onAnalyzeCompetitors = { item -> viewModel.analyzeCompetitors(item) },
+                    onDismissCompetitorReport = { viewModel.dismissCompetitorReport() },
+                    onRewriteContentAdvanced = { item -> viewModel.rewriteItemContentAdvanced(item) },
+                    onApplyWinningStrategy = { item, report -> viewModel.applyWinningCompetitorStrategy(item, report) },
                     modifier = Modifier.padding(innerPadding)
                 )
             }
