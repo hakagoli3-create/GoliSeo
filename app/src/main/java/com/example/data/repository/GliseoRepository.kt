@@ -6,23 +6,7 @@ import com.example.data.local.BrandEntity
 import com.example.data.local.LogEntity
 import com.example.data.local.SnapshotEntity
 import com.example.data.local.TaskEntity
-import com.example.data.model.AuditLog
-import com.example.data.model.AutopilotConfig
-import com.example.data.model.BrandProfile
-import com.example.data.model.BudgetTracker
-import com.example.data.model.ConnectionTestResult
-import com.example.data.model.DiffItem
-import com.example.data.model.HardLockValidator
-import com.example.data.model.LogStatus
-import com.example.data.model.QueuedTask
-import com.example.data.model.SecurityHardLockException
-import com.example.data.model.SiteConfig
-import com.example.data.model.SiteItem
-import com.example.data.model.SiteItemType
-import com.example.data.model.TaskStatus
-import com.example.data.model.TaskType
-import com.example.data.model.UserRole
-import com.example.data.model.UserSession
+import com.example.data.model.*
 import com.example.data.remote.GeminiSeoService
 import com.example.data.remote.NetworkClientProvider
 import com.example.data.remote.SeoAiResult
@@ -65,6 +49,24 @@ class GliseoRepository(private val context: Context) {
 
     private val _circuitBreakerTriggered = MutableStateFlow(false)
     val circuitBreakerTriggered = _circuitBreakerTriggered.asStateFlow()
+
+    // Phase 2 Knowledge Base & Scheduling State
+    private val _brandKnowledgeBase = MutableStateFlow(BrandKnowledgeBase())
+    val brandKnowledgeBase = _brandKnowledgeBase.asStateFlow()
+
+    private val _scheduledPlans = MutableStateFlow<List<ScheduledPostPlan>>(
+        listOf(
+            ScheduledPostPlan(
+                targetId = 201,
+                targetTitle = "راهنمای جامع روتین پوستی روز و شب برای انواع پوست",
+                jalaliScheduledDate = "۱۵ تیر ۱۴۰۵ ساعت ۱۰:۰۰",
+                isoGmtTimestamp = "2026-07-06T06:30:00Z",
+                wpStatus = "future",
+                occasion = "جشنواره تابستانه و محافظت آفتاب"
+            )
+        )
+    )
+    val scheduledPlans = _scheduledPlans.asStateFlow()
 
     init {
         loadInitialMockData()
@@ -703,5 +705,211 @@ class GliseoRepository(private val context: Context) {
 
     fun updateSiteConfig(newConfig: SiteConfig) {
         _siteConfig.value = newConfig
+    }
+
+    // --- Phase 2: Natural Language Freeform Command ---
+    suspend fun executeFreeformCommand(prompt: String, isDryRun: Boolean = false): FreeformCommandPlan = withContext(Dispatchers.IO) {
+        val plan = ContentModuleProcessor.parseFreeformCommand(prompt)
+
+        if (!plan.isSafeFromHardLock) {
+            // Record security hard lock block in audit trail
+            val violationDiff = listOf(
+                DiffItem("دستور آزاد", prompt, "مسدود شده با قفل سخت", isLockedViolation = true)
+            )
+            val fallbackTarget = _items.value.firstOrNull() ?: SiteItem(
+                id = 999,
+                title = "دستور مسدود شده",
+                content = "",
+                slug = "blocked",
+                type = SiteItemType.PRODUCT
+            )
+            recordLog(
+                target = fallbackTarget,
+                actionName = "دستور آزاد (مسدود شده)",
+                reason = plan.blockedReason ?: "نقض قفل سخت قیمت/اسلاگ",
+                role = _userSession.value.role,
+                status = LogStatus.BLOCKED_SECURITY,
+                diffs = violationDiff,
+                snapshotId = null
+            )
+            return@withContext plan
+        }
+
+        // If safe, execute or queue based on plan target
+        if (!isDryRun) {
+            consumeBudgetTokens(plan.estimatedTokens)
+            // Apply optimization on relevant items or queue them
+            val targetItems = when (plan.targetType) {
+                SiteItemType.PRODUCT -> _items.value.filter { it.type == SiteItemType.PRODUCT }
+                SiteItemType.PAGE -> _items.value.filter { it.type == SiteItemType.PAGE }
+                SiteItemType.POST -> _items.value.filter { it.type == SiteItemType.POST }
+            }
+
+            for (item in targetItems.take(2)) {
+                queueTask(item.id, TaskType.SEO_META, isDryRun = false)
+            }
+        }
+
+        plan
+    }
+
+    // --- Phase 2: Product Studio & Rank Math Meta ---
+    fun generateProductStudioPackage(productId: Long): ProductOptimizationPackage? {
+        val item = _items.value.find { it.id == productId } ?: return null
+        return ContentModuleProcessor.generateProductPackage(item, _brandKnowledgeBase.value)
+    }
+
+    suspend fun applyProductStudioPackage(productId: Long, pkg: ProductOptimizationPackage) = withContext(Dispatchers.IO) {
+        val changes = mapOf(
+            "title" to pkg.seoTitle,
+            "excerpt" to pkg.shortDescription,
+            "content" to pkg.fullDescription,
+            "metaDescription" to pkg.rankMathMetaDesc,
+            "focusKeyword" to pkg.focusKeyword
+        )
+        applyItemUpdate(
+            targetId = productId,
+            proposedChanges = changes,
+            actionName = "بهینه‌سازی پکیج کامل محصول (Rank Math + FAQ)",
+            reason = "تولید سئو، ویژگی‌ها و هشدارهای بهداشتی منطبق بر حافظه گلی کالا"
+        )
+    }
+
+    suspend fun batchOptimizeAllProducts() = withContext(Dispatchers.IO) {
+        val products = _items.value.filter { it.type == SiteItemType.PRODUCT }
+        for (prod in products) {
+            queueTask(prod.id, TaskType.SEO_META, isDryRun = false)
+        }
+    }
+
+    // --- Phase 2: Articles & E-E-A-T Content Studio ---
+    fun getArticleTopicSuggestions(): List<ArticleTopicSuggestion> {
+        val existingTitles = _items.value.map { it.title }
+        return ContentModuleProcessor.getSuggestedTopics(existingTitles)
+    }
+
+    fun generateFullArticleFromTopic(topic: ArticleTopicSuggestion): GeneratedArticle {
+        return ContentModuleProcessor.generateFullArticle(topic, _brandKnowledgeBase.value)
+    }
+
+    suspend fun publishNewArticle(article: GeneratedArticle) = withContext(Dispatchers.IO) {
+        val newId = System.currentTimeMillis()
+        val sectionsBody = article.sections.joinToString("\n\n") { section ->
+            "## ${section.h2Heading}\n${section.content}\n" +
+                if (section.h3Headings.isNotEmpty()) {
+                    section.h3Headings.joinToString("\n") { "### $it" } + "\n"
+                } else ""
+        }
+
+        val newItem = SiteItem(
+            id = newId,
+            title = article.title,
+            content = sectionsBody,
+            excerpt = article.metaDescription,
+            slug = "blog-${article.focusKeyword.replace(" ", "-")}",
+            categories = listOf("مقالات آموزشی", "مراقبت پوست"),
+            type = SiteItemType.POST,
+            focusKeyword = article.focusKeyword,
+            metaTitle = "${article.title} | گلی کالا",
+            metaDescription = article.metaDescription,
+            schemaJson = """{"@context":"https://schema.org","@type":"Article","headline":"${article.title}"}""",
+            imageAlt = "تصویر شاخص برای مقاله ${article.title}",
+            seoScore = 88
+        )
+
+        // Capture snapshot & record log
+        val snapshotId = snapshotDao.insertSnapshot(
+            SnapshotEntity(
+                timestamp = System.currentTimeMillis(),
+                targetType = newItem.type.name,
+                targetId = newItem.id,
+                title = newItem.title,
+                content = newItem.content,
+                excerpt = newItem.excerpt,
+                metaTitle = newItem.metaTitle,
+                metaDescription = newItem.metaDescription,
+                schemaJson = newItem.schemaJson,
+                imageAlt = newItem.imageAlt,
+                reason = "انتشار مقاله جدید بر پایه اصول E-E-A-T"
+            )
+        )
+
+        recordLog(
+            target = newItem,
+            actionName = "تولید مقاله کامل (E-E-A-T)",
+            reason = "نگارش مقاله با ساختار H1-H3 و بررسی عدم هم‌پوشانی کلیدواژه",
+            role = _userSession.value.role,
+            status = LogStatus.SUCCESS,
+            diffs = listOf(DiffItem("ایجاد مقاله جدید", "موجود نبود", article.title)),
+            snapshotId = snapshotId
+        )
+
+        _items.value = _items.value + newItem
+        consumeBudgetTokens(1200)
+    }
+
+    // --- Phase 2: Scheduling & Jalali Calendar ---
+    fun schedulePostFuture(targetId: Long, daysInFuture: Int, occasion: String? = null) {
+        val item = _items.value.find { it.id == targetId } ?: return
+        val datePair = JalaliCalendarHelper.createWpFutureDate(daysInFuture)
+
+        val newPlan = ScheduledPostPlan(
+            targetId = item.id,
+            targetTitle = item.title,
+            jalaliScheduledDate = datePair.second,
+            isoGmtTimestamp = datePair.first,
+            wpStatus = "future",
+            occasion = occasion
+        )
+
+        _scheduledPlans.value = _scheduledPlans.value + newPlan
+        // Update item status in memory to future
+        _items.value = _items.value.map {
+            if (it.id == targetId) it.copy(status = "future") else it
+        }
+    }
+
+    // --- Phase 2: Pre-Publish Validation ---
+    fun validateItemPrePublish(item: SiteItem): ValidationCheckResult {
+        val otherKeywords = _items.value
+            .filter { it.id != item.id }
+            .map { it.focusKeyword }
+            .filter { it.isNotBlank() }
+
+        return ContentValidator.validate(
+            title = item.title,
+            content = item.content,
+            metaDescription = item.metaDescription,
+            focusKeyword = item.focusKeyword,
+            isHygieneOrDetergent = item.categories.any { it.contains("پوست") || it.contains("شوینده") || it.contains("بهداشتی") },
+            existingKeywordsOnSite = otherKeywords
+        )
+    }
+
+    // --- Phase 2: Continuous Learning & Knowledge Base Update ---
+    fun learnFromUserEdit(original: String, approved: String, category: String) {
+        val currentKb = _brandKnowledgeBase.value
+        val newSample = ApprovedSample(
+            id = "sample_${System.currentTimeMillis()}",
+            category = category,
+            originalText = original,
+            approvedText = approved,
+            keyLearning = "الگوی لحن و واژگان تایید شده توسط کاربر ذخیره شد."
+        )
+
+        val updated = currentKb.copy(
+            approvedSamples = currentKb.approvedSamples + newSample,
+            totalLearnedEditsCount = currentKb.totalLearnedEditsCount + 1
+        )
+        _brandKnowledgeBase.value = updated
+    }
+
+    fun updateBrandKnowledge(kb: BrandKnowledgeBase) {
+        _brandKnowledgeBase.value = kb
+    }
+
+    // --- Phase 2: Persian Normalizer Helper ---
+    fun normalizePersianText(text: String): String {
+        return PersianNormalizer.normalize(text)
     }
 }

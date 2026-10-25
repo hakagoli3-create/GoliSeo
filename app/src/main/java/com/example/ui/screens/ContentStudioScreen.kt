@@ -19,16 +19,24 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Article
 import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Done
+import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Preview
+import androidx.compose.material.icons.filled.Psychology
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.Shield
+import androidx.compose.material.icons.filled.ShoppingBag
+import androidx.compose.material.icons.filled.Spellcheck
+import androidx.compose.material.icons.filled.VerifiedUser
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -54,10 +62,25 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.data.model.ArticleTopicSuggestion
+import com.example.data.model.BrandKnowledgeBase
+import com.example.data.model.ContentModuleProcessor
+import com.example.data.model.FreeformCommandPlan
+import com.example.data.model.GeneratedArticle
+import com.example.data.model.ImageMetadata
+import com.example.data.model.PersianNormalizer
+import com.example.data.model.ProductOptimizationPackage
 import com.example.data.model.SiteItem
 import com.example.data.model.SiteItemType
 import com.example.data.model.TaskType
+import com.example.data.model.ValidationCheckResult
 import com.example.data.remote.SeoAiResult
+import com.example.ui.components.ArticleStudioDialog
+import com.example.ui.components.BrandKnowledgeBaseDialog
+import com.example.ui.components.FreeformCommandDialog
+import com.example.ui.components.JalaliSchedulerDialog
+import com.example.ui.components.ProductStudioDialog
+import com.example.ui.components.ValidationDialog
 import com.example.ui.theme.GliseoError
 import com.example.ui.theme.GliseoHardLock
 import com.example.ui.theme.GliseoPrimary
@@ -72,6 +95,12 @@ fun ContentStudioScreen(
     aiOptimizing: Boolean,
     aiResult: SeoAiResult?,
     dryRunPreviewItem: SiteItem?,
+    brandKnowledgeBase: BrandKnowledgeBase,
+    freeformPlan: FreeformCommandPlan?,
+    validationResult: ValidationCheckResult?,
+    productPackage: ProductOptimizationPackage?,
+    topicSuggestions: List<ArticleTopicSuggestion>,
+    articlePreview: GeneratedArticle?,
     onSelectItem: (SiteItem?) -> Unit,
     onGenerateAiSeo: () -> Unit,
     onRunDryRun: (Map<String, Any?>) -> Unit,
@@ -79,8 +108,27 @@ fun ContentStudioScreen(
     onCommitUpdate: (Map<String, Any?>, String) -> Unit,
     onTestHardLock: () -> Unit,
     onEnqueueTask: (Long, TaskType) -> Unit,
+    onExecuteFreeform: (String, Boolean) -> Unit,
+    onDismissFreeform: () -> Unit,
+    onPrepareProductPackage: (Long) -> Unit,
+    onApplyProductPackage: (Long) -> Unit,
+    onDismissProductPackage: () -> Unit,
+    onBatchOptimizeProducts: () -> Unit,
+    onSelectArticleTopic: (ArticleTopicSuggestion) -> Unit,
+    onPublishArticle: (GeneratedArticle) -> Unit,
+    onDismissArticlePreview: () -> Unit,
+    onScheduleFuture: (Long, Int, String?) -> Unit,
+    onValidatePrePublish: (SiteItem) -> Unit,
+    onDismissValidation: () -> Unit,
+    onLearnUserEdit: (String, String, String) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    var showFreeformDialog by remember { mutableStateOf(false) }
+    var showArticleStudioDialog by remember { mutableStateOf(false) }
+    var showBrandKnowledgeDialog by remember { mutableStateOf(false) }
+    var showSchedulerDialogForItem by remember { mutableStateOf<SiteItem?>(null) }
+    var showImageStudioForItem by remember { mutableStateOf<SiteItem?>(null) }
+
     if (selectedItem != null) {
         ItemEditorView(
             item = selectedItem,
@@ -94,13 +142,93 @@ fun ContentStudioScreen(
             onCommit = onCommitUpdate,
             onTestHardLock = onTestHardLock,
             onEnqueue = { taskType -> onEnqueueTask(selectedItem.id, taskType) },
+            onOpenProductStudio = { onPrepareProductPackage(selectedItem.id) },
+            onOpenScheduler = { showSchedulerDialogForItem = selectedItem },
+            onOpenImageStudio = { showImageStudioForItem = selectedItem },
+            onValidate = { onValidatePrePublish(selectedItem) },
+            onLearnEdit = onLearnUserEdit,
             modifier = modifier
         )
     } else {
         ItemListView(
             items = items,
             onSelectItem = onSelectItem,
+            onOpenFreeform = { showFreeformDialog = true },
+            onOpenArticleStudio = { showArticleStudioDialog = true },
+            onOpenBrandKnowledge = { showBrandKnowledgeDialog = true },
+            onBatchOptimizeAllProducts = onBatchOptimizeProducts,
             modifier = modifier
+        )
+    }
+
+    // Modal Dialogs
+    if (showFreeformDialog || freeformPlan != null) {
+        FreeformCommandDialog(
+            plan = freeformPlan,
+            onExecute = onExecuteFreeform,
+            onDismiss = {
+                showFreeformDialog = false
+                onDismissFreeform()
+            }
+        )
+    }
+
+    if (showArticleStudioDialog || articlePreview != null) {
+        ArticleStudioDialog(
+            topics = topicSuggestions,
+            previewArticle = articlePreview,
+            onSelectTopicToGenerate = onSelectArticleTopic,
+            onPublishArticle = onPublishArticle,
+            onDismiss = {
+                showArticleStudioDialog = false
+                onDismissArticlePreview()
+            }
+        )
+    }
+
+    if (showBrandKnowledgeDialog) {
+        BrandKnowledgeBaseDialog(
+            knowledgeBase = brandKnowledgeBase,
+            onDismiss = { showBrandKnowledgeDialog = false }
+        )
+    }
+
+    if (productPackage != null && selectedItem != null) {
+        ProductStudioDialog(
+            pkg = productPackage,
+            onApplySingle = { onApplyProductPackage(selectedItem.id) },
+            onBatchAllProducts = onBatchOptimizeProducts,
+            onDismiss = onDismissProductPackage
+        )
+    }
+
+    if (validationResult != null && selectedItem != null) {
+        ValidationDialog(
+            result = validationResult,
+            targetTitle = selectedItem.title,
+            onDismiss = onDismissValidation
+        )
+    }
+
+    if (showSchedulerDialogForItem != null) {
+        val target = showSchedulerDialogForItem!!
+        JalaliSchedulerDialog(
+            targetTitle = target.title,
+            onSchedule = { days, occasion ->
+                onScheduleFuture(target.id, days, occasion)
+                showSchedulerDialogForItem = null
+            },
+            onDismiss = { showSchedulerDialogForItem = null }
+        )
+    }
+
+    if (showImageStudioForItem != null) {
+        val target = showImageStudioForItem!!
+        val meta = ContentModuleProcessor.generateImageMetadata(target)
+        ImageStudioDialog(
+            item = target,
+            imageMeta = meta,
+            onDismiss = { showImageStudioForItem = null }
         )
     }
 }
@@ -109,6 +237,10 @@ fun ContentStudioScreen(
 fun ItemListView(
     items: List<SiteItem>,
     onSelectItem: (SiteItem) -> Unit,
+    onOpenFreeform: () -> Unit,
+    onOpenArticleStudio: () -> Unit,
+    onOpenBrandKnowledge: () -> Unit,
+    onBatchOptimizeAllProducts: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     var selectedFilter by remember { mutableStateOf("ALL") }
@@ -131,14 +263,52 @@ fun ItemListView(
             .padding(16.dp)
     ) {
         Text(
-            text = "استودیو محتوا و سئو گلیسئو",
+            text = "استودیو محتوا و ماژول‌های سئو گلیسئو",
             style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
         )
         Text(
-            text = "مدیریت نوشته‌ها، برگه‌ها و محصولات با هوش مصنوعی و محافظت قفل سخت",
+            text = "دستور آزاد، ووکامرس Rank Math، مقالات E-E-A-T و زمان‌بندی شمسی",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        // Phase 2 Content Modules Action Bar
+        LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            item {
+                ModuleQuickButton(
+                    title = "دستور آزاد فارسی",
+                    icon = Icons.Default.AutoAwesome,
+                    color = GliseoPrimary,
+                    onClick = onOpenFreeform
+                )
+            }
+            item {
+                ModuleQuickButton(
+                    title = "نگارش مقالات E-E-A-T",
+                    icon = Icons.Default.Article,
+                    color = GliseoSecondary,
+                    onClick = onOpenArticleStudio
+                )
+            }
+            item {
+                ModuleQuickButton(
+                    title = "حافظه برند گلی کالا",
+                    icon = Icons.Default.Psychology,
+                    color = GliseoTertiary,
+                    onClick = onOpenBrandKnowledge
+                )
+            }
+            item {
+                ModuleQuickButton(
+                    title = "صف بهینه‌سازی همه محصولات",
+                    icon = Icons.Default.ShoppingBag,
+                    color = GliseoSuccess,
+                    onClick = onBatchOptimizeAllProducts
+                )
+            }
+        }
 
         Spacer(modifier = Modifier.height(12.dp))
 
@@ -201,6 +371,29 @@ fun ItemListView(
 }
 
 @Composable
+fun ModuleQuickButton(
+    title: String,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    color: Color,
+    onClick: () -> Unit
+) {
+    Card(
+        colors = CardDefaults.cardColors(containerColor = color.copy(alpha = 0.12f)),
+        shape = RoundedCornerShape(8.dp),
+        modifier = Modifier.clickable { onClick() }
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(imageVector = icon, contentDescription = null, tint = color, modifier = Modifier.size(16.dp))
+            Spacer(modifier = Modifier.width(6.dp))
+            Text(text = title, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = color)
+        }
+    }
+}
+
+@Composable
 fun SiteItemCard(item: SiteItem, onClick: () -> Unit) {
     Card(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
@@ -215,7 +408,6 @@ fun SiteItemCard(item: SiteItem, onClick: () -> Unit) {
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Type Badge
                 Box(
                     modifier = Modifier
                         .clip(RoundedCornerShape(6.dp))
@@ -233,7 +425,6 @@ fun SiteItemCard(item: SiteItem, onClick: () -> Unit) {
                     )
                 }
 
-                // SEO Score Badge
                 val scoreColor = if (item.seoScore >= 75) GliseoSuccess else if (item.seoScore >= 50) GliseoTertiary else GliseoError
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(text = "امتیاز سئو: ", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -242,7 +433,6 @@ fun SiteItemCard(item: SiteItem, onClick: () -> Unit) {
             }
 
             Spacer(modifier = Modifier.height(8.dp))
-
             Text(
                 text = item.title,
                 style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
@@ -258,8 +448,6 @@ fun SiteItemCard(item: SiteItem, onClick: () -> Unit) {
             )
 
             Spacer(modifier = Modifier.height(10.dp))
-
-            // Footer with Locked Fields Preview
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -299,6 +487,11 @@ fun ItemEditorView(
     onCommit: (Map<String, Any?>, String) -> Unit,
     onTestHardLock: () -> Unit,
     onEnqueue: (TaskType) -> Unit,
+    onOpenProductStudio: () -> Unit,
+    onOpenScheduler: () -> Unit,
+    onOpenImageStudio: () -> Unit,
+    onValidate: () -> Unit,
+    onLearnEdit: (String, String, String) -> Unit,
     modifier: Modifier = Modifier
 ) {
     var title by remember(item) { mutableStateOf(item.title) }
@@ -308,13 +501,20 @@ fun ItemEditorView(
     var schemaJson by remember(item) { mutableStateOf(item.schemaJson) }
     var imageAlt by remember(item) { mutableStateOf(item.imageAlt) }
 
-    // When AI result arrives, allow populating fields
+    fun normalizeAllFields() {
+        title = PersianNormalizer.normalize(title)
+        metaTitle = PersianNormalizer.normalize(metaTitle)
+        metaDescription = PersianNormalizer.normalize(metaDescription)
+        focusKeyword = PersianNormalizer.normalize(focusKeyword)
+        imageAlt = PersianNormalizer.normalize(imageAlt)
+    }
+
     fun applyAiFields(res: SeoAiResult) {
-        metaTitle = res.suggestedTitle
-        metaDescription = res.suggestedMetaDescription
-        focusKeyword = res.suggestedFocusKeyword
+        metaTitle = PersianNormalizer.normalize(res.suggestedTitle)
+        metaDescription = PersianNormalizer.normalize(res.suggestedMetaDescription)
+        focusKeyword = PersianNormalizer.normalize(res.suggestedFocusKeyword)
         schemaJson = res.suggestedSchemaJson
-        imageAlt = res.suggestedImageAlt
+        imageAlt = PersianNormalizer.normalize(res.suggestedImageAlt)
     }
 
     fun buildCurrentChanges(): Map<String, Any?> {
@@ -345,7 +545,7 @@ fun ItemEditorView(
                     Icon(imageVector = Icons.Default.Close, contentDescription = "بستن")
                 }
                 Text(
-                    text = "ویرایش و بهینه‌سازی سئو",
+                    text = "ویرایش و بهینه‌سازی محتوا",
                     style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
                 )
                 Box(
@@ -377,7 +577,7 @@ fun ItemEditorView(
                             fontWeight = FontWeight.Bold
                         )
                     }
-                    Spacer(modifier = Modifier.height(6.dp))
+                    Spacer(modifier = Modifier.height(4.dp))
                     Text(
                         text = "اسلاگ/URL: ${item.slug}\nدسته‌بندی: ${item.categories.joinToString("، ")}${if (item.isProduct) "\nقیمت عادی: ${item.regularPrice} | قیمت حراج: ${item.salePrice.ifEmpty { "ندارد" }}" else ""}",
                         fontSize = 11.sp,
@@ -387,107 +587,106 @@ fun ItemEditorView(
             }
         }
 
-        // Dry Run Preview Alert (if active)
-        if (dryRunPreview != null) {
+        // Phase 2 Quick Tools Bar
+        item {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                // Persian Normalizer 1-Click Button
+                OutlinedButton(
+                    onClick = { normalizeAllFields() },
+                    shape = RoundedCornerShape(8.dp),
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Icon(imageVector = Icons.Default.Spellcheck, contentDescription = null, modifier = Modifier.size(14.dp))
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text("ویراستار فارسی", fontSize = 10.sp)
+                }
+
+                // Pre-Publish Quality & Safety Audit
+                Button(
+                    onClick = onValidate,
+                    colors = ButtonDefaults.buttonColors(containerColor = GliseoSecondary),
+                    shape = RoundedCornerShape(8.dp),
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Icon(imageVector = Icons.Default.VerifiedUser, contentDescription = null, modifier = Modifier.size(14.dp))
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text("اعتبارسنجی سئو", fontSize = 10.sp)
+                }
+
+                // Jalali Future Scheduler
+                OutlinedButton(
+                    onClick = onOpenScheduler,
+                    shape = RoundedCornerShape(8.dp),
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Icon(imageVector = Icons.Default.CalendarMonth, contentDescription = null, modifier = Modifier.size(14.dp))
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text("زمان‌بندی شمسی", fontSize = 10.sp)
+                }
+            }
+        }
+
+        // Special Product Studio Package Button for WooCommerce
+        if (item.isProduct) {
             item {
                 Card(
-                    colors = CardDefaults.cardColors(containerColor = GliseoTertiary.copy(alpha = 0.15f)),
+                    colors = CardDefaults.cardColors(containerColor = GliseoPrimary.copy(alpha = 0.08f)),
                     shape = RoundedCornerShape(10.dp),
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Column(modifier = Modifier.padding(12.dp)) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(imageVector = Icons.Default.Preview, contentDescription = null, tint = GliseoTertiary, modifier = Modifier.size(18.dp))
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text(text = "پیش‌نمایش اجرای آزمایشی (Dry Run)", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = GliseoTertiary)
-                            }
-                            IconButton(onClick = onDismissDryRun) {
-                                Icon(imageVector = Icons.Default.Close, contentDescription = "بستن", tint = GliseoTertiary)
-                            }
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(12.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column {
+                            Text(text = "پکیج کامل ووکامرس Rank Math", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                            Text(text = "تولید خودکار توضیحات کامل، ویژگی‌ها و سوالات متداول FAQ", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
-                        Text(
-                            text = "هیچ تغییری در سایت زنده اعمال نشده است. در صورت رضایت روی «ذخیره نهایی» کلیک کنید.",
-                            fontSize = 11.sp
-                        )
+                        Button(
+                            onClick = onOpenProductStudio,
+                            colors = ButtonDefaults.buttonColors(containerColor = GliseoPrimary),
+                            shape = RoundedCornerShape(8.dp)
+                        ) {
+                            Text("باز کردن استودیو", fontSize = 11.sp)
+                        }
                     }
                 }
             }
         }
 
-        // Gemini AI Optimizer Banner
+        // Image & Alt Generator Button
         item {
             Card(
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-                shape = RoundedCornerShape(12.dp),
+                shape = RoundedCornerShape(10.dp),
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Column(modifier = Modifier.padding(14.dp)) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(imageVector = Icons.Default.AutoAwesome, contentDescription = null, tint = GliseoSecondary, modifier = Modifier.size(20.dp))
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                text = "بهینه‌ساز سئو جمینای (با سرچ گوگل)",
-                                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold)
-                            )
-                        }
-
-                        Button(
-                            onClick = onGenerateAiSeo,
-                            enabled = !aiOptimizing,
-                            colors = ButtonDefaults.buttonColors(containerColor = GliseoSecondary),
-                            shape = RoundedCornerShape(8.dp),
-                            contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 10.dp, vertical = 6.dp)
-                        ) {
-                            if (aiOptimizing) {
-                                CircularProgressIndicator(modifier = Modifier.size(16.dp), color = Color.White, strokeWidth = 2.dp)
-                            } else {
-                                Text("تولید خودکار سئو", fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                            }
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(12.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(imageVector = Icons.Default.Image, contentDescription = null, tint = GliseoTertiary)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Column {
+                            Text(text = "ماژول تصویر شاخص و متادیتا WebP", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                            Text(text = "نام فایل سئو شده + فرمت WebP فشرده + Alt توصیفی", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     }
-
-                    if (aiResult != null) {
-                        Spacer(modifier = Modifier.height(10.dp))
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clip(RoundedCornerShape(8.dp))
-                                .background(GliseoSuccess.copy(alpha = 0.1f))
-                                .padding(10.dp)
-                        ) {
-                            Column {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Text(text = "پیشنهاد هوش مصنوعی آماده است!", color = GliseoSuccess, fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                                    Button(
-                                        onClick = { applyAiFields(aiResult) },
-                                        colors = ButtonDefaults.buttonColors(containerColor = GliseoSuccess),
-                                        contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 8.dp, vertical = 4.dp),
-                                        shape = RoundedCornerShape(6.dp)
-                                    ) {
-                                        Icon(imageVector = Icons.Default.Check, contentDescription = null, modifier = Modifier.size(14.dp))
-                                        Spacer(modifier = Modifier.width(4.dp))
-                                        Text("اعمال روی فرم", fontSize = 10.sp)
-                                    }
-                                }
-                                Spacer(modifier = Modifier.height(4.dp))
-                                Text(text = "متا تایتل پیشنهادی: ${aiResult.suggestedTitle}", fontSize = 11.sp)
-                                Text(text = "توضیحات متا: ${aiResult.suggestedMetaDescription}", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            }
-                        }
+                    OutlinedButton(
+                        onClick = onOpenImageStudio,
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Text("مشخصات تصویر", fontSize = 10.sp)
                     }
                 }
             }
@@ -556,7 +755,7 @@ fun ItemEditorView(
                         .padding(top = 4.dp, start = 4.dp),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    Text(text = "طول استاندارد: بین ۱۳۰ تا ۱۶۰ کاراکتر", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(text = "طول استاندارد: بین ۱۲۰ تا ۱۶۰ کاراکتر", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Text(
                         text = "${metaDescription.length}/160",
                         fontSize = 10.sp,
@@ -596,6 +795,7 @@ fun ItemEditorView(
                 Button(
                     onClick = {
                         onCommit(buildCurrentChanges(), "بهینه‌سازی سئو و فراداده")
+                        onLearnEdit(item.title, title, item.type.persianLabel)
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = GliseoPrimary),
                     shape = RoundedCornerShape(10.dp),
@@ -639,4 +839,76 @@ fun ItemEditorView(
             Spacer(modifier = Modifier.height(24.dp))
         }
     }
+}
+
+@Composable
+fun ImageStudioDialog(
+    item: SiteItem,
+    imageMeta: ImageMetadata,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(imageVector = Icons.Default.Image, contentDescription = null, tint = GliseoTertiary)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(text = "ماژول ۵: استودیو تصویر و WebP", fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                }
+                IconButton(onClick = onDismiss) {
+                    Icon(imageVector = Icons.Default.Close, contentDescription = "بستن")
+                }
+            }
+        },
+        text = {
+            Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Card(
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                    shape = RoundedCornerShape(8.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(modifier = Modifier.padding(10.dp)) {
+                        Text(text = "نام فایل بهینه‌شده سئو (انگلیسی Kebab-case):", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text(text = imageMeta.suggestedFileName, fontSize = 11.sp, color = GliseoPrimary, fontWeight = FontWeight.Bold)
+                    }
+                }
+
+                Card(
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                    shape = RoundedCornerShape(8.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(modifier = Modifier.padding(10.dp)) {
+                        Text(text = "متن جایگزین تصویر (Alt Text فارسی):", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text(text = imageMeta.persianAltText, fontSize = 11.sp)
+                    }
+                }
+
+                Card(
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                    shape = RoundedCornerShape(8.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(modifier = Modifier.padding(10.dp)) {
+                        Text(text = "مشخصات فنی فشرده‌سازی:", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                        Text(text = "• فرمت: ${imageMeta.format} (فشرده‌سازی استاندارد گوگل)", fontSize = 10.sp)
+                        Text(text = "• ابعاد بنر: ${imageMeta.dimensions}", fontSize = 10.sp)
+                        Text(text = "• حجم تقریبی: ${imageMeta.fileSizeEstimateKb} کیلوبایت (کاهش ۷۰٪ حجم بدون افت کیفیت)", fontSize = 10.sp, color = GliseoSuccess)
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            OutlinedButton(onClick = onDismiss) {
+                Text("تایید")
+            }
+        }
+    )
 }

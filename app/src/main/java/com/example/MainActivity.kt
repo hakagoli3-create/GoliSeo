@@ -72,6 +72,14 @@ fun GliseoApp(viewModel: GliseoViewModel) {
     val connectionResult by viewModel.connectionResult.collectAsState()
     val activeDiffLog by viewModel.activeDiffLog.collectAsState()
 
+    // Phase 2 State Collections
+    val brandKnowledgeBase by viewModel.brandKnowledgeBase.collectAsState()
+    val freeformPlan by viewModel.freeformPlan.collectAsState()
+    val validationResult by viewModel.activeValidationResult.collectAsState()
+    val productPackage by viewModel.productStudioPackage.collectAsState()
+    val topicSuggestions by viewModel.topicSuggestions.collectAsState()
+    val articlePreview by viewModel.generatedArticlePreview.collectAsState()
+
     val snackbarHostState = remember { SnackbarHostState() }
 
     // Collect UI messages
@@ -136,6 +144,12 @@ fun GliseoApp(viewModel: GliseoViewModel) {
                     aiOptimizing = aiOptimizing,
                     aiResult = aiResult,
                     dryRunPreviewItem = dryRunPreview,
+                    brandKnowledgeBase = brandKnowledgeBase,
+                    freeformPlan = freeformPlan,
+                    validationResult = validationResult,
+                    productPackage = productPackage,
+                    topicSuggestions = topicSuggestions,
+                    articlePreview = articlePreview,
                     onSelectItem = { item -> viewModel.selectItem(item) },
                     onGenerateAiSeo = { viewModel.generateSeoWithGemini() },
                     onRunDryRun = { changes -> viewModel.runDryRunSimulation(changes) },
@@ -143,6 +157,19 @@ fun GliseoApp(viewModel: GliseoViewModel) {
                     onCommitUpdate = { changes, reason -> viewModel.commitItemUpdate(changes, reason) },
                     onTestHardLock = { viewModel.testAttemptHardLockViolation() },
                     onEnqueueTask = { targetId, taskType -> viewModel.enqueueTask(targetId, taskType) },
+                    onExecuteFreeform = { prompt, isDryRun -> viewModel.executeFreeform(prompt, isDryRun) },
+                    onDismissFreeform = { viewModel.dismissFreeformPlan() },
+                    onPrepareProductPackage = { prodId -> viewModel.prepareProductPackage(prodId) },
+                    onApplyProductPackage = { prodId -> viewModel.applyProductPackage(prodId) },
+                    onDismissProductPackage = { viewModel.dismissProductPackage() },
+                    onBatchOptimizeProducts = { viewModel.batchOptimizeProducts() },
+                    onSelectArticleTopic = { topic -> viewModel.generateArticleFromTopic(topic) },
+                    onPublishArticle = { article -> viewModel.publishGeneratedArticle(article) },
+                    onDismissArticlePreview = { viewModel.dismissArticlePreview() },
+                    onScheduleFuture = { targetId, days, occasion -> viewModel.schedulePostFuture(targetId, days, occasion) },
+                    onValidatePrePublish = { item -> viewModel.validatePrePublish(item) },
+                    onDismissValidation = { viewModel.dismissValidationResult() },
+                    onLearnUserEdit = { original, approved, category -> viewModel.learnUserEdit(original, approved, category) },
                     modifier = Modifier.padding(innerPadding)
                 )
             }

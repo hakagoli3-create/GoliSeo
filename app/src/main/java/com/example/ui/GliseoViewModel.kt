@@ -3,19 +3,7 @@ package com.example.ui
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.data.model.AuditLog
-import com.example.data.model.AutopilotConfig
-import com.example.data.model.BrandProfile
-import com.example.data.model.BudgetTracker
-import com.example.data.model.ConnectionTestResult
-import com.example.data.model.QueuedTask
-import com.example.data.model.SecurityHardLockException
-import com.example.data.model.SiteConfig
-import com.example.data.model.SiteItem
-import com.example.data.model.SiteItemType
-import com.example.data.model.TaskType
-import com.example.data.model.UserRole
-import com.example.data.model.UserSession
+import com.example.data.model.*
 import com.example.data.remote.SeoAiResult
 import com.example.data.repository.GliseoRepository
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -96,6 +84,25 @@ class GliseoViewModel(application: Application) : AndroidViewModel(application) 
     // Diff / Rollback Dialog
     private val _activeDiffLog = MutableStateFlow<AuditLog?>(null)
     val activeDiffLog: StateFlow<AuditLog?> = _activeDiffLog.asStateFlow()
+
+    // Phase 2 StateFlows
+    val brandKnowledgeBase: StateFlow<BrandKnowledgeBase> = repository.brandKnowledgeBase
+    val scheduledPlans: StateFlow<List<ScheduledPostPlan>> = repository.scheduledPlans
+
+    private val _freeformPlan = MutableStateFlow<FreeformCommandPlan?>(null)
+    val freeformPlan: StateFlow<FreeformCommandPlan?> = _freeformPlan.asStateFlow()
+
+    private val _activeValidationResult = MutableStateFlow<ValidationCheckResult?>(null)
+    val activeValidationResult: StateFlow<ValidationCheckResult?> = _activeValidationResult.asStateFlow()
+
+    private val _productStudioPackage = MutableStateFlow<ProductOptimizationPackage?>(null)
+    val productStudioPackage: StateFlow<ProductOptimizationPackage?> = _productStudioPackage.asStateFlow()
+
+    private val _topicSuggestions = MutableStateFlow<List<ArticleTopicSuggestion>>(repository.getArticleTopicSuggestions())
+    val topicSuggestions: StateFlow<List<ArticleTopicSuggestion>> = _topicSuggestions.asStateFlow()
+
+    private val _generatedArticlePreview = MutableStateFlow<GeneratedArticle?>(null)
+    val generatedArticlePreview: StateFlow<GeneratedArticle?> = _generatedArticlePreview.asStateFlow()
 
     // Transient UI Messages
     private val _uiMessages = MutableSharedFlow<UiMessage>()
@@ -329,5 +336,110 @@ class GliseoViewModel(application: Application) : AndroidViewModel(application) 
 
     fun verifyTwoFactorCode(code: String): Boolean {
         return repository.verifyTwoFactor(code)
+    }
+
+    // --- Phase 2: Natural Language Freeform Command ---
+    fun executeFreeform(prompt: String, isDryRun: Boolean) {
+        viewModelScope.launch {
+            val plan = repository.executeFreeformCommand(prompt, isDryRun)
+            _freeformPlan.value = plan
+            if (!plan.isSafeFromHardLock) {
+                _uiMessages.emit(
+                    UiMessage(
+                        text = "🛡️ قفل سخت امنیتی: ${plan.blockedReason}",
+                        isError = true,
+                        isHardLockWarning = true
+                    )
+                )
+            } else {
+                _uiMessages.emit(UiMessage("برنامه اجرایی دستور آزاد با موفقیت ایجاد شد."))
+            }
+        }
+    }
+
+    fun dismissFreeformPlan() {
+        _freeformPlan.value = null
+    }
+
+    // --- Phase 2: Product Studio & Rank Math ---
+    fun prepareProductPackage(productId: Long) {
+        val pkg = repository.generateProductStudioPackage(productId)
+        _productStudioPackage.value = pkg
+        if (pkg != null) {
+            viewModelScope.launch {
+                _uiMessages.emit(UiMessage("پکیج سئو Rank Math، توضیحات و FAQ محصول آماده شد."))
+            }
+        }
+    }
+
+    fun applyProductPackage(productId: Long) {
+        val pkg = _productStudioPackage.value ?: return
+        viewModelScope.launch {
+            repository.applyProductStudioPackage(productId, pkg)
+            _productStudioPackage.value = null
+            _uiMessages.emit(UiMessage("پکیج بهینه‌سازی محصول با موفقیت ذخیره و در نسخه ثبت شد."))
+        }
+    }
+
+    fun dismissProductPackage() {
+        _productStudioPackage.value = null
+    }
+
+    fun batchOptimizeProducts() {
+        viewModelScope.launch {
+            repository.batchOptimizeAllProducts()
+            _uiMessages.emit(UiMessage("تمام محصولات برای بهینه‌سازی دسته‌ای در صف قرار گرفتند."))
+        }
+    }
+
+    // --- Phase 2: Article Studio & E-E-A-T ---
+    fun generateArticleFromTopic(topic: ArticleTopicSuggestion) {
+        viewModelScope.launch {
+            val article = repository.generateFullArticleFromTopic(topic)
+            _generatedArticlePreview.value = article
+            _uiMessages.emit(UiMessage("مقاله کامل بر اساس اصول E-E-A-T و ساختار H1-H3 آماده شد."))
+        }
+    }
+
+    fun publishGeneratedArticle(article: GeneratedArticle) {
+        viewModelScope.launch {
+            repository.publishNewArticle(article)
+            _generatedArticlePreview.value = null
+            _uiMessages.emit(UiMessage("مقاله با موفقیت ایجاد، اعتبارسنجی و منتشر شد."))
+        }
+    }
+
+    fun dismissArticlePreview() {
+        _generatedArticlePreview.value = null
+    }
+
+    // --- Phase 2: Scheduling & Jalali Calendar ---
+    fun schedulePostFuture(targetId: Long, daysInFuture: Int, occasion: String? = null) {
+        repository.schedulePostFuture(targetId, daysInFuture, occasion)
+        viewModelScope.launch {
+            _uiMessages.emit(UiMessage("محتوا با موفقیت با وضعیت future در وردپرس زمان‌بندی شد."))
+        }
+    }
+
+    // --- Phase 2: Pre-Publish Validation ---
+    fun validatePrePublish(item: SiteItem) {
+        val result = repository.validateItemPrePublish(item)
+        _activeValidationResult.value = result
+    }
+
+    fun dismissValidationResult() {
+        _activeValidationResult.value = null
+    }
+
+    // --- Phase 2: Continuous Learning from User Edits ---
+    fun learnUserEdit(original: String, approved: String, category: String) {
+        repository.learnFromUserEdit(original, approved, category)
+        viewModelScope.launch {
+            _uiMessages.emit(UiMessage("الگوی ویرایش شما ذخیره شد و در حافظه یادگیری گلی کالا قرار گرفت."))
+        }
+    }
+
+    fun normalizePersianText(text: String): String {
+        return repository.normalizePersianText(text)
     }
 }
