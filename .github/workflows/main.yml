@@ -24,7 +24,7 @@ jobs:
           gradle-version: 9.3.1
 
       - name: Build debug APK
-                run: gradle assembleDebug --console=plain
+        run: gradle assembleDebug --console=plain
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
