@@ -130,27 +130,50 @@ class GeminiSeoService {
         return """
             شما متخصص ارشد سئو (SEO)، کپی‌رایتر حرفه‌ای و استراتژیست محتوا برای فروشگاه اینترنتی «گلی کالا» (golikala.com) هستید.
             
-            قوانین بنیادی و الزامی هویت تجاری (عدم تخطی):
-            ۱. «گلی کالا» صرفاً نام وبسایت و فروشگاه آنلاین رسمی شماست (golikala.com) و به عنوان **نماینده رسمی و واردکننده محصولات اروپایی** شناخته می‌شود.
-            ۲. به هیچ عنوان نباید «گلی کالا» به عنوان برند سازنده یا تولیدکننده کالا درج گردد!
-            ۳. در خصوص محصولات برندهای آمالفی (Amalfi اسپانیا)، آگرادو (Agrado اسپانیا) و سایرو (Sairo اسپانیا)، سیستم باید همواره هوشمندانه در بخش‌های لازم (عنوان سئو، مقدمه یا توضیحات) ذکر نماید که:
-               «گلی کالا نماینده رسمی و انحصاری محصولات برندهای آمالفی، آگرادو و سایرو در ایران می‌باشد».
-            ۴. تحلیل پیش از نگارش: ابتدا بر اساس عنوان و اطلاعات، نوع محصول (شامپو، ماسک مو، کرم و...)، کشور سازنده، کاربرد دقیق و برند اصلی سازنده را تشخیص دهید.
-            ۵. سپس با بالاترین سطح دقت، موارد زیر را تولید کنید:
-               - عنوان سئو شده H1 (حداکثر ۶۰ کاراکتر)
-               - متن کوتاه جذاب و ترغیب‌کننده (Short Description)
-               - توضیحات کاملِ جذاب، جدول‌بندی‌شده، سئوپسند، شامل سرفصل‌های H2 و H3، جدول مشخصات کالا، بولت‌پوینت‌های تاییدشده، FAQ و بخش جمع‌بندی
-               - لینک‌سازی داخلی واقعی به وبسایت golikala.com (مانند https://golikala.com/product-category/hair-care/ یا https://golikala.com/brand/amalfi/ و...)
+            قوانین قطعی و الزامی برای ماژول بازنویسی پیشرفته سئو و تولید پیشنهاد سئو (عدم تخطی):
             
-            اطلاعات آیتم در حال ویرایش:
+            ۱. تحلیل هوشمندِ اولیه (عنوان و تصویر):
+            - به هیچ عنوان از پیش‌فرض‌ها یا الگوهای تکراری استفاده نکنید.
+            - ابتدا «عنوان موجود در سایت» و «اطلاعات و متادیتای تصویر کالا» را به دقت تحلیل کنید. نوع دقیق کالا، برند اصلی تولیدکننده و کشور مبدا را استخراج کنید. اگر اطلاعات ناکافی بود از طریق موتور جستجو بررسی کنید که این محصول دقیقاً چیست، متعلق به کدام شرکت است و در کدام کشور ساخته شده است.
+            - هرگز و تحت هیچ شرایطی نام سایت «گلی کالا» را به عنوان برند سازنده درج نکنید! «گلی کالا» صرفاً فروشگاه و نماینده/واردکننده است.
+            - در خصوص محصولات برندهای آمالفی (Amalfi)، آگرادو (Agrado) و سایرو (Sairo) ساخت اسپانیا، همواره ذکر کنید که «گلی کالا نماینده رسمی و انحصاری محصولات برندهای آمالفی، آگرادو و سایرو در ایران می‌باشد».
+            
+            ۲. تطابق صددرصدی متن کوتاه و توضیحات با ماهیت کالا (تفکیک کامل دسته‌بندی‌ها بدون تداخل):
+            - اگر محصول شوینده، جرم‌گیر، رسوب‌زدا، پاک‌کننده سطوح یا مایع ظرفشویی است (مانند پورچز / Porçöz، سیف / Cif، دامستوس و...):
+              کل متن کوتاه (Short Description)، توضیحات کامل، ویژگی‌ها، پرسش‌ها و جدول مشخصات باید منحصراً و ۱۰۰٪ درباره‌ی «مشخصات کالا، سطوح قابل استفاده (شیرآلات، کاشی، کتری، سینک)، روش صحیح استفاده، و نکات حیاتی ایمنی (استفاده از دستکش، تهویه محیط، عدم اختلاط با وایتکس یا سفیدکننده)» نوشته شود.
+              ⛔ اکیداً و به هیچ وجه نباید کلماتی مثل شامپو، مو، پوست سر، ساقه مو، روتین پوستی یا آرایشی که غیرمرتبط با شوینده سطوح است در آن به کار برود!
+            - اگر محصول مراقبت مو یا مراقبت پوست یا بهداشت فردی است، محتوا کاملاً متناسب با همان ماهیت نوشته شود.
+            
+            ۳. استخراج دقیق اطلاعات فنی در جدول مشخصات:
+            - نام و استاندارد کالا: دقیقاً منطبق با عنوان اصلی کالا.
+            - برند اصلی سازنده: نام واقعی برند (مثلاً پورچز / Porçöz، آمالفی / Amalfi و...) و به هیچ وجه نگارش نام‌های عمومی یا نام سایت.
+            - کشور مبدا و تولید: کشور واقعی سازنده (مثلاً ترکیه برای پورچز، اسپانیا برای آمالفی و آگرادو).
+            - عرضه کننده و مرجع خرید:
+              * برای آمالفی، آگرادو و سایرو: «گلی کالا (نماینده رسمی و انحصاری محصولات آمالفی، آگرادو و سایرو در ایران)»
+              * برای سایر محصولات و شوینده‌ها: «گلی کالا (واردکننده رسمی و مرجع اصالت کالا)»
+            
+            ۴. رعایت اصول سئو و لینک‌سازی داخلی واقعی به وبسایت golikala.com:
+            - ایجاد تگ H1 استاندارد بر اساس عنوان دقیق محصول.
+            - جدول‌بندی منظم و جذاب بصری.
+            - درج لینک‌های داخلی کاملاً مرتبط با همان دسته‌بندی در انتهای متن:
+              * برای شوینده‌ها: https://golikala.com/product-category/home-cleaning/ و لینک برند
+              * برای مراقبت مو: https://golikala.com/product-category/hair-care/ و لینک برند
+              * برای مراقبت پوست: https://golikala.com/product-category/skincare/
+            
+            اطلاعات آیتم در حال بررسی و تحلیل:
             نوع: ${item.type.persianLabel}
             عنوان فعلی: ${item.title}
+            تصویر شاخص کالا: ${item.featuredImageUrl.ifEmpty { "درج نشده" }}
+            متن جایگزین تصویر (Alt): ${item.imageAlt.ifEmpty { "درج نشده" }}
+            عنوان تصویر: ${item.imageTitle.ifEmpty { "درج نشده" }}
+            دسته‌بندی‌ها: ${item.categories.joinToString("، ").ifEmpty { "ندارد" }}
+            برچسب‌ها: ${item.tags.joinToString("، ").ifEmpty { "ندارد" }}
             محتوا/توضیحات فعلی: ${item.content.take(600)}
             کلمه کلیدی فعلی: ${item.focusKeyword.ifEmpty { "تعیین نشده" }}
             
             هویت فروشگاه و سیاست‌ها:
             نام فروشگاه: گلی کالا (golikala.com)
-            جایگاه: واردکننده مستقیم و نماینده رسمی و انحصاری برندهای اروپایی آمالفی، آگرادو و سایرو در ایران
+            جایگاه: واردکننده مستقیم و مرجع اصالت کالا، نماینده رسمی و انحصاری برندهای آمالفی، آگرادو و سایرو در ایران
             لحن بیان: ${brand.toneOfVoice}
             مخاطبان هدف: ${brand.targetAudience}
             کلمات ممنوعه: ${brand.forbiddenKeywords}
@@ -160,17 +183,17 @@ class GeminiSeoService {
             
             خروجی را الزاماً و منحصراً در قالب فرمت JSON زیر بازگردانید:
             {
-               "detectedBrand": "نام برند سازنده واقعی",
-               "originCountry": "کشور سازنده",
-               "productType": "نوع محصول",
-               "application": "کاربرد اصلی",
+               "detectedBrand": "نام برند سازنده واقعی (مثلاً پورچز یا آمالفی - هرگز گلی کالا نباشد)",
+               "originCountry": "کشور سازنده واقعی (مثلاً ترکیه یا اسپانیا)",
+               "productType": "نوع دقیق محصول بر پایه ماهیت کالا",
+               "application": "کاربرد دقیق و واقعی",
                "suggestedTitle": "عنوان سئو شده H1 (زیر ۶۰ کاراکتر)",
-               "suggestedShortDescription": "متن کوتاه جذاب و سئوپسند محصول",
-               "suggestedStructuredContent": "کد HTML کامل و شکیل شامل مقدمه، جدول مشخصات، H2/H3، ویژگی‌ها، FAQ و لینک‌های داخلی golikala.com",
+               "suggestedShortDescription": "متن کوتاه جذاب و سئوپسند ۱۰۰٪ منطبق با ماهیت کالا",
+               "suggestedStructuredContent": "کد HTML کامل و شکیل شامل مقدمه، جدول مشخصات، H2/H3، ویژگی‌ها، FAQ و لینک‌های داخلی مرتبط golikala.com",
                "suggestedMetaDescription": "توضیحات متا جذاب بین ۱۳۰ تا ۱۵۵ کاراکتر",
                "suggestedFocusKeyword": "کلمه کلیدی کانونی برتر",
                "suggestedSchemaJson": "کد JSON-LD معتبر اسکیما",
-               "suggestedImageAlt": "متن جایگزین استاندارد تصویر",
+               "suggestedImageAlt": "متن جایگزین استاندارد تصویر منطبق با نام کالا و برند",
                "seoScoreImprovement": 95,
                "groundingSummary": "تحلیل هوشمند رقبای گوگل و ترندهای خرید آنلاین در وب فارسی",
                "internalLinks": [
@@ -201,9 +224,21 @@ class GeminiSeoService {
                 }
             }
 
-            val detectedBrand = obj.optString("detectedBrand", "")
+            var detectedBrand = obj.optString("detectedBrand", "").trim()
+            if (detectedBrand.isEmpty() || detectedBrand == "گلی کالا" || detectedBrand == "golikala") {
+                val pkgFallback = ContentModuleProcessor.generateProductPackage(originalItem)
+                detectedBrand = pkgFallback.detectedBrand
+            }
+
             val isAgency = detectedBrand.contains("آمالفی") || detectedBrand.contains("آگرادو") || detectedBrand.contains("سایرو") ||
                 detectedBrand.contains("Amalfi") || detectedBrand.contains("Agrado") || detectedBrand.contains("Sairo")
+
+            val suggestedStructured = obj.optString("suggestedStructuredContent", "")
+            val finalStructuredContent = if (suggestedStructured.isNotBlank()) {
+                suggestedStructured
+            } else {
+                ContentModuleProcessor.generateProductPackage(originalItem).structuredHtmlContent
+            }
 
             SeoAiResult(
                 suggestedTitle = PersianNormalizer.normalize(obj.optString("suggestedTitle", originalItem.title)),
@@ -211,17 +246,17 @@ class GeminiSeoService {
                 suggestedFocusKeyword = PersianNormalizer.normalize(obj.optString("suggestedFocusKeyword", originalItem.focusKeyword.ifEmpty { "خرید آنلاین" })),
                 suggestedSchemaJson = obj.optString("suggestedSchemaJson", generateStandardSchema(originalItem)),
                 suggestedImageAlt = PersianNormalizer.normalize(obj.optString("suggestedImageAlt", "تصویر باکیفیت از ${originalItem.title} در گلی کالا")),
-                seoScoreImprovement = obj.optInt("seoScoreImprovement", 94),
-                groundingSummary = obj.optString("groundingSummary", "اعتبارسنجی شده با نتایج زنده جستجوی Google Search Grounding"),
+                seoScoreImprovement = obj.optInt("seoScoreImprovement", 95),
+                groundingSummary = obj.optString("groundingSummary", "تحلیل پیش از نگارش عنوان و متادیتای بصری تصویر با Google Search Grounding"),
                 tokenCost = 880,
                 suggestedShortDescription = PersianNormalizer.normalize(obj.optString("suggestedShortDescription", "")),
-                suggestedStructuredContent = obj.optString("suggestedStructuredContent", ""),
+                suggestedStructuredContent = finalStructuredContent,
                 detectedBrand = detectedBrand,
-                detectedCountry = obj.optString("originCountry", "اسپانیا / اتحادیه اروپا"),
-                detectedProductType = obj.optString("productType", "محصول مراقبتی پوست و مو"),
-                detectedApplication = obj.optString("application", "مراقبت تخصصی روزانه"),
+                detectedCountry = obj.optString("originCountry", "اروپا / استانداردهای بین‌المللی"),
+                detectedProductType = obj.optString("productType", "محصول تخصصی با ضمانت اصالت فیزیکی"),
+                detectedApplication = obj.optString("application", "کاربرد استاندارد و تخصصی کالا"),
                 isOfficialAgencyBrand = isAgency,
-                agencyStatement = if (isAgency) "گلی کالا نماینده رسمی و انحصاری محصولات برندهای آمالفی، آگرادو و سایرو در ایران می‌باشد." else "",
+                agencyStatement = if (isAgency) "گلی کالا نماینده رسمی و انحصاری محصولات برندهای آمالفی، آگرادو و سایرو در ایران می‌باشد." else "گلی کالا (واردکننده رسمی و مرجع اصالت کالا)",
                 internalLinks = if (linksList.isNotEmpty()) linksList else ContentModuleProcessor.generateProductPackage(originalItem).internalLinks
             )
         } catch (e: Exception) {

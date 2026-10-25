@@ -274,6 +274,31 @@ class GliseoRepository(private val context: Context) {
                 imageTitle = "کرم دست و ناخن سایرو در گلی کالا",
                 seoScore = 83
             ),
+            SiteItem(
+                id = 109,
+                title = "رسوب‌زدا و جرم‌گیر شیرآلات و سطوح پورچز (Porçöz) اصل ترکیه",
+                content = "محلول رسوب‌زدا و جرم‌گیر پرقدرت پورچز ساخت کمپانی لونت کیمیا (Levent Kimya) ترکیه. گلی کالا به عنوان واردکننده رسمی و مرجع اصالت کالا این محصول را با تضمین ۱۰۰٪ اصالت فیزیکی عرضه می‌نماید. پاکسازی سریع رسوبات آهکی کهنه، جرم کاشی و سرامیک و رسوب کتری و چای‌ساز بدون آسیب به لعاب استاندارد سطوح.",
+                excerpt = "رسوب‌زدایی فوری و درخشان‌کننده شیرآلات، کاشی، سینک و کتری با جرم‌گیر پورچز اصل ترکیه، تضمین ۱۰۰٪ اصالت کالا در گلی کالا.",
+                slug = "porcoz-limescale-rust-remover-turkey",
+                categories = listOf("بهداشت و نظافت منزل", "شوینده و رسوب‌زدا", "محصولات پورچز"),
+                tags = listOf("پورچز", "جرم گیر", "رسوب زدا", "ترکیه", "شوینده شیرآلات"),
+                regularPrice = "۲۶۰٬۰۰۰ تومان",
+                salePrice = "۲۲۰٬۰۰۰ تومان",
+                stockStatus = "instock",
+                sku = "GLS-PRC-109",
+                type = SiteItemType.PRODUCT,
+                focusKeyword = "جرم‌گیر پورچز اصل ترکیه",
+                secondaryKeywords = listOf("رسوب‌زدا پورچز ترکیه", "خرید پورچز اصل گلی کالا"),
+                metaTitle = "رسوب‌زدا و جرم‌گیر پورچز اصل ترکیه | گلی کالا",
+                metaDescription = "خرید رسوب‌زدا و جرم‌گیر پورچز اصل ترکیه با ضمانت اصالت ۱۰۰٪ در گلی کالا. مشخصات فنی، روش مصرف، نکات ایمنی و ارسال فوری به سراسر ایران.",
+                canonicalUrl = "https://golikala.com/product/porcoz-limescale-rust-remover-turkey",
+                schemaType = "Product",
+                schemaJson = """{"@context":"https://schema.org","@type":"Product","name":"رسوب‌زدا و جرم‌گیر پورچز اصل ترکیه"}""",
+                imageAlt = "بطری قرمز رسوب‌زدا و جرم‌گیر پورچز اصل ساخت ترکیه",
+                imageTitle = "رسوب‌زدا و جرم‌گیر پورچز در گلی کالا",
+                featuredImageUrl = "https://golikala.com/wp-content/uploads/porcoz-descaler-turkey.webp",
+                seoScore = 85
+            ),
 
             // --- WordPress Posts & Articles ---
             SiteItem(

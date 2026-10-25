@@ -510,7 +510,7 @@ class GliseoViewModel(application: Application) : AndroidViewModel(application) 
             val aiResult = repository.generateSeoForCurrentItem(item.id)
             _aiOptimizing.value = false
             if (aiResult != null) {
-                val changes = mapOf(
+                val changes = mutableMapOf<String, Any?>(
                     "metaTitle" to aiResult.suggestedTitle,
                     "metaDescription" to aiResult.suggestedMetaDescription,
                     "focusKeyword" to aiResult.suggestedFocusKeyword,
@@ -518,8 +518,17 @@ class GliseoViewModel(application: Application) : AndroidViewModel(application) 
                     "imageAlt" to aiResult.suggestedImageAlt,
                     "seoScore" to aiResult.seoScoreImprovement
                 )
+                if (aiResult.suggestedTitle.isNotBlank()) {
+                    changes["title"] = aiResult.suggestedTitle
+                }
+                if (aiResult.suggestedShortDescription.isNotBlank()) {
+                    changes["excerpt"] = aiResult.suggestedShortDescription
+                }
+                if (aiResult.suggestedStructuredContent.isNotBlank()) {
+                    changes["content"] = aiResult.suggestedStructuredContent
+                }
                 commitItemUpdate(changes, "بهینه‌سازی کامل خودکار با هوش مصنوعی و سئو Rank Math")
-                _uiMessages.emit(UiMessage("کل اطلاعات و سئوی «${item.title}» هوشمندانه بهینه‌سازی شد."))
+                _uiMessages.emit(UiMessage("کل اطلاعات، محتوا و سئوی «${item.title}» هوشمندانه بازنویسی و بهینه‌سازی شد."))
             } else {
                 _uiMessages.emit(UiMessage("خطا در بهینه‌سازی با هوش مصنوعی.", isError = true))
             }

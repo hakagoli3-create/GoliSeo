@@ -137,6 +137,76 @@ class ExampleUnitTest {
     assertTrue("Must link to real golikala.com category or brand", structuredHtml.contains("https://golikala.com/"))
     assertTrue("Must have brand reference", structuredHtml.contains("آمالفی"))
   }
+
+  @Test
+  fun testPorcozDetergentCategoryIsolationAndSpecs() {
+    val porcozItem = SiteItem(
+      id = 109,
+      title = "رسوب‌زدا و جرم‌گیر شیرآلات و سطوح پورچز (Porçöz) اصل ترکیه",
+      content = "محلول رسوب‌زدا و جرم‌گیر پرقدرت پورچز ساخت ترکیه برای تمیز کردن شیرآلات و رسوب کتری.",
+      slug = "porcoz-limescale-remover",
+      categories = listOf("شوینده و نظافت", "جرم گیر"),
+      imageAlt = "بطری قرمز رسوب‌زدا و جرم‌گیر پورچز اصل ساخت ترکیه",
+      type = SiteItemType.PRODUCT
+    )
+
+    // 1. Smart Initial Analysis
+    val analysis = ContentModuleProcessor.analyzeProductBeforeWriting(porcozItem)
+    assertEquals("پورچز (Porçöz)", analysis.detectedBrand)
+    assertTrue("Origin country must be Turkey", analysis.originCountry.contains("ترکیه"))
+    assertTrue("Must flag as detergent/cleaner", analysis.isDetergentOrCleaner)
+    assertFalse("Must NOT be official agency brand", analysis.isOfficialAgencyBrand)
+
+    // 2. Package generation & 100% Category Alignment (Zero cross-contamination)
+    val pkg = ContentModuleProcessor.generateProductPackage(porcozItem, BrandKnowledgeBase())
+
+    // CRITICAL: Absolutely NO hair/shampoo/scalp/facial terms
+    val fullTextToCheck = pkg.shortDescription + " " + pkg.fullDescription + " " +
+        pkg.features.joinToString(" ") + " " + pkg.safetyWarning + " " +
+        pkg.structuredHtmlContent
+
+    assertFalse("Must NOT contain shampoo", fullTextToCheck.contains("شامپو"))
+    assertFalse("Must NOT contain hair", fullTextToCheck.contains("موهای") || fullTextToCheck.contains("ساقه مو"))
+    assertFalse("Must NOT contain scalp", fullTextToCheck.contains("پوست سر"))
+    assertFalse("Must NOT contain keratin", fullTextToCheck.contains("کراتین"))
+    assertFalse("Must NOT contain skincare routine", fullTextToCheck.contains("روتین پوستی"))
+
+    // Must contain cleaning and safety terms
+    assertTrue("Must mention limescale/descaling", fullTextToCheck.contains("رسوب") || fullTextToCheck.contains("جرم"))
+    assertTrue("Must mention gloves safety precaution", fullTextToCheck.contains("دستکش"))
+    assertTrue("Must warn against mixing with bleach (وایتکس)", fullTextToCheck.contains("وایتکس") || fullTextToCheck.contains("سفیدکننده"))
+
+    // 3. Technical Extraction Table: Exact required keys
+    val specsMap = pkg.specificationsTable.toMap()
+    assertTrue("Specs must contain 'نام و استاندارد کالا'", specsMap.containsKey("نام و استاندارد کالا"))
+    assertTrue("Specs must contain 'برند اصلی سازنده'", specsMap.containsKey("برند اصلی سازنده"))
+    assertEquals("پورچز (Porçöz)", specsMap["برند اصلی سازنده"])
+    assertTrue("Specs must contain 'کشور مبدا و تولید'", specsMap.containsKey("کشور مبدا و تولید"))
+    assertTrue("Country must be Turkey", specsMap["کشور مبدا و تولید"]?.contains("ترکیه") == true)
+    assertTrue("Specs must contain 'عرضه کننده و مرجع خرید'", specsMap.containsKey("عرضه کننده و مرجع خرید"))
+    assertEquals("گلی کالا (واردکننده رسمی و مرجع اصالت کالا)", specsMap["عرضه کننده و مرجع خرید"])
+
+    // 4. Category-appropriate internal links
+    assertTrue("Internal links must exist", pkg.internalLinks.isNotEmpty())
+    assertTrue(
+      "Must link to cleaning category or porcoz brand, NOT hair care",
+      pkg.internalLinks.any { it.targetUrl.contains("home-cleaning") || it.targetUrl.contains("porcoz") }
+    )
+    assertFalse(
+      "Must NOT link to hair care for detergent",
+      pkg.internalLinks.any { it.targetUrl.contains("hair-care") }
+    )
+  }
+
+  @Test
+  fun testInternalLinksHelperMatchesCategory() {
+    val cleaningLinksHtml = ContentModuleProcessor.buildRealGolikalaInternalLinksHtml("جرم‌گیر و رسوب‌زدای پورچز ترکیه")
+    assertTrue(cleaningLinksHtml.contains("home-cleaning") || cleaningLinksHtml.contains("porcoz"))
+    assertFalse(cleaningLinksHtml.contains("hair-care"))
+
+    val hairLinksHtml = ContentModuleProcessor.buildRealGolikalaInternalLinksHtml("ماسک مو کراتینه آمالفی اسپانیا")
+    assertTrue(hairLinksHtml.contains("hair-care") || hairLinksHtml.contains("amalfi"))
+  }
 }
 
 
