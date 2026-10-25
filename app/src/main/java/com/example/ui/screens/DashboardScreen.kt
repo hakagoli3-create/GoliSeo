@@ -31,6 +31,7 @@ import androidx.compose.material.icons.filled.RateReview
 import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.filled.ShoppingBag
+import androidx.compose.material.icons.filled.Sync
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -84,6 +85,8 @@ fun DashboardScreen(
     onTestConnection: () -> Unit,
     onTestHardLock: () -> Unit,
     onViewLog: (AuditLog) -> Unit,
+    onSyncSite: () -> Unit = {},
+    isSyncing: Boolean = false,
     modifier: Modifier = Modifier
 ) {
     val productCount = items.count { it.type == SiteItemType.PRODUCT }
@@ -101,6 +104,8 @@ fun DashboardScreen(
             SiteHealthBanner(
                 siteConfig = siteConfig,
                 onTestConnection = onTestConnection,
+                onSyncSite = onSyncSite,
+                isSyncing = isSyncing,
                 onConfigure = { onNavigate(AppNavDestination.SETTINGS_SECURITY) }
             )
         }
@@ -218,6 +223,8 @@ fun DashboardScreen(
 fun SiteHealthBanner(
     siteConfig: SiteConfig,
     onTestConnection: () -> Unit,
+    onSyncSite: () -> Unit,
+    isSyncing: Boolean,
     onConfigure: () -> Unit
 ) {
     Card(
@@ -259,31 +266,46 @@ fun SiteHealthBanner(
 
             Spacer(modifier = Modifier.height(8.dp))
             Text(
-                text = "WordPress REST + WooCommerce v3 آماده پردازش و ممیزی سئو با جمینای.",
+                text = "WordPress REST + WooCommerce v3 متصل و آماده استخراج و ممیزی سئو زنده.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Button(
                     onClick = onTestConnection,
                     colors = ButtonDefaults.buttonColors(containerColor = GliseoPrimary),
                     shape = RoundedCornerShape(8.dp),
-                    contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 12.dp, vertical = 6.dp)
+                    contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 10.dp, vertical = 6.dp)
                 ) {
                     Icon(imageVector = Icons.Default.CloudSync, contentDescription = null, modifier = Modifier.size(16.dp))
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text(text = "تست اتصال زنده", fontSize = 12.sp)
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(text = "تست اتصال زنده", fontSize = 11.sp)
+                }
+
+                Button(
+                    onClick = onSyncSite,
+                    colors = ButtonDefaults.buttonColors(containerColor = GliseoSecondary),
+                    shape = RoundedCornerShape(8.dp),
+                    contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 10.dp, vertical = 6.dp)
+                ) {
+                    if (isSyncing) {
+                        CircularProgressIndicator(modifier = Modifier.size(14.dp), color = Color.White, strokeWidth = 2.dp)
+                    } else {
+                        Icon(imageVector = Icons.Default.Sync, contentDescription = null, modifier = Modifier.size(16.dp))
+                    }
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(text = if (isSyncing) "در حال دریافت..." else "همگام‌سازی زنده", fontSize = 11.sp)
                 }
 
                 OutlinedButton(
                     onClick = onConfigure,
                     shape = RoundedCornerShape(8.dp),
-                    contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 12.dp, vertical = 6.dp)
+                    contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 10.dp, vertical = 6.dp)
                 ) {
-                    Text(text = "تنظیمات کلیدها", fontSize = 12.sp)
+                    Text(text = "تنظیمات کلیدها", fontSize = 11.sp)
                 }
             }
         }

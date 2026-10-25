@@ -134,6 +134,8 @@ fun GliseoApp(viewModel: GliseoViewModel) {
                     onTestConnection = { viewModel.runConnectionTest() },
                     onTestHardLock = { viewModel.testAttemptHardLockViolation() },
                     onViewLog = { log -> viewModel.viewDiffLog(log) },
+                    onSyncSite = { viewModel.syncWithSite() },
+                    isSyncing = isSyncing,
                     modifier = Modifier.padding(innerPadding)
                 )
             }

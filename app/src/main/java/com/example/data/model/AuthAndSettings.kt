@@ -14,12 +14,12 @@ data class UserSession(
 )
 
 data class SiteConfig(
-    val siteUrl: String = "https://my-store.example.com",
-    val wpUsername: String = "gliseo_bot",
-    val wpAppPassword: String = "xxxx yyyy zzzz wwww",
-    val wcConsumerKey: String = "ck_1234567890abcdef",
-    val wcConsumerSecret: String = "cs_0987654321fedcba",
-    val isDemoMode: Boolean = true // Seamlessly allows real site + demo mock mode
+    val siteUrl: String = "https://golikala.com",
+    val wpUsername: String = "newadmin",
+    val wpAppPassword: String = "pmqi awuG sAZA oPQU HZBr ulz2",
+    val wcConsumerKey: String = "",
+    val wcConsumerSecret: String = "",
+    val isDemoMode: Boolean = false // Real connection to golikala.com active by default
 )
 
 data class ConnectionTestResult(
@@ -46,9 +46,9 @@ data class BudgetTracker(
 }
 
 data class BrandProfile(
-    val brandName: String = "فروشگاه آنلاین گلیسئو",
-    val toneOfVoice: String = "حرفه‌ای، معتمد، شیوا و راهنما",
-    val targetAudience: String = "خریداران هوشمند و جویای کیفیت برتر در بازار وب فارسی",
-    val forbiddenKeywords: String = "ارزان‌ترین، ۱۰۰٪ معجزه، بدون رقیب",
-    val competitiveAdvantage: String = "تضمین اصالت کالا، مشاوره رایگان تخصصی، ارسال فوری"
+    val brandName: String = "گلی کالا (GoliKala)",
+    val toneOfVoice: String = "تخصصی، صادقانه، بهداشتی و مورد اعتماد خریداران بازار زیبایی و سلامت",
+    val targetAudience: String = "خریداران و مصرف‌کنندگان محصولات مراقبت از پوست، مو و بهداشت فردی اصل اروپایی",
+    val forbiddenKeywords: String = "ارزان‌ترین، ۱۰۰٪ معجزه، بدون رقیب، درمان قطعی",
+    val competitiveAdvantage: String = "نماینده رسمی برندهای آمالفی، اگرادو و سایرو در ایران، تضمین اصالت ۱۰۰٪ کالا"
 )
