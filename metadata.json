@@ -1,0 +1,6 @@
+{
+  "name": "گلیسئو",
+  "description": "سامانه مدیریت سئو و سایت وردپرس و ووکامرس همراه با خلبان خودکار جمینای و قفل سخت امنیتی",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
