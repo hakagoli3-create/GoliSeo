@@ -72,4 +72,21 @@ class ExampleRobolectricTest {
     val violations = HardLockValidator.inspectRawPayload(jsonPayload)
     assertTrue(violations.contains("sale_price"))
   }
+
+  @Test
+  fun `verify elementor template builder generates valid data and json`() {
+    val design = com.example.data.model.ElementorTemplateBuilder.generateDesignForPage(
+      pageTitle = "درباره فروشگاه ما",
+      pageType = com.example.data.model.ElementorPageType.ABOUT_US,
+      brandKnowledge = com.example.data.model.BrandKnowledgeBase()
+    )
+    assertTrue(design.title.contains("درباره"))
+    assertTrue(design.sections.isNotEmpty())
+    assertTrue(design.elementorJson.contains("\"elType\":\"section\""))
+    assertTrue(design.elementorJson.contains("widgetType"))
+    assertTrue(design.semanticHtml.contains("elementor-custom-page"))
+    assertTrue(design.recommendedRankMathTitle.contains("درباره") || design.recommendedRankMathTitle.contains("Rank Math"))
+  }
 }
+
+

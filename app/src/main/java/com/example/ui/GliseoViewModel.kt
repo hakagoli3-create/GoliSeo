@@ -83,6 +83,7 @@ class GliseoViewModel(application: Application) : AndroidViewModel(application) 
 
     private val _isSyncing = MutableStateFlow(false)
     val isSyncing: StateFlow<Boolean> = _isSyncing.asStateFlow()
+    val syncStatusMessage: StateFlow<String> = repository.syncStatusMessage
 
     // Diff / Rollback Dialog
     private val _activeDiffLog = MutableStateFlow<AuditLog?>(null)
@@ -478,6 +479,53 @@ class GliseoViewModel(application: Application) : AndroidViewModel(application) 
         viewModelScope.launch {
             repository.addNewSiteItem(title, content, type, focusKeyword, excerpt, regularPrice)
             _uiMessages.emit(UiMessage("${type.persianLabel} جدید با موفقیت ایجاد و اعتبارسنجی شد."))
+        }
+    }
+
+    fun applyElementorDesign(item: SiteItem, design: ElementorPageDesign) {
+        viewModelScope.launch {
+            repository.applyElementorDesignToPage(item.id, design)
+            _uiMessages.emit(UiMessage("طراحی قالب المنتور بر روی «${item.title}» با موفقیت اعمال شد."))
+        }
+    }
+
+    fun createNewElementorPage(design: ElementorPageDesign) {
+        viewModelScope.launch {
+            repository.createNewElementorPage(design)
+            _uiMessages.emit(UiMessage("برگه جدید المنتور با عنوان «${design.title}» در وردپرس ایجاد شد."))
+        }
+    }
+
+    fun autoOptimizeFullItem(item: SiteItem) {
+        viewModelScope.launch {
+            _aiOptimizing.value = true
+            val aiResult = repository.generateSeoForCurrentItem(item.id)
+            _aiOptimizing.value = false
+            if (aiResult != null) {
+                val changes = mapOf(
+                    "metaTitle" to aiResult.suggestedTitle,
+                    "metaDescription" to aiResult.suggestedMetaDescription,
+                    "focusKeyword" to aiResult.suggestedFocusKeyword,
+                    "schemaJson" to aiResult.suggestedSchemaJson,
+                    "imageAlt" to aiResult.suggestedImageAlt,
+                    "seoScore" to aiResult.seoScoreImprovement
+                )
+                commitItemUpdate(changes, "بهینه‌سازی کامل خودکار با هوش مصنوعی و سئو Rank Math")
+                _uiMessages.emit(UiMessage("کل اطلاعات و سئوی «${item.title}» هوشمندانه بهینه‌سازی شد."))
+            } else {
+                _uiMessages.emit(UiMessage("خطا در بهینه‌سازی با هوش مصنوعی.", isError = true))
+            }
+        }
+    }
+
+    fun batchOptimizeTabItems(type: SiteItemType?) {
+        viewModelScope.launch {
+            val targets = if (type == null) items.value else items.value.filter { it.type == type }
+            for (it in targets) {
+                repository.queueTask(it.id, TaskType.SEO_META)
+            }
+            val label = type?.persianLabel ?: "تمام آیتم‌ها"
+            _uiMessages.emit(UiMessage("تمام $label (${targets.size} مورد) برای بهینه‌سازی خودکار در صف قرار گرفتند."))
         }
     }
 

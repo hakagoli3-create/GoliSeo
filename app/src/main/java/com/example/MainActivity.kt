@@ -80,6 +80,7 @@ fun GliseoApp(viewModel: GliseoViewModel) {
     val topicSuggestions by viewModel.topicSuggestions.collectAsState()
     val articlePreview by viewModel.generatedArticlePreview.collectAsState()
     val isSyncing by viewModel.isSyncing.collectAsState()
+    val syncStatusMessage by viewModel.syncStatusMessage.collectAsState()
 
     val snackbarHostState = remember { SnackbarHostState() }
 
@@ -175,9 +176,14 @@ fun GliseoApp(viewModel: GliseoViewModel) {
                     onLearnUserEdit = { original, approved, category -> viewModel.learnUserEdit(original, approved, category) },
                     onSyncSite = { viewModel.syncWithSite() },
                     isSyncing = isSyncing,
+                    syncStatusMessage = syncStatusMessage,
                     onGenerateCustomArticle = { title, keyword, instr -> viewModel.generateCustomArticle(title, keyword, instr) },
                     onAddNewContent = { title, content, type, keyword, excerpt, price -> viewModel.addNewContent(title, content, type, keyword, excerpt, price) },
                     onScheduleArticle = { article, days, occ -> viewModel.publishGeneratedArticleWithStatus(article, "future") },
+                    onApplyElementorDesign = { item, design -> viewModel.applyElementorDesign(item, design) },
+                    onCreateElementorPage = { design -> viewModel.createNewElementorPage(design) },
+                    onAutoOptimizeFullItem = { item -> viewModel.autoOptimizeFullItem(item) },
+                    onBatchOptimizeTab = { type -> viewModel.batchOptimizeTabItems(type) },
                     modifier = Modifier.padding(innerPadding)
                 )
             }

@@ -58,6 +58,9 @@ class GliseoRepository(private val context: Context) {
     private val _brandKnowledgeBase = MutableStateFlow(BrandKnowledgeBase())
     val brandKnowledgeBase = _brandKnowledgeBase.asStateFlow()
 
+    private val _syncStatusMessage = MutableStateFlow("")
+    val syncStatusMessage = _syncStatusMessage.asStateFlow()
+
     private val _scheduledPlans = MutableStateFlow<List<ScheduledPostPlan>>(
         listOf(
             ScheduledPostPlan(
@@ -83,73 +86,349 @@ class GliseoRepository(private val context: Context) {
 
     private fun loadInitialMockData() {
         val initialItems = listOf(
+            // --- WooCommerce Products ---
             SiteItem(
                 id = 101,
-                title = "کرم آبرسان و مرطوب‌کننده هیالورونیک اسید",
-                content = "کرم آبرسان عمقی پوست حاوی هیالورونیک اسید خالص و ویتامین B5 جهت حفظ شادابی و جوانی پوست صورت.",
-                excerpt = "آبرسانی قوی و تغذیه‌کننده پوست با جذب فوق‌العاده سریع.",
+                title = "کرم آبرسان و مرطوب‌کننده قوی هیالورونیک اسید",
+                content = "کرم آبرسان عمقی پوست حاوی هیالورونیک اسید خالص چندمولکولی و ویتامین B5 جهت حفظ شادابی، قوام و جوانی بافت پوست صورت.",
+                excerpt = "آبرسانی قوی و تغذیه‌کننده پوست با جذب فوق‌العاده سریع بدون چربی.",
                 slug = "hyaluronic-acid-moisturizer",
-                categories = listOf("مراقبت از پوست", "مرطوب‌کننده"),
+                categories = listOf("مراقبت از پوست", "مرطوب‌کننده و آبرسان"),
+                tags = listOf("هیالورونیک اسید", "پوست خشک", "آبرسان قوی"),
                 regularPrice = "۴۸۰٬۰۰۰ تومان",
                 salePrice = "۳۹۰٬۰۰۰ تومان",
+                stockStatus = "instock",
+                sku = "GLS-HA-101",
                 type = SiteItemType.PRODUCT,
                 focusKeyword = "کرم آبرسان هیالورونیک اسید",
-                metaTitle = "خرید کرم آبرسان قوی هیالورونیک اسید | گلیسئو",
+                secondaryKeywords = listOf("بهترین آبرسان پوست", "کرم مرطوب کننده صورت"),
+                metaTitle = "خرید کرم آبرسان قوی هیالورونیک اسید اصل | گلیسئو",
                 metaDescription = "خرید اینترنتی کرم آبرسان و جوانساز هیالورونیک اسید با بالاترین کیفیت، ارسال فوری و ضمانت اصالت کالا در فروشگاه گلیسئو.",
-                schemaJson = """{"@context":"https://schema.org","@type":"Product","name":"کرم آبرسان هیالورونیک اسید"}""",
-                imageAlt = "بسته‌بندی کرم آبرسان هیالورونیک اسید",
-                seoScore = 74
+                canonicalUrl = "https://example.com/product/hyaluronic-acid-moisturizer",
+                schemaType = "Product",
+                schemaJson = """{"@context":"https://schema.org","@type":"Product","name":"کرم آبرسان هیالورونیک اسید","offers":{"@type":"Offer","price":"390000","priceCurrency":"IRR","availability":"https://schema.org/InStock"}}""",
+                imageAlt = "بسته‌بندی قوطی شیشه‌ای کرم آبرسان هیالورونیک اسید",
+                imageTitle = "کرم آبرسان هیالورونیک اسید گلیسئو",
+                seoScore = 84
             ),
             SiteItem(
                 id = 102,
-                title = "سرم ویتامین C روشن‌کننده و ضد لک قوی",
-                content = "سرم غلیظ حاوی ۲۰ درصد ویتامین C فعال برای رفع لک‌های پوستی، یکنواخت‌سازی رنگ چهره و افزایش کلاژن‌سازی طبیعی.",
-                excerpt = "سرم غنی‌شده با آنتی‌اکسیدان قوی برای درخشش و شفافیت پوست.",
+                title = "سرم ویتامین C روشن‌کننده و ضد لک قوی ۲۰٪",
+                content = "سرم غلیظ آنتی‌اکسیدان حاوی ۲۰ درصد ویتامین C فعال و اسید فرولیک برای رفع تیرگی، یکنواخت‌سازی تناژ رنگ چهره و تحریک سنتز کلاژن طبیعی.",
+                excerpt = "سرم غنی‌شده با آنتی‌اکسیدان برای درخشش، شفافیت و محو لک‌های تیره.",
                 slug = "vitamin-c-brightening-serum",
-                categories = listOf("سرم پوست", "ضد لک"),
+                categories = listOf("سرم پوست", "ضد لک و روشن‌کننده"),
+                tags = listOf("ویتامین C", "ضد لک", "روشن کننده"),
                 regularPrice = "۶۵۰٬۰۰۰ تومان",
-                salePrice = "",
+                salePrice = "۵۸۰٬۰۰۰ تومان",
+                stockStatus = "instock",
+                sku = "GLS-VC-102",
                 type = SiteItemType.PRODUCT,
                 focusKeyword = "سرم ویتامین C ضد لک",
-                metaTitle = "سرم ویتامین C ضد لک و روشن‌کننده پوست",
-                metaDescription = "بهترین سرم ویتامین C خالص برای از بین بردن لک‌ها و روشن شدن پوست با مشاوره رایگان.",
-                schemaJson = """{"@context":"https://schema.org","@type":"Product","name":"سرم ویتامین C"}""",
-                imageAlt = "قطره‌چکان سرم ویتامین C روی پس‌زمینه شفاف",
-                seoScore = 62
+                secondaryKeywords = listOf("روشن کننده پوست صورت", "سرم ضد لک قوی"),
+                metaTitle = "سرم ویتامین C ضد لک و روشن‌کننده پوست | گلیسئو",
+                metaDescription = "بهترین سرم ویتامین C خالص برای از بین بردن لک‌ها و روشن شدن پوست با ارسال فوری و مشاوره رایگان.",
+                canonicalUrl = "https://example.com/product/vitamin-c-brightening-serum",
+                schemaType = "Product",
+                schemaJson = """{"@context":"https://schema.org","@type":"Product","name":"سرم ویتامین C","offers":{"@type":"Offer","price":"580000","priceCurrency":"IRR","availability":"https://schema.org/InStock"}}""",
+                imageAlt = "قطره‌چکان سرم ویتامین C با پس‌زمینه شفاف مینیمال",
+                imageTitle = "سرم ویتامین C ضد لک گلیسئو",
+                seoScore = 78
             ),
+            SiteItem(
+                id = 103,
+                title = "کرم ضد آفتاب فیوژن واتر SPF 50+ بی‌رنگ",
+                content = "ضد آفتاب بر پایه آب با جذب فوری و بدون رد سفیدی، محافظت کامل در برابر اشعه‌های UVA و UVB و مناسب انواع پوست حتی چرب و مستعد آکنه.",
+                excerpt = "بافت سبک بر پایه آب بدون مسدود کردن منافذ و مقاوم در برابر تعریق.",
+                slug = "fusion-water-sunscreen-spf50",
+                categories = listOf("مراقبت از پوست", "ضد آفتاب"),
+                tags = listOf("ضد آفتاب", "فیوژن واتر", "SPF50"),
+                regularPrice = "۵۴۰٬۰۰۰ تومان",
+                salePrice = "",
+                stockStatus = "instock",
+                sku = "GLS-SUN-103",
+                type = SiteItemType.PRODUCT,
+                focusKeyword = "ضد آفتاب فیوژن واتر بی‌رنگ",
+                metaTitle = "خرید کرم ضد آفتاب فیوژن واتر SPF 50+ اصل | گلیسئو",
+                metaDescription = "خرید اینترنتی ضد آفتاب بی‌رنگ فیوژن واتر سبک با محافظت حداکثری و ضمانت اصالت فیزیکی.",
+                schemaType = "Product",
+                schemaJson = """{"@context":"https://schema.org","@type":"Product","name":"ضد آفتاب فیوژن واتر"}""",
+                imageAlt = "بسته‌بندی ضد آفتاب فیوژن واتر بی‌رنگ",
+                seoScore = 82
+            ),
+            SiteItem(
+                id = 104,
+                title = "ژل شستشوی صورت کنترل چربی حاوی سالیسیلیک اسید ۲٪",
+                content = "ژل شوینده ملایم ضد جوش و پاک‌کننده عمقی چربی اضافی و سلول‌های مرده سطح پوست، مهار باکتری‌های مولد آکنه بدون ایجاد حس کشیدگی.",
+                excerpt = "شستشوی عمقی منافذ و مهار جوش‌های سرسیاه و زیرپوستی.",
+                slug = "salicylic-acid-face-cleanser",
+                categories = listOf("شستشو و پاک‌کننده", "مراقبت از پوست"),
+                tags = listOf("شوینده صورت", "سالیسیلیک اسید", "ضد جوش"),
+                regularPrice = "۳۶۰٬۰۰۰ تومان",
+                salePrice = "۳۱۰٬۰۰۰ تومان",
+                stockStatus = "instock",
+                sku = "GLS-SA-104",
+                type = SiteItemType.PRODUCT,
+                focusKeyword = "ژل شستشوی سالیسیلیک اسید",
+                metaTitle = "ژل شستشوی ضد جوش سالیسیلیک اسید | گلیسئو",
+                metaDescription = "کنترل چربی و پاکسازی عمقی منافذ با ژل شوینده سالیسیلیک اسید اصل با گارانتی بازگشت وجه.",
+                schemaType = "Product",
+                schemaJson = """{"@context":"https://schema.org","@type":"Product","name":"ژل شستشوی سالیسیلیک اسید"}""",
+                imageAlt = "پمپ فشاری ژل شستشوی صورت ضد جوش",
+                seoScore = 75
+            ),
+            SiteItem(
+                id = 105,
+                title = "تونر لایه‌بردار و روشن‌کننده گلیکولیک اسید ۷٪",
+                content = "محلول تونر لایه‌بردار ملایم جهت رفع کدری چهره، بهبود ناهمواری‌های سطحی پوست و ایجاد درخشندگی طبیعی با ریشه جینسینگ و آلوئه‌ورا.",
+                excerpt = "لایه برداری ملایم شبانه برای پوستی شفاف، صیقلی و یکنواخت.",
+                slug = "glycolic-acid-toning-solution",
+                categories = listOf("تونر پوست", "لایه‌بردار"),
+                tags = listOf("تونر", "گلیکولیک اسید", "AHA"),
+                regularPrice = "۵۹۰٬۰۰۰ تومان",
+                salePrice = "",
+                stockStatus = "instock",
+                sku = "GLS-GA-105",
+                type = SiteItemType.PRODUCT,
+                focusKeyword = "تونر گلیکولیک اسید اصل",
+                metaTitle = "خرید تونر گلیکولیک اسید ۷ درصد لایه‌بردار | گلیسئو",
+                metaDescription = "شفافیت فوق‌العاده پوست و درمان ناهمواری‌ها با تونر لایه‌بردار گلیکولیک اسید اورجینال.",
+                schemaType = "Product",
+                schemaJson = """{"@context":"https://schema.org","@type":"Product","name":"تونر گلیکولیک اسید"}""",
+                imageAlt = "بطری شفاف تونر لایه بردار گلیکولیک اسید",
+                seoScore = 80
+            ),
+            SiteItem(
+                id = 106,
+                title = "کرم دور چشم ضد چروک و رفع تیرگی رتینول خالص",
+                content = "کرم سبک دور چشم با رتینول انکپسوله و کافئین فعال جهت کاهش خطوط پنجه کلاغی، پف صبحگاهی و روشن‌سازی حلقه تیره زیر چشم.",
+                excerpt = "رفع خستگی دور چشم و جوان‌سازی ناحیه حساس پلک.",
+                slug = "retinol-eye-cream-anti-aging",
+                categories = listOf("کرم دور چشم", "ضد چروک"),
+                tags = listOf("دور چشم", "رتینول", "ضد تیرگی"),
+                regularPrice = "۷۲۰٬۰۰۰ تومان",
+                salePrice = "۶۵۰٬۰۰۰ تومان",
+                stockStatus = "instock",
+                sku = "GLS-EYE-106",
+                type = SiteItemType.PRODUCT,
+                focusKeyword = "کرم دور چشم رتینول اصل",
+                metaTitle = "کرم دور چشم ضد چروک و تیرگی رتینول | گلیسئو",
+                metaDescription = "درمان قطعی خطوط ریز و سیاهی دور چشم با کرم تخصصی رتینول در فروشگاه گلیسئو.",
+                schemaType = "Product",
+                schemaJson = """{"@context":"https://schema.org","@type":"Product","name":"کرم دور چشم رتینول"}""",
+                imageAlt = "تیوب باریک کرم دور چشم ضد چروک رتینول",
+                seoScore = 86
+            ),
+            SiteItem(
+                id = 107,
+                title = "سرم نیاسینامید ۱۰٪ + زینک ۱٪ قابض منافذ و ضد آکنه",
+                content = "فرمول غنی از نیاسینامید با غلظت ۱۰ درصد در ترکیب با نمک روی (زینک PCA) برای تنظیم ترشح سبوم و کاهش محسوس اندازه منافذ پوست.",
+                excerpt = "کنترل چربی و کوچک کردن منافذ باز پوست صورت.",
+                slug = "niacinamide-zinc-pore-serum",
+                categories = listOf("سرم پوست", "کنترل چربی"),
+                tags = listOf("نیاسینامید", "زینک", "کوچک کننده منافذ"),
+                regularPrice = "۵۲۰٬۰۰۰ تومان",
+                salePrice = "۴۵۰٬۰۰۰ تومان",
+                stockStatus = "instock",
+                sku = "GLS-NZ-107",
+                type = SiteItemType.PRODUCT,
+                focusKeyword = "سرم نیاسینامید و زینک اصل",
+                metaTitle = "خرید سرم نیاسینامید ۱۰٪ و زینک ۱٪ | گلیسئو",
+                metaDescription = "بهترین سرم کوچک کننده منافذ و ضد جوش صورت با ضمانت اصالت صد در صدی.",
+                schemaType = "Product",
+                schemaJson = """{"@context":"https://schema.org","@type":"Product","name":"سرم نیاسینامید و زینک"}""",
+                imageAlt = "قطره‌چکان سرم سفید رنگ نیاسینامید",
+                seoScore = 88
+            ),
+            SiteItem(
+                id = 108,
+                title = "ماسک مو ترمیم‌کننده عمیق کراتین و روغن آرگان مراکشی",
+                content = "ماسک مغذی موهای خشک و رنگ‌شده حاوی کراتین هیدرولیز شده و اسیدهای چرب امگا برای احیای ساختار تارهای آسیب‌دیده و رفع وزی مو.",
+                excerpt = "تغذیه ساقه مو و بازگرداندن نرمی ابریشمی به موهای سوخته و دکلره شده.",
+                slug = "keratin-argan-hair-mask",
+                categories = listOf("مراقبت از مو", "ماسک مو"),
+                tags = listOf("ماسک مو", "کراتین", "آرگان"),
+                regularPrice = "۴۹۰٬۰۰۰ تومان",
+                salePrice = "",
+                stockStatus = "instock",
+                sku = "GLS-HR-108",
+                type = SiteItemType.PRODUCT,
+                focusKeyword = "ماسک مو کراتین و آرگان",
+                metaTitle = "ماسک موی مغذی کراتین و روغن آرگان اصل | گلیسئو",
+                metaDescription = "احیای موهای سوخته و خشک با ماسک موی تخصصی کراتین و آرگان مراکشی.",
+                schemaType = "Product",
+                schemaJson = """{"@context":"https://schema.org","@type":"Product","name":"ماسک مو کراتین"}""",
+                imageAlt = "کاسه ماسک موی مغذی با درب طلایی",
+                seoScore = 79
+            ),
+
+            // --- WordPress Posts & Articles ---
             SiteItem(
                 id = 201,
                 title = "راهنمای جامع روتین پوستی روز و شب برای انواع پوست",
-                content = "داشتن یک روتین پوستی منظم اولین گام در سلامت چهره است. در این مقاله گام‌های پاکسازی، تونر، آبرسانی و ضد آفتاب را تشریح می‌کنیم.",
+                content = "داشتن یک روتین پوستی اصولی پایه‌ترین ضرورت حفظ جوانی چهره است. در این مقاله گام‌های پاکسازی، تونر، آبرسانی، تغذیه و ضد آفتاب را تشریح می‌کنیم.\n\n## گام اول: پاکسازی ملایم با شوینده مناسب\nانتخاب شوینده سازگار با pH پوست از تخریب سد دفاعی جلوگیری می‌کند.\n\n## گام دوم: آبرسانی و حفظ رطوبت\nاستفاده همزمان از هیالورونیک اسید روی پوست نمدار بیشترین اثربخشی را ایجاد می‌کند.\n\n## گام سوم: لایه محافظتی ضد آفتاب\nحتی در روزهای ابری استفاده از ضد آفتاب با فاکتور حفاظتی ۳۰ به بالا الزامی است.",
                 excerpt = "چگونه بهترین روتین پوستی مناسب پوست خشک یا چرب داشته باشیم؟",
                 slug = "daily-skincare-routine-guide",
                 categories = listOf("مقالات آموزشی", "مراقبت پوست"),
+                tags = listOf("روتین پوستی", "آموزش پوست", "آبرسانی"),
                 type = SiteItemType.POST,
                 focusKeyword = "روتین پوستی روز و شب",
-                metaTitle = "روتین پوستی اصولی چیست؟ راهنمای قدم به قدم",
+                secondaryKeywords = listOf("مراحل مراقبت از پوست", "بهترین روتین پوست چرب"),
+                metaTitle = "روتین پوستی اصولی چیست؟ راهنمای قدم به قدم | گلیسئو",
                 metaDescription = "آموزش کامل مراحل روتین پوستی روز و شب برای پوست‌های چرب، خشک و مختلط به همراه نکات مهم کارشناسان.",
+                schemaType = "Article",
                 schemaJson = """{"@context":"https://schema.org","@type":"Article","headline":"راهنمای روتین پوستی"}""",
-                imageAlt = "اینفوگرافیک مراحل روتین مراقبت پوستی",
-                seoScore = 58
+                imageAlt = "اینفوگرافیک مراحل روتین مراقبت پوستی در طول شبانه‌روز",
+                seoScore = 88
             ),
             SiteItem(
+                id = 202,
+                title = "تفاوت کرم آبرسان و مرطوب‌کننده چیست و کدام را انتخاب کنیم؟",
+                content = "بسیاری از افراد این دو محصول را یکسان می‌دانند در حالی که عملکرد فیزیولوژیک آن‌ها در لایه‌های اپیدرم کاملاً متفاوت است.\n\n## آبرسان (Hydrator) چیست؟\nآبرسان‌ها حاوی مواد هومکتانت (جاذب رطوبت) مانند هیالورونیک اسید و گلیسیرین هستند که آب را به داخل سلول‌ها می‌کشند.\n\n## مرطوب‌کننده (Moisturizer) چیست؟\nمرطوب‌کننده‌ها حاوی امولینت‌ها و روغن‌ها هستند که سد چربی ایجاد کرده و مانع تبخیر آب ترنس‌اپیدرمال می‌شوند.",
+                excerpt = "بررسی علمی تفاوت ترکیبات و عملکرد آبرسان‌ها در مقایسه با مرطوب‌کننده‌ها.",
+                slug = "hydrator-vs-moisturizer-difference",
+                categories = listOf("مقالات آموزشی", "دانستنی‌های زیبایی"),
+                tags = listOf("آبرسان", "مرطوب کننده", "تفاوت آبرسان"),
+                type = SiteItemType.POST,
+                focusKeyword = "تفاوت آبرسان و مرطوب کننده",
+                metaTitle = "تفاوت کرم آبرسان و مرطوب کننده چیست؟ راهنمای انتخاب | گلیسئو",
+                metaDescription = "راهنمای تخصصی شناخت تفاوت‌های کلیدی آبرسان و مرطوب‌کننده و نحوه استفاده همزمان از آن‌ها.",
+                schemaType = "Article",
+                schemaJson = """{"@context":"https://schema.org","@type":"Article","headline":"تفاوت آبرسان و مرطوب کننده"}""",
+                imageAlt = "مقایسه بافت کرم آبرسان ژلی و کرم مرطوب کننده غلیظ",
+                seoScore = 85
+            ),
+            SiteItem(
+                id = 203,
+                title = "۵ اشتباه رایج در مصرف سرم ویتامین C که اثر آن را خنثی می‌کند",
+                content = "ویتامین C یکی از ناپایدارترین و قوی‌ترین آنتی‌اکسیدان‌ها است که در صورت عدم رعایت اصول، به سرعت اکسید شده و بی‌خاصیت می‌شود.\n\n## ۱. نگهداری در برابر نور و حرارت\nتغییر رنگ سرم از شفاف به زرد یا قهوه‌ای نشانه اکسیداسیون است.\n\n## ۲. استفاده همزمان با نیاسینامید یا لایه‌بردارهای خشن\nتداخل اسیدیته می‌تواند باعث قرمزی و سوزش پوست شود.",
+                excerpt = "بررسی خطاهای متداول مصرف سرم ویتامین C و روش‌های افزایش اثربخشی آن.",
+                slug = "vitamin-c-serum-common-mistakes",
+                categories = listOf("مقالات آموزشی", "مراقبت پوست"),
+                tags = listOf("ویتامین C", "اشتباهات پوستی", "ضد لک"),
+                type = SiteItemType.POST,
+                focusKeyword = "اشتباهات مصرف سرم ویتامین C",
+                metaTitle = "۵ اشتباه رایج در استفاده از سرم ویتامین C | گلیسئو",
+                metaDescription = "چرا سرم ویتامین C روی پوست من عمل نمی‌کند؟ دلایل علمی و راهکارهای اصولی مصرف.",
+                schemaType = "Article",
+                schemaJson = """{"@context":"https://schema.org","@type":"Article","headline":"اشتباهات سرم ویتامین C"}""",
+                imageAlt = "بطری قطره‌چکان دار در شرایط نگهداری استاندارد",
+                seoScore = 91
+            ),
+            SiteItem(
+                id = 204,
+                title = "راهنمای خرید و انتخاب ضد آفتاب بر اساس فیزیکی یا شیمیایی بودن",
+                content = "انتخاب صحیح فیلترهای ضد آفتاب اهمیت حیاتی در پیشگیری از پیری ناشی از فوتوایجینگ دارد.\n\n## ضد آفتاب فیزیکی (مینرال)\nحاوی اکسید روی و دی‌اکسید تیتانیوم که اشعه را مانند آینه بازمی‌تابانند و برای پوست‌های حساس و بارداری ایده‌آل هستند.\n\n## ضد آفتاب شیمیایی\nاشعه فرابنفش را جذب و به گرمای بی‌خطر تبدیل می‌کنند و بافتی بسیار سبک و زودجذب دارند.",
+                excerpt = "مقایسه فیلترهای معدنی و شیمیایی در ضد آفتاب‌ها و تناسب با نوع پوست.",
+                slug = "physical-vs-chemical-sunscreen-guide",
+                categories = listOf("مقالات آموزشی", "ضد آفتاب"),
+                tags = listOf("ضد آفتاب مینرال", "فیلتر فیزیکی", "SPF"),
+                type = SiteItemType.POST,
+                focusKeyword = "ضد آفتاب فیزیکی یا شیمیایی",
+                metaTitle = "تفاوت ضد آفتاب فیزیکی و شیمیایی چیست؟ | گلیسئو",
+                metaDescription = "کدام نوع ضد آفتاب برای پوست شما مناسب‌تر است؟ بررسی جامع تفاوت‌ها و مزایا در گلیسئو.",
+                schemaType = "Article",
+                schemaJson = """{"@context":"https://schema.org","@type":"Article","headline":"تفاوت ضد آفتاب فیزیکی و شیمیایی"}""",
+                imageAlt = "توضیح گرافیکی نحوه بازتاب اشعه خورشید توسط فیلترهای ضد آفتاب",
+                seoScore = 87
+            ),
+
+            // --- WordPress Pages & Landing Pages ---
+            SiteItem(
                 id = 301,
-                title = "درباره فروشگاه و خط مشی اصالت گلیسئو",
-                content = "فروشگاه گلیسئو با هدف ارائه محصولات با اصالت صد در صدی و دسترسی مستقیم مصرف‌کنندگان ایرانی به برندهای معتبر جهانی پایه‌گذاری شده است.",
-                excerpt = "آشنایی با گلیسئو و مأموریت ما در ارائه محصولات با اصالت.",
+                title = "صفحه اصلی فروشگاه گلیسئو (طراحی با المنتور پرو)",
+                content = "به فروشگاه تخصصی محصولات اصل پوست و موی گلیسئو خوش آمدید. ارائه برترین برندهای بین‌المللی با ضمانت اصالت فیزیکی و مشاوره تخصصی.",
+                excerpt = "صفحه اصلی با طراحی مدرن و واکنش‌گرا در المنتور.",
+                slug = "home-page",
+                categories = listOf("برگه‌های اصلی سایت"),
+                type = SiteItemType.PAGE,
+                focusKeyword = "فروشگاه آنلاین گلیسئو",
+                metaTitle = "گلیسئو | مرجع تخصصی خرید محصولات اصل مراقبت از پوست و مو",
+                metaDescription = "خرید اینترنتی محصولات اصل پوستی، سرم‌ها، ضدآفتاب‌ها و کرم‌های تخصصی با ضمانت اصالت صد در صدی و ارسال فوری.",
+                schemaType = "WebPage",
+                schemaJson = """{"@context":"https://schema.org","@type":"WebSite","name":"گلیسئو","url":"https://example.com"}""",
+                imageAlt = "بنر اسلایدر صفحه اصلی فروشگاه گلیسئو",
+                seoScore = 94,
+                isElementor = true,
+                elementorTemplate = "elementor_header_footer",
+                elementorDataJson = """[{"id":"sec_hero_home","elType":"section","settings":{"background_color":"#F8FAFC"},"elements":[{"id":"col_1","elType":"column","elements":[{"id":"w_h1","elType":"widget","widgetType":"heading","settings":{"title":"زیبایی و درخشش پوست با اصیل‌ترین محصولات جهان"}}]}]}]"""
+            ),
+            SiteItem(
+                id = 302,
+                title = "درباره ما و خط مشی اصالت گلیسئو (طراحی المنتور)",
+                content = "فروشگاه گلیسئو با هدف پایان دادن به دغدغه کالاهای فیک و تقلبی در بازار محصولات مراقبتی تاسیس شده است.\n\nما متعهدیم که تمام محصولات را با بچ‌نامبر معتبر، برچسب اصالت و مستقیماً از نمایندگی‌های رسمی تامین کنیم.",
+                excerpt = "آشنایی با تاریخچه، رسالت و تیم کارشناسان گلیسئو.",
                 slug = "about-us",
-                categories = listOf("برگه‌های اصلی"),
+                categories = listOf("برگه‌های سازمانی"),
                 type = SiteItemType.PAGE,
                 focusKeyword = "درباره گلیسئو",
                 metaTitle = "درباره ما | اصالت کالا و تعهد فروشگاه گلیسئو",
-                metaDescription = "داستان شکل‌گیری گلیسئو و تعهد ما به ارائه محصولات تضمین‌شده و پشتیبانی تخصصی.",
+                metaDescription = "داستان شکل‌گیری گلیسئو و تعهد اخلاقی و فنی ما در ارائه محصولات تضمین‌شده و پشتیبانی تخصصی.",
+                schemaType = "AboutPage",
                 schemaJson = """{"@context":"https://schema.org","@type":"AboutPage","name":"درباره ما"}""",
-                imageAlt = "تیم گلیسئو و مرکز پردازش سفارش‌ها",
-                seoScore = 80
+                imageAlt = "تیم کارشناسان و مرکز پردازش سفارش‌های گلیسئو",
+                seoScore = 89,
+                isElementor = true,
+                elementorTemplate = "elementor_header_footer",
+                elementorDataJson = """[{"id":"sec_about_hero","elType":"section","settings":{"background_color":"#EEF2FF"},"elements":[]}]"""
+            ),
+            SiteItem(
+                id = 303,
+                title = "لندینگ جشنواره تخفیف شگفت‌انگیز فصل (المنتور)",
+                content = "جشنواره ویژه محصولات پرفروش پوستی با تخفیف‌های استثنایی و ارسال رایگان. فرصت محدود نوسازی روتین مراقبت پوست.",
+                excerpt = "صفحه فرود کمپین تخفیف بهاره همراه با شمارنده معکوس.",
+                slug = "promo-campaign-landing",
+                categories = listOf("لندینگ پیج‌ها"),
+                type = SiteItemType.PAGE,
+                focusKeyword = "جشنواره تخفیف گلیسئو",
+                metaTitle = "جشنواره شگفت‌انگیز تخفیف تا ۴۰ درصد محصولات پوستی | گلیسئو",
+                metaDescription = "تخفیف ویژه انواع کرم‌های آبرسان، سرم‌های ویتامین C و ضد آفتاب‌های اورجینال در جشنواره گلیسئو.",
+                schemaType = "WebPage",
+                schemaJson = """{"@context":"https://schema.org","@type":"WebPage","name":"جشنواره تخفیف"}""",
+                imageAlt = "بنر قرمز رنگ تخفیف ویژه و پیشنهاد شگفت‌انگیز",
+                seoScore = 92,
+                isElementor = true,
+                elementorTemplate = "elementor_canvas",
+                elementorDataJson = """[{"id":"sec_promo_hero","elType":"section","settings":{"background_color":"#FFF1F2"},"elements":[]}]"""
+            ),
+            SiteItem(
+                id = 304,
+                title = "تماس با ما و مشاوره تخصصی پوست و سفارش‌ها",
+                content = "پاسخگویی سریع در تمامی روزهای هفته از ۹ صبح تا ۹ شب. تلفن پشتیبانی: ۰۲۱-۸۸۸۸۰۰۰۰ | ایمیل: info@example.com",
+                excerpt = "راه‌های ارتباطی، نشانی دفتر مرکزی و فرم تماس مستقیم.",
+                slug = "contact-us",
+                categories = listOf("برگه‌های سازمانی"),
+                type = SiteItemType.PAGE,
+                focusKeyword = "تماس با گلیسئو",
+                metaTitle = "تماس با ما | مشاوره رایگان پوست و پیگیری سفارش | گلیسئو",
+                metaDescription = "راه‌های ارتباطی مستقیم با کارشناسان و پشتیبانی ۲۴ ساعته فروشگاه تخصصی گلیسئو.",
+                schemaType = "ContactPage",
+                schemaJson = """{"@context":"https://schema.org","@type":"ContactPage","name":"تماس با ما"}""",
+                imageAlt = "دفتر پشتیبانی و کارشناسان پاسخگویی مشتریان",
+                seoScore = 84,
+                isElementor = true,
+                elementorTemplate = "elementor_header_footer"
+            ),
+            SiteItem(
+                id = 305,
+                title = "شرایط ضمانت اصالت کالا و مرجوعی ۷ روزه",
+                content = "شفافیت کامل در تضمین کیفیت: چنانچه کالای دریافتی کوچک‌ترین مغایرتی با مشخصات درج‌شده داشته باشد، تا ۷ روز بدون قید و شرط وجه شما بازگردانده می‌شود.",
+                excerpt = "قوانین و رویه‌های مرجوعی و بازپرداخت وجه مشتریان.",
+                slug = "authenticity-guarantee-return-policy",
+                categories = listOf("قوانین و مقررات"),
+                type = SiteItemType.PAGE,
+                focusKeyword = "ضمانت اصالت گلیسئو",
+                metaTitle = "شرایط بازگشت کالا و ضمانت اصالت ۱۰۰٪ | گلیسئو",
+                metaDescription = "قوانین بازگشت ۷ روزه کالا و گارانتی اصالت بی قید و شرط در فروشگاه گلیسئو.",
+                schemaType = "WebPage",
+                schemaJson = """{"@context":"https://schema.org","@type":"WebPage","name":"ضمانت اصالت"}""",
+                imageAlt = "نشان طلایی ضمانت بازگشت وجه و تایید اصالت کالا",
+                seoScore = 86
             )
         )
         _items.value = initialItems
     }
+
 
     // --- Audit Logs & Snapshots ---
     val auditLogs: Flow<List<AuditLog>> = logDao.getAllLogs().map { entities ->
@@ -484,6 +763,42 @@ class GliseoRepository(private val context: Context) {
                         updatedItem = updatedItem.copy(imageAlt = s)
                     }
                 }
+                "featuredImageUrl" -> {
+                    val s = newVal.toString()
+                    if (s != currentItem.featuredImageUrl) {
+                        diffs.add(DiffItem("آدرس تصویر شاخص", currentItem.featuredImageUrl, s))
+                        updatedItem = updatedItem.copy(featuredImageUrl = s)
+                    }
+                }
+                "canonicalUrl" -> {
+                    val s = newVal.toString()
+                    if (s != currentItem.canonicalUrl) {
+                        diffs.add(DiffItem("پیوند کانونیکال", currentItem.canonicalUrl, s))
+                        updatedItem = updatedItem.copy(canonicalUrl = s)
+                    }
+                }
+                "metaRobots" -> {
+                    val s = newVal.toString()
+                    if (s != currentItem.metaRobots) {
+                        diffs.add(DiffItem("متا ربات‌ها", currentItem.metaRobots, s))
+                        updatedItem = updatedItem.copy(metaRobots = s)
+                    }
+                }
+                "elementorDataJson" -> {
+                    val s = newVal.toString()
+                    if (s != currentItem.elementorDataJson) {
+                        diffs.add(DiffItem("طراحی ساختار المنتور", "نسخه قبل", "قالب جدید المنتور"))
+                        updatedItem = updatedItem.copy(elementorDataJson = s, isElementor = true)
+                    }
+                }
+                "elementorTemplate" -> {
+                    val s = newVal.toString()
+                    updatedItem = updatedItem.copy(elementorTemplate = s)
+                }
+                "isElementor" -> {
+                    val b = (newVal as? Boolean) ?: true
+                    updatedItem = updatedItem.copy(isElementor = b)
+                }
                 "seoScore" -> {
                     val score = (newVal as? Int) ?: currentItem.seoScore
                     updatedItem = updatedItem.copy(seoScore = score)
@@ -542,6 +857,7 @@ class GliseoRepository(private val context: Context) {
                             put("rank_math_title", updatedItem.metaTitle)
                             put("rank_math_description", updatedItem.metaDescription)
                             put("rank_math_focus_keyword", updatedItem.focusKeyword)
+                            put("rank_math_canonical_url", updatedItem.canonicalUrl)
                             put("_yoast_wpseo_title", updatedItem.metaTitle)
                             put("_yoast_wpseo_metadesc", updatedItem.metaDescription)
                             put("_yoast_wpseo_focuskw", updatedItem.focusKeyword)
@@ -559,9 +875,15 @@ class GliseoRepository(private val context: Context) {
                             put("rank_math_title", updatedItem.metaTitle)
                             put("rank_math_description", updatedItem.metaDescription)
                             put("rank_math_focus_keyword", updatedItem.focusKeyword)
+                            put("rank_math_canonical_url", updatedItem.canonicalUrl)
                             put("_yoast_wpseo_title", updatedItem.metaTitle)
                             put("_yoast_wpseo_metadesc", updatedItem.metaDescription)
                             put("_yoast_wpseo_focuskw", updatedItem.focusKeyword)
+                            if (updatedItem.isElementor && updatedItem.elementorDataJson.isNotBlank()) {
+                                put("_elementor_edit_mode", "builder")
+                                put("_elementor_data", updatedItem.elementorDataJson)
+                                put("_wp_page_template", updatedItem.elementorTemplate.ifBlank { "elementor_header_footer" })
+                            }
                         }
                         put("meta", metaObj)
                     }.toString()
@@ -578,6 +900,7 @@ class GliseoRepository(private val context: Context) {
                         put(JSONObject().apply { put("key", "rank_math_title"); put("value", updatedItem.metaTitle) })
                         put(JSONObject().apply { put("key", "rank_math_description"); put("value", updatedItem.metaDescription) })
                         put(JSONObject().apply { put("key", "rank_math_focus_keyword"); put("value", updatedItem.focusKeyword) })
+                        put(JSONObject().apply { put("key", "rank_math_canonical_url"); put("value", updatedItem.canonicalUrl) })
                         put(JSONObject().apply { put("key", "_yoast_wpseo_title"); put("value", updatedItem.metaTitle) })
                         put(JSONObject().apply { put("key", "_yoast_wpseo_metadesc"); put("value", updatedItem.metaDescription) })
                         put(JSONObject().apply { put("key", "_yoast_wpseo_focuskw"); put("value", updatedItem.focusKeyword) })
@@ -587,6 +910,13 @@ class GliseoRepository(private val context: Context) {
                         put("description", updatedItem.content)
                         put("short_description", updatedItem.excerpt)
                         put("meta_data", metaArray)
+                        if (updatedItem.featuredImageUrl.isNotBlank() && updatedItem.imageAlt.isNotBlank()) {
+                            put("images", JSONArray().put(JSONObject().apply {
+                                put("src", updatedItem.featuredImageUrl)
+                                put("alt", updatedItem.imageAlt)
+                                put("name", updatedItem.imageTitle.ifBlank { updatedItem.title })
+                            }))
+                        }
                     }.toString()
                     val body = payload.toRequestBody("application/json".toMediaTypeOrNull())
                     wcApi.updateProduct(updatedItem.id, body, wcAuth)
@@ -1170,10 +1500,12 @@ class GliseoRepository(private val context: Context) {
     suspend fun syncSiteContent(config: SiteConfig): Result<Int> = withContext(Dispatchers.IO) {
         if (config.isDemoMode) {
             loadInitialMockData()
+            _syncStatusMessage.value = "همگام‌سازی دمو انجام شد (${_items.value.size} آیتم)"
             return@withContext Result.success(_items.value.size)
         }
 
         try {
+            _syncStatusMessage.value = "اتصال به وردپرس و ارزیابی دسترسی‌ها..."
             val client = NetworkClientProvider.createOkHttpClient()
             var currentAppPass = config.wpAppPassword
             var wpAuth = NetworkClientProvider.createBasicAuth(config.wpUsername, currentAppPass)
@@ -1197,120 +1529,8 @@ class GliseoRepository(private val context: Context) {
 
             val fetchedItems = mutableListOf<SiteItem>()
 
-            // 1. Fetch Posts (نوشته‌ها و مقالات)
-            try {
-                val postsResp = wpApi.getPosts(perPage = 25, status = "publish,draft", authHeader = wpAuth)
-                if (postsResp.isSuccessful) {
-                    val bodyStr = postsResp.body()?.string() ?: "[]"
-                    val cleanedBody = WordPressJsonSanitizerInterceptor.cleanJsonResponse(bodyStr)
-                    val postsArray = JSONArray(cleanedBody)
-                    for (i in 0 until postsArray.length()) {
-                        val p = postsArray.getJSONObject(i)
-                        val id = p.optLong("id", System.currentTimeMillis() + i)
-                        val titleObj = p.optJSONObject("title")
-                        val contentObj = p.optJSONObject("content")
-                        val excerptObj = p.optJSONObject("excerpt")
-                        val rawTitle = titleObj?.optString("rendered", "نوشته وردپرس") ?: p.optString("title", "نوشته وردپرس")
-                        val rawContent = contentObj?.optString("rendered", "") ?: p.optString("content", "")
-                        val rawExcerpt = excerptObj?.optString("rendered", "") ?: p.optString("excerpt", "")
-                        val slug = p.optString("slug", "post-$id")
-                        val status = p.optString("status", "publish")
-
-                        val title = PersianNormalizer.normalize(rawTitle.replace(Regex("<[^>]*>"), "").trim())
-                        val content = PersianNormalizer.normalize(rawContent.replace(Regex("<[^>]*>"), "").trim())
-                        val excerpt = PersianNormalizer.normalize(rawExcerpt.replace(Regex("<[^>]*>"), "").trim())
-
-                        val metaObj = p.optJSONObject("meta")
-                        val rmTitle = metaObj?.optString("rank_math_title")?.takeIf { it.isNotBlank() }
-                        val rmDesc = metaObj?.optString("rank_math_description")?.takeIf { it.isNotBlank() }
-                        val rmKw = metaObj?.optString("rank_math_focus_keyword")?.takeIf { it.isNotBlank() }
-                        val rmScore = metaObj?.optInt("rank_math_seo_score", 0) ?: 0
-
-                        val yoastTitle = metaObj?.optString("_yoast_wpseo_title")?.takeIf { it.isNotBlank() }
-                        val yoastDesc = metaObj?.optString("_yoast_wpseo_metadesc")?.takeIf { it.isNotBlank() }
-                        val yoastKw = metaObj?.optString("_yoast_wpseo_focuskw")?.takeIf { it.isNotBlank() }
-
-                        val focusKeyword = rmKw ?: yoastKw ?: title.split(" ").take(3).joinToString(" ")
-                        val metaTitle = rmTitle ?: yoastTitle ?: "$title | ${_brandKnowledgeBase.value.storeName}".take(60)
-                        val metaDescription = rmDesc ?: yoastDesc ?: excerpt.ifBlank { content.take(140) }.take(150)
-                        val score = if (rmScore > 0) rmScore else 75
-
-                        fetchedItems.add(
-                            SiteItem(
-                                id = id,
-                                title = title,
-                                content = content,
-                                excerpt = excerpt,
-                                slug = slug,
-                                categories = listOf("مقالات و وبلاگ"),
-                                type = SiteItemType.POST,
-                                status = status,
-                                focusKeyword = focusKeyword,
-                                metaTitle = metaTitle,
-                                metaDescription = metaDescription,
-                                schemaJson = """{"@context":"https://schema.org","@type":"Article","headline":"$title"}""",
-                                seoScore = score
-                            )
-                        )
-                    }
-                }
-            } catch (e: Exception) {
-                // Keep moving to pages and products
-            }
-
-            // 2. Fetch Pages (برگه‌ها)
-            try {
-                val pagesResp = wpApi.getPages(perPage = 25, status = "publish,draft", authHeader = wpAuth)
-                if (pagesResp.isSuccessful) {
-                    val bodyStr = pagesResp.body()?.string() ?: "[]"
-                    val cleanedBody = WordPressJsonSanitizerInterceptor.cleanJsonResponse(bodyStr)
-                    val pagesArray = JSONArray(cleanedBody)
-                    for (i in 0 until pagesArray.length()) {
-                        val p = pagesArray.getJSONObject(i)
-                        val id = p.optLong("id", System.currentTimeMillis() + 1000 + i)
-                        val titleObj = p.optJSONObject("title")
-                        val contentObj = p.optJSONObject("content")
-                        val rawTitle = titleObj?.optString("rendered", "برگه وردپرس") ?: p.optString("title", "برگه وردپرس")
-                        val rawContent = contentObj?.optString("rendered", "") ?: p.optString("content", "")
-                        val slug = p.optString("slug", "page-$id")
-                        val status = p.optString("status", "publish")
-
-                        val title = PersianNormalizer.normalize(rawTitle.replace(Regex("<[^>]*>"), "").trim())
-                        val content = PersianNormalizer.normalize(rawContent.replace(Regex("<[^>]*>"), "").trim())
-
-                        val metaObj = p.optJSONObject("meta")
-                        val rmTitle = metaObj?.optString("rank_math_title")?.takeIf { it.isNotBlank() }
-                        val rmDesc = metaObj?.optString("rank_math_description")?.takeIf { it.isNotBlank() }
-                        val rmKw = metaObj?.optString("rank_math_focus_keyword")?.takeIf { it.isNotBlank() }
-
-                        val focusKeyword = rmKw ?: title.split(" ").take(2).joinToString(" ")
-                        val metaTitle = rmTitle ?: "$title | ${_brandKnowledgeBase.value.storeName}".take(60)
-                        val metaDescription = rmDesc ?: content.take(140)
-
-                        fetchedItems.add(
-                            SiteItem(
-                                id = id,
-                                title = title,
-                                content = content,
-                                excerpt = content.take(120),
-                                slug = slug,
-                                categories = listOf("برگه‌های سایت"),
-                                type = SiteItemType.PAGE,
-                                status = status,
-                                focusKeyword = focusKeyword,
-                                metaTitle = metaTitle,
-                                metaDescription = metaDescription,
-                                schemaJson = """{"@context":"https://schema.org","@type":"WebPage","name":"$title"}""",
-                                seoScore = 80
-                            )
-                        )
-                    }
-                }
-            } catch (e: Exception) {
-                // Keep moving to products
-            }
-
-            // 3. Fetch WooCommerce Products (محصولات فروشگاه)
+            // 1. Fetch ALL WooCommerce Products (with full pagination)
+            _syncStatusMessage.value = "شروع دریافت تمام محصولات ووکامرس..."
             try {
                 val wcApi = NetworkClientProvider.createWooCommerceApi(config.siteUrl, client)
                 val wcAuth = if (config.wcConsumerKey.isNotBlank()) {
@@ -1318,134 +1538,419 @@ class GliseoRepository(private val context: Context) {
                 } else {
                     wpAuth
                 }
-                val prodResp = wcApi.getProducts(perPage = 25, status = "publish,draft", authHeader = wcAuth)
-                if (prodResp.isSuccessful) {
-                    val bodyStr = prodResp.body()?.string() ?: "[]"
-                    val cleanedBody = WordPressJsonSanitizerInterceptor.cleanJsonResponse(bodyStr)
-                    val prodArray = JSONArray(cleanedBody)
-                    for (i in 0 until prodArray.length()) {
-                        val pr = prodArray.getJSONObject(i)
-                        val id = pr.optLong("id", System.currentTimeMillis() + 2000 + i)
-                        val rawName = pr.optString("name", "محصول ووکامرس")
-                        val rawDesc = pr.optString("description", "")
-                        val rawShortDesc = pr.optString("short_description", "")
-                        val price = pr.optString("regular_price", "").ifBlank { pr.optString("price", "") }
-                        val salePrice = pr.optString("sale_price", "")
-                        val slug = pr.optString("slug", "prod-$id")
-                        val status = pr.optString("status", "publish")
 
-                        val title = PersianNormalizer.normalize(rawName.replace(Regex("<[^>]*>"), "").trim())
-                        val content = PersianNormalizer.normalize(rawDesc.replace(Regex("<[^>]*>"), "").trim())
-                        val excerpt = PersianNormalizer.normalize(rawShortDesc.replace(Regex("<[^>]*>"), "").trim())
-
-                        val catList = mutableListOf<String>()
-                        val catArray = pr.optJSONArray("categories")
-                        if (catArray != null) {
-                            for (c in 0 until catArray.length()) {
-                                catList.add(catArray.getJSONObject(c).optString("name"))
-                            }
-                        }
-                        if (catList.isEmpty()) catList.add("محصولات ووکامرس")
-
-                        var rmTitle: String? = null
-                        var rmDesc: String? = null
-                        var rmKw: String? = null
-                        var rmScore = 0
-
-                        val metaArray = pr.optJSONArray("meta_data")
-                        if (metaArray != null) {
-                            for (m in 0 until metaArray.length()) {
-                                val mObj = metaArray.getJSONObject(m)
-                                val key = mObj.optString("key")
-                                val value = mObj.opt("value")?.toString() ?: ""
-                                when (key) {
-                                    "rank_math_title", "_yoast_wpseo_title" -> if (value.isNotBlank()) rmTitle = value
-                                    "rank_math_description", "_yoast_wpseo_metadesc" -> if (value.isNotBlank()) rmDesc = value
-                                    "rank_math_focus_keyword", "_yoast_wpseo_focuskw" -> if (value.isNotBlank()) rmKw = value
-                                    "rank_math_seo_score" -> rmScore = value.toIntOrNull() ?: 0
-                                }
-                            }
-                        }
-
-                        val focusKeyword = rmKw ?: title.split(" ").take(3).joinToString(" ")
-                        val metaTitle = rmTitle ?: "$title | ${_brandKnowledgeBase.value.storeName}".take(60)
-                        val metaDescription = rmDesc ?: excerpt.ifBlank { content.take(140) }.take(150)
-                        val score = if (rmScore > 0) rmScore else 78
-
-                        fetchedItems.add(
-                            SiteItem(
-                                id = id,
-                                title = title,
-                                content = content,
-                                excerpt = excerpt,
-                                slug = slug,
-                                categories = catList,
-                                regularPrice = if (price.isNotBlank()) "$price تومان" else "تماس بگیرید",
-                                salePrice = if (salePrice.isNotBlank()) "$salePrice تومان" else "",
-                                type = SiteItemType.PRODUCT,
-                                status = status,
-                                focusKeyword = focusKeyword,
-                                metaTitle = metaTitle,
-                                metaDescription = metaDescription,
-                                schemaJson = """{"@context":"https://schema.org","@type":"Product","name":"$title"}""",
-                                seoScore = score
-                            )
-                        )
-                    }
-                } else {
-                    // Fallback to WP custom post type products
-                    val customProdResp = wpApi.getCustomPostProducts(perPage = 25, authHeader = wpAuth)
-                    if (customProdResp.isSuccessful) {
-                        val bodyStr = customProdResp.body()?.string() ?: "[]"
+                var wcPage = 1
+                var wcHasMore = true
+                while (wcHasMore && wcPage <= 30) {
+                    _syncStatusMessage.value = "در حال دریافت محصولات ووکامرس (صفحه $wcPage)..."
+                    val prodResp = wcApi.getProducts(perPage = 50, page = wcPage, status = null, authHeader = wcAuth)
+                    if (prodResp.isSuccessful) {
+                        val bodyStr = prodResp.body()?.string() ?: "[]"
                         val cleanedBody = WordPressJsonSanitizerInterceptor.cleanJsonResponse(bodyStr)
                         val prodArray = JSONArray(cleanedBody)
-                        for (i in 0 until prodArray.length()) {
-                            val pr = prodArray.getJSONObject(i)
-                            val id = pr.optLong("id", System.currentTimeMillis() + 3000 + i)
-                            val titleObj = pr.optJSONObject("title")
-                            val rawTitle = titleObj?.optString("rendered", "محصول") ?: pr.optString("title", "محصول")
-                            val contentObj = pr.optJSONObject("content")
-                            val rawContent = contentObj?.optString("rendered", "") ?: ""
-                            val slug = pr.optString("slug", "prod-$id")
+                        val count = prodArray.length()
+                        if (count == 0) {
+                            wcHasMore = false
+                        } else {
+                            for (i in 0 until count) {
+                                val pr = prodArray.getJSONObject(i)
+                                val id = pr.optLong("id", System.currentTimeMillis() + 2000 + i)
+                                val rawName = pr.optString("name", "محصول ووکامرس")
+                                val rawDesc = pr.optString("description", "")
+                                val rawShortDesc = pr.optString("short_description", "")
+                                val price = pr.optString("regular_price", "").ifBlank { pr.optString("price", "") }
+                                val salePrice = pr.optString("sale_price", "")
+                                val slug = pr.optString("slug", "prod-$id")
+                                val status = pr.optString("status", "publish")
+                                val stockStatus = pr.optString("stock_status", "instock")
+                                val sku = pr.optString("sku", "")
 
-                            val title = PersianNormalizer.normalize(rawTitle.replace(Regex("<[^>]*>"), "").trim())
-                            val content = PersianNormalizer.normalize(rawContent.replace(Regex("<[^>]*>"), "").trim())
+                                val title = PersianNormalizer.normalize(rawName.replace(Regex("<[^>]*>"), "").trim())
+                                val content = PersianNormalizer.normalize(rawDesc.replace(Regex("<[^>]*>"), "").trim())
+                                val excerpt = PersianNormalizer.normalize(rawShortDesc.replace(Regex("<[^>]*>"), "").trim())
 
-                            fetchedItems.add(
-                                SiteItem(
-                                    id = id,
-                                    title = title,
-                                    content = content,
-                                    excerpt = content.take(120),
-                                    slug = slug,
-                                    categories = listOf("محصولات ووکامرس"),
-                                    regularPrice = "موجود در انبار",
-                                    salePrice = "",
-                                    type = SiteItemType.PRODUCT,
-                                    status = "publish",
-                                    focusKeyword = title.split(" ").take(3).joinToString(" "),
-                                    metaTitle = "$title | ${_brandKnowledgeBase.value.storeName}".take(60),
-                                    metaDescription = content.take(140),
-                                    schemaJson = """{"@context":"https://schema.org","@type":"Product","name":"$title"}""",
-                                    seoScore = 75
+                                val catList = mutableListOf<String>()
+                                val catArray = pr.optJSONArray("categories")
+                                if (catArray != null) {
+                                    for (c in 0 until catArray.length()) {
+                                        catList.add(catArray.getJSONObject(c).optString("name"))
+                                    }
+                                }
+                                if (catList.isEmpty()) catList.add("محصولات ووکامرس")
+
+                                val tagList = mutableListOf<String>()
+                                val tagArray = pr.optJSONArray("tags")
+                                if (tagArray != null) {
+                                    for (t in 0 until tagArray.length()) {
+                                        tagList.add(tagArray.getJSONObject(t).optString("name"))
+                                    }
+                                }
+
+                                var featuredImgUrl = ""
+                                var imgAlt = ""
+                                var imgTitle = ""
+                                val imagesArray = pr.optJSONArray("images")
+                                if (imagesArray != null && imagesArray.length() > 0) {
+                                    val firstImg = imagesArray.getJSONObject(0)
+                                    featuredImgUrl = firstImg.optString("src", "")
+                                    imgAlt = PersianNormalizer.normalize(firstImg.optString("alt", title))
+                                    imgTitle = firstImg.optString("name", title)
+                                }
+
+                                var rmTitle: String? = null
+                                var rmDesc: String? = null
+                                var rmKw: String? = null
+                                var rmCanonical = ""
+                                var rmRobots = "index, follow"
+                                var rmScore = 0
+
+                                val metaArray = pr.optJSONArray("meta_data")
+                                if (metaArray != null) {
+                                    for (m in 0 until metaArray.length()) {
+                                        val mObj = metaArray.getJSONObject(m)
+                                        val key = mObj.optString("key")
+                                        val value = mObj.opt("value")?.toString() ?: ""
+                                        when (key) {
+                                            "rank_math_title", "_yoast_wpseo_title" -> if (value.isNotBlank()) rmTitle = value
+                                            "rank_math_description", "_yoast_wpseo_metadesc" -> if (value.isNotBlank()) rmDesc = value
+                                            "rank_math_focus_keyword", "_yoast_wpseo_focuskw" -> if (value.isNotBlank()) rmKw = value
+                                            "rank_math_canonical_url" -> rmCanonical = value
+                                            "rank_math_robots" -> rmRobots = value
+                                            "rank_math_seo_score" -> rmScore = value.toIntOrNull() ?: 0
+                                        }
+                                    }
+                                }
+
+                                val focusKeyword = rmKw ?: title.split(" ").take(3).joinToString(" ")
+                                val metaTitle = rmTitle ?: "$title | ${_brandKnowledgeBase.value.storeName}".take(60)
+                                val metaDescription = rmDesc ?: excerpt.ifBlank { content.take(140) }.take(150)
+                                val score = if (rmScore > 0) rmScore else 78
+
+                                fetchedItems.add(
+                                    SiteItem(
+                                        id = id,
+                                        title = title,
+                                        content = content,
+                                        excerpt = excerpt,
+                                        slug = slug,
+                                        categories = catList,
+                                        tags = tagList,
+                                        regularPrice = if (price.isNotBlank()) "$price تومان" else "تماس بگیرید",
+                                        salePrice = if (salePrice.isNotBlank()) "$salePrice تومان" else "",
+                                        stockStatus = stockStatus,
+                                        sku = sku,
+                                        type = SiteItemType.PRODUCT,
+                                        status = status,
+                                        focusKeyword = focusKeyword,
+                                        metaTitle = metaTitle,
+                                        metaDescription = metaDescription,
+                                        canonicalUrl = rmCanonical,
+                                        metaRobots = rmRobots,
+                                        featuredImageUrl = featuredImgUrl,
+                                        imageAlt = imgAlt,
+                                        imageTitle = imgTitle,
+                                        schemaType = "Product",
+                                        schemaJson = """{"@context":"https://schema.org","@type":"Product","name":"$title"}""",
+                                        seoScore = score
+                                    )
                                 )
-                            )
+                            }
+                            if (count < 50) {
+                                wcHasMore = false
+                            } else {
+                                wcPage++
+                            }
                         }
+                    } else {
+                        wcHasMore = false
                     }
                 }
             } catch (e: Exception) {
-                // Ignore product error
+                // Ignore product error and proceed
+            }
+
+            // 2. Fetch ALL WordPress Posts (with full pagination)
+            _syncStatusMessage.value = "در حال دریافت تمام مقالات و نوشته‌های وبلاگ..."
+            try {
+                var postPage = 1
+                var postHasMore = true
+                while (postHasMore && postPage <= 30) {
+                    _syncStatusMessage.value = "در حال دریافت مقالات وبلاگ (صفحه $postPage)..."
+                    val postsResp = wpApi.getPosts(perPage = 50, page = postPage, status = null, authHeader = wpAuth)
+                    if (postsResp.isSuccessful) {
+                        val bodyStr = postsResp.body()?.string() ?: "[]"
+                        val cleanedBody = WordPressJsonSanitizerInterceptor.cleanJsonResponse(bodyStr)
+                        val postsArray = JSONArray(cleanedBody)
+                        val count = postsArray.length()
+                        if (count == 0) {
+                            postHasMore = false
+                        } else {
+                            for (i in 0 until count) {
+                                val p = postsArray.getJSONObject(i)
+                                val id = p.optLong("id", System.currentTimeMillis() + i)
+                                val titleObj = p.optJSONObject("title")
+                                val contentObj = p.optJSONObject("content")
+                                val excerptObj = p.optJSONObject("excerpt")
+                                val rawTitle = titleObj?.optString("rendered", "نوشته وردپرس") ?: p.optString("title", "نوشته وردپرس")
+                                val rawContent = contentObj?.optString("rendered", "") ?: p.optString("content", "")
+                                val rawExcerpt = excerptObj?.optString("rendered", "") ?: p.optString("excerpt", "")
+                                val slug = p.optString("slug", "post-$id")
+                                val status = p.optString("status", "publish")
+
+                                val title = PersianNormalizer.normalize(rawTitle.replace(Regex("<[^>]*>"), "").trim())
+                                val content = PersianNormalizer.normalize(rawContent.replace(Regex("<[^>]*>"), "").trim())
+                                val excerpt = PersianNormalizer.normalize(rawExcerpt.replace(Regex("<[^>]*>"), "").trim())
+
+                                val metaObj = p.optJSONObject("meta")
+                                val rmTitle = metaObj?.optString("rank_math_title")?.takeIf { it.isNotBlank() }
+                                val rmDesc = metaObj?.optString("rank_math_description")?.takeIf { it.isNotBlank() }
+                                val rmKw = metaObj?.optString("rank_math_focus_keyword")?.takeIf { it.isNotBlank() }
+                                val rmCanonical = metaObj?.optString("rank_math_canonical_url") ?: ""
+                                val rmRobots = metaObj?.optString("rank_math_robots") ?: "index, follow"
+                                val rmScore = metaObj?.optInt("rank_math_seo_score", 0) ?: 0
+
+                                val yoastTitle = metaObj?.optString("_yoast_wpseo_title")?.takeIf { it.isNotBlank() }
+                                val yoastDesc = metaObj?.optString("_yoast_wpseo_metadesc")?.takeIf { it.isNotBlank() }
+                                val yoastKw = metaObj?.optString("_yoast_wpseo_focuskw")?.takeIf { it.isNotBlank() }
+
+                                val focusKeyword = rmKw ?: yoastKw ?: title.split(" ").take(3).joinToString(" ")
+                                val metaTitle = rmTitle ?: yoastTitle ?: "$title | ${_brandKnowledgeBase.value.storeName}".take(60)
+                                val metaDescription = rmDesc ?: yoastDesc ?: excerpt.ifBlank { content.take(140) }.take(150)
+                                val score = if (rmScore > 0) rmScore else 75
+
+                                fetchedItems.add(
+                                    SiteItem(
+                                        id = id,
+                                        title = title,
+                                        content = content,
+                                        excerpt = excerpt,
+                                        slug = slug,
+                                        categories = listOf("مقالات و وبلاگ"),
+                                        type = SiteItemType.POST,
+                                        status = status,
+                                        focusKeyword = focusKeyword,
+                                        metaTitle = metaTitle,
+                                        metaDescription = metaDescription,
+                                        canonicalUrl = rmCanonical,
+                                        metaRobots = rmRobots,
+                                        schemaType = "Article",
+                                        schemaJson = """{"@context":"https://schema.org","@type":"Article","headline":"$title"}""",
+                                        seoScore = score
+                                    )
+                                )
+                            }
+                            if (count < 50) {
+                                postHasMore = false
+                            } else {
+                                postPage++
+                            }
+                        }
+                    } else {
+                        postHasMore = false
+                    }
+                }
+            } catch (e: Exception) {
+                // Keep moving to pages
+            }
+
+            // 3. Fetch ALL WordPress Pages (with full pagination & Elementor detection)
+            _syncStatusMessage.value = "در حال دریافت تمام برگه‌ها و لندینگ‌های سایت..."
+            try {
+                var pageNum = 1
+                var pageHasMore = true
+                while (pageHasMore && pageNum <= 30) {
+                    _syncStatusMessage.value = "در حال دریافت برگه‌های سایت (صفحه $pageNum)..."
+                    val pagesResp = wpApi.getPages(perPage = 50, page = pageNum, status = null, authHeader = wpAuth)
+                    if (pagesResp.isSuccessful) {
+                        val bodyStr = pagesResp.body()?.string() ?: "[]"
+                        val cleanedBody = WordPressJsonSanitizerInterceptor.cleanJsonResponse(bodyStr)
+                        val pagesArray = JSONArray(cleanedBody)
+                        val count = pagesArray.length()
+                        if (count == 0) {
+                            pageHasMore = false
+                        } else {
+                            for (i in 0 until count) {
+                                val p = pagesArray.getJSONObject(i)
+                                val id = p.optLong("id", System.currentTimeMillis() + 1000 + i)
+                                val titleObj = p.optJSONObject("title")
+                                val contentObj = p.optJSONObject("content")
+                                val rawTitle = titleObj?.optString("rendered", "برگه وردپرس") ?: p.optString("title", "برگه وردپرس")
+                                val rawContent = contentObj?.optString("rendered", "") ?: p.optString("content", "")
+                                val slug = p.optString("slug", "page-$id")
+                                val status = p.optString("status", "publish")
+                                val template = p.optString("template", "default")
+
+                                val title = PersianNormalizer.normalize(rawTitle.replace(Regex("<[^>]*>"), "").trim())
+                                val content = PersianNormalizer.normalize(rawContent.replace(Regex("<[^>]*>"), "").trim())
+
+                                val metaObj = p.optJSONObject("meta")
+                                val rmTitle = metaObj?.optString("rank_math_title")?.takeIf { it.isNotBlank() }
+                                val rmDesc = metaObj?.optString("rank_math_description")?.takeIf { it.isNotBlank() }
+                                val rmKw = metaObj?.optString("rank_math_focus_keyword")?.takeIf { it.isNotBlank() }
+
+                                // Elementor Meta Detection
+                                val elementorEditMode = metaObj?.optString("_elementor_edit_mode", "") ?: ""
+                                val elementorData = metaObj?.optString("_elementor_data", "") ?: ""
+                                val isElem = elementorEditMode == "builder" || elementorData.isNotBlank() || template.contains("elementor")
+
+                                val focusKeyword = rmKw ?: title.split(" ").take(2).joinToString(" ")
+                                val metaTitle = rmTitle ?: "$title | ${_brandKnowledgeBase.value.storeName}".take(60)
+                                val metaDescription = rmDesc ?: content.take(140)
+
+                                fetchedItems.add(
+                                    SiteItem(
+                                        id = id,
+                                        title = title,
+                                        content = content,
+                                        excerpt = content.take(120),
+                                        slug = slug,
+                                        categories = listOf("برگه‌های سایت"),
+                                        type = SiteItemType.PAGE,
+                                        status = status,
+                                        focusKeyword = focusKeyword,
+                                        metaTitle = metaTitle,
+                                        metaDescription = metaDescription,
+                                        schemaType = "WebPage",
+                                        schemaJson = """{"@context":"https://schema.org","@type":"WebPage","name":"$title"}""",
+                                        seoScore = 80,
+                                        isElementor = isElem,
+                                        elementorDataJson = elementorData,
+                                        elementorTemplate = template
+                                    )
+                                )
+                            }
+                            if (count < 50) {
+                                pageHasMore = false
+                            } else {
+                                pageNum++
+                            }
+                        }
+                    } else {
+                        pageHasMore = false
+                    }
+                }
+            } catch (e: Exception) {
+                // Keep moving
             }
 
             if (fetchedItems.isNotEmpty()) {
                 _items.value = fetchedItems
+                val prodCount = fetchedItems.count { it.isProduct }
+                val postCount = fetchedItems.count { it.isPost }
+                val pageCount = fetchedItems.count { it.isPage }
+                _syncStatusMessage.value = "همگام‌سازی کامل شد: $prodCount محصول، $postCount نوشته، $pageCount برگه بارگذاری گردید."
                 Result.success(fetchedItems.size)
             } else {
+                _syncStatusMessage.value = "موردی از سایت دریافت نشد. داده‌های محلی حفظ شدند."
                 Result.success(_items.value.size)
             }
         } catch (e: Exception) {
+            _syncStatusMessage.value = "خطا در همگام‌سازی: ${e.message}"
             Result.failure(e)
         }
+    }
+
+    // --- Phase 2: Elementor Page Designer Integration ---
+    suspend fun applyElementorDesignToPage(pageId: Long, design: ElementorPageDesign) = withContext(Dispatchers.IO) {
+        val changes = mapOf(
+            "title" to design.title,
+            "content" to design.semanticHtml,
+            "elementorDataJson" to design.elementorJson,
+            "isElementor" to true,
+            "elementorTemplate" to "elementor_header_footer",
+            "metaTitle" to design.recommendedRankMathTitle,
+            "metaDescription" to design.recommendedMetaDesc
+        )
+        applyItemUpdate(
+            targetId = pageId,
+            proposedChanges = changes,
+            actionName = "بازطراحی برگه با افزونه المنتور و هوش مصنوعی",
+            reason = "طراحی اختصاصی بخش‌های قهرمان، خدمات، کاتالوگ و فرمت استاندارد _elementor_data"
+        )
+    }
+
+    suspend fun createNewElementorPage(design: ElementorPageDesign) = withContext(Dispatchers.IO) {
+        val newId = System.currentTimeMillis()
+        val safeSlug = "page-" + design.title.replace(" ", "-").take(40)
+
+        var newPage = SiteItem(
+            id = newId,
+            title = design.title,
+            content = design.semanticHtml,
+            excerpt = design.recommendedMetaDesc,
+            slug = safeSlug,
+            categories = listOf("برگه‌های طراحی شده با المنتور"),
+            type = SiteItemType.PAGE,
+            status = "publish",
+            focusKeyword = design.title.split(" ").take(3).joinToString(" "),
+            metaTitle = design.recommendedRankMathTitle,
+            metaDescription = design.recommendedMetaDesc,
+            schemaType = "WebPage",
+            schemaJson = """{"@context":"https://schema.org","@type":"WebPage","name":"${design.title}"}""",
+            seoScore = 92,
+            isElementor = true,
+            elementorDataJson = design.elementorJson,
+            elementorTemplate = "elementor_header_footer"
+        )
+
+        if (!_siteConfig.value.isDemoMode) {
+            try {
+                val client = NetworkClientProvider.createOkHttpClient()
+                val wpApi = NetworkClientProvider.createWordPressApi(_siteConfig.value.siteUrl, client)
+                val wpAuth = NetworkClientProvider.createBasicAuth(_siteConfig.value.wpUsername, _siteConfig.value.wpAppPassword)
+                val payload = JSONObject().apply {
+                    put("title", design.title)
+                    put("content", design.semanticHtml)
+                    put("status", "publish")
+                    put("template", "elementor_header_footer")
+                    val metaObj = JSONObject().apply {
+                        put("rank_math_title", design.recommendedRankMathTitle)
+                        put("rank_math_description", design.recommendedMetaDesc)
+                        put("_elementor_edit_mode", "builder")
+                        put("_elementor_data", design.elementorJson)
+                        put("_wp_page_template", "elementor_header_footer")
+                    }
+                    put("meta", metaObj)
+                }.toString()
+                val resp = wpApi.createPage(payload.toRequestBody("application/json".toMediaTypeOrNull()), wpAuth)
+                if (resp.isSuccessful) {
+                    val cleaned = WordPressJsonSanitizerInterceptor.cleanJsonResponse(resp.body()?.string() ?: "")
+                    val rid = JSONObject(cleaned).optLong("id", newId)
+                    newPage = newPage.copy(id = rid)
+                }
+            } catch (e: Exception) {
+                // Ignore transient network error
+            }
+        }
+
+        val snapshotId = snapshotDao.insertSnapshot(
+            SnapshotEntity(
+                timestamp = System.currentTimeMillis(),
+                targetType = newPage.type.name,
+                targetId = newPage.id,
+                title = newPage.title,
+                content = newPage.content,
+                excerpt = newPage.excerpt,
+                metaTitle = newPage.metaTitle,
+                metaDescription = newPage.metaDescription,
+                schemaJson = newPage.schemaJson,
+                imageAlt = newPage.imageAlt,
+                reason = "ایجاد برگه جدید با افزونه المنتور و هوش مصنوعی"
+            )
+        )
+
+        recordLog(
+            target = newPage,
+            actionName = "ایجاد برگه المنتور جدید",
+            reason = "تولید برگه استاندارد همراه با قالب ساختاریافته _elementor_data",
+            role = _userSession.value.role,
+            status = LogStatus.SUCCESS,
+            diffs = listOf(DiffItem("ایجاد برگه المنتور", "موجود نبود", design.title)),
+            snapshotId = snapshotId
+        )
+
+        _items.value = _items.value + newPage
+        consumeBudgetTokens(950)
     }
 
     // --- Phase 2: Scheduling & Jalali Calendar ---
