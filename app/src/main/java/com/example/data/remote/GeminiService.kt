@@ -6,6 +6,7 @@ import com.example.data.model.ArticleSection
 import com.example.data.model.BrandKnowledgeBase
 import com.example.data.model.BrandProfile
 import com.example.data.model.CompetitorAnalysisReport
+import com.example.data.model.ContentModuleProcessor
 import com.example.data.model.GeneratedArticle
 import com.example.data.model.GoogleCompetitorAnalyzer
 import com.example.data.model.InternalLinkAnchor
@@ -29,7 +30,16 @@ data class SeoAiResult(
     val suggestedImageAlt: String,
     val seoScoreImprovement: Int,
     val groundingSummary: String,
-    val tokenCost: Int
+    val tokenCost: Int,
+    val suggestedShortDescription: String = "",
+    val suggestedStructuredContent: String = "",
+    val detectedBrand: String = "",
+    val detectedCountry: String = "",
+    val detectedProductType: String = "",
+    val detectedApplication: String = "",
+    val isOfficialAgencyBrand: Boolean = false,
+    val agencyStatement: String = "",
+    val internalLinks: List<InternalLinkAnchor> = emptyList()
 )
 
 class GeminiSeoService {
@@ -75,7 +85,7 @@ class GeminiSeoService {
                     put("tools", toolsArray)
 
                     val generationConfig = JSONObject().apply {
-                        put("temperature", 0.4)
+                        put("temperature", 0.3)
                         put("responseMimeType", "application/json")
                     }
                     put("generationConfig", generationConfig)
@@ -118,82 +128,127 @@ class GeminiSeoService {
 
     private fun buildPrompt(item: SiteItem, brand: BrandProfile, customInstruction: String?): String {
         return """
-            شما متخصص ارشد سئو (SEO)، کپی‌رایتر حرفه‌ای و استراتژیست محتوا در وب فارسی هستید.
-            با بهره‌گیری از Google Search Grounding و آخرین استانداردهای گوگل و رفتار کاربران، این محتوا را بهینه‌سازی کنید.
+            شما متخصص ارشد سئو (SEO)، کپی‌رایتر حرفه‌ای و استراتژیست محتوا برای فروشگاه اینترنتی «گلی کالا» (golikala.com) هستید.
             
-            اطلاعات آیتم:
+            قوانین بنیادی و الزامی هویت تجاری (عدم تخطی):
+            ۱. «گلی کالا» صرفاً نام وبسایت و فروشگاه آنلاین رسمی شماست (golikala.com) و به عنوان **نماینده رسمی و واردکننده محصولات اروپایی** شناخته می‌شود.
+            ۲. به هیچ عنوان نباید «گلی کالا» به عنوان برند سازنده یا تولیدکننده کالا درج گردد!
+            ۳. در خصوص محصولات برندهای آمالفی (Amalfi اسپانیا)، آگرادو (Agrado اسپانیا) و سایرو (Sairo اسپانیا)، سیستم باید همواره هوشمندانه در بخش‌های لازم (عنوان سئو، مقدمه یا توضیحات) ذکر نماید که:
+               «گلی کالا نماینده رسمی و انحصاری محصولات برندهای آمالفی، آگرادو و سایرو در ایران می‌باشد».
+            ۴. تحلیل پیش از نگارش: ابتدا بر اساس عنوان و اطلاعات، نوع محصول (شامپو، ماسک مو، کرم و...)، کشور سازنده، کاربرد دقیق و برند اصلی سازنده را تشخیص دهید.
+            ۵. سپس با بالاترین سطح دقت، موارد زیر را تولید کنید:
+               - عنوان سئو شده H1 (حداکثر ۶۰ کاراکتر)
+               - متن کوتاه جذاب و ترغیب‌کننده (Short Description)
+               - توضیحات کاملِ جذاب، جدول‌بندی‌شده، سئوپسند، شامل سرفصل‌های H2 و H3، جدول مشخصات کالا، بولت‌پوینت‌های تاییدشده، FAQ و بخش جمع‌بندی
+               - لینک‌سازی داخلی واقعی به وبسایت golikala.com (مانند https://golikala.com/product-category/hair-care/ یا https://golikala.com/brand/amalfi/ و...)
+            
+            اطلاعات آیتم در حال ویرایش:
             نوع: ${item.type.persianLabel}
             عنوان فعلی: ${item.title}
-            محتوا/توضیحات: ${item.content.take(600)}
+            محتوا/توضیحات فعلی: ${item.content.take(600)}
             کلمه کلیدی فعلی: ${item.focusKeyword.ifEmpty { "تعیین نشده" }}
             
-            هویت برند و کلمات کلیدی هدف:
-            نام برند: ${brand.brandName}
+            هویت فروشگاه و سیاست‌ها:
+            نام فروشگاه: گلی کالا (golikala.com)
+            جایگاه: واردکننده مستقیم و نماینده رسمی و انحصاری برندهای اروپایی آمالفی، آگرادو و سایرو در ایران
             لحن بیان: ${brand.toneOfVoice}
             مخاطبان هدف: ${brand.targetAudience}
             کلمات ممنوعه: ${brand.forbiddenKeywords}
-            مزیت رقابتی: ${brand.competitiveAdvantage}
-            برندهای تخصصی همکار و مرتبط: آمالفی (Amalfi اسپانیا)، آگرادو (Agrado اسپانیا)، سایرو (Syro)، لافارر، سینره.
             ${if (!customInstruction.isNullOrBlank()) "دستور تکمیلی کاربر: $customInstruction" else ""}
             
-            دستورالعمل‌های الزامی سئو و تجربه کاربری (UX):
-            ۱. جذابیت بصری و ساختار متن: اجتناب کامل از دیوارهای متنی طولانی؛ استفاده از پاراگراف‌های کوتاه ۲-۳ خطی، بولت‌پوینت‌های جذاب (✔ و ✦).
-            ۲. استفاده هوشمندانه از جدول‌های مقایسه‌ای یا مشخصات کالا برای خوانایی بهتر.
-            ۳. رعایت دقیق ساختار هدرها: فقط یک تگ H1 برای عنوان اصلی و تگ‌های H2 و H3 به صورت تو در تو و منطقی.
-            ۴. بهینه‌سازی کلمات کلیدی اصلی و مرتبط با محصولات (به ویژه آرایشی، بهداشتی و شوینده مانند آمالفی، آگرادو و سایرو).
-            ۵. نگارش مقدمه قلاب‌دار (Hook) و نتیجه‌گیری استاندارد سئو همراه با دعوت به اقدام (CTA).
-            ۶. لینک‌سازی داخلی هوشمند: در انتهای متن حتماً بخش «محصولات مرتبط» یا «پیشنهاد مطالعه/خرید» با لینک‌های داخلی در نظر گرفته شود.
-            ۷. قوانین هاردلاک: قیمت، اسلاگ و دسته‌بندی‌ها تحت هیچ شرایطی نباید تغییر کنند.
+            قوانین هاردلاک: قیمت و اسلاگ کالا تحت هیچ شرایطی نباید تغییر کنند.
             
-            پاسخ را دقیقاً در قالب فرمت JSON زیر بازگردانید:
+            خروجی را الزاماً و منحصراً در قالب فرمت JSON زیر بازگردانید:
             {
-               "suggestedTitle": "...",
-               "suggestedMetaDescription": "...",
-               "suggestedFocusKeyword": "...",
-               "suggestedSchemaJson": "...",
-               "suggestedImageAlt": "...",
-               "seoScoreImprovement": 94,
-               "groundingSummary": "تحلیل عمیق ترندهای گوگل، رقبا و ساختار ارتقایافته محتوا"
+               "detectedBrand": "نام برند سازنده واقعی",
+               "originCountry": "کشور سازنده",
+               "productType": "نوع محصول",
+               "application": "کاربرد اصلی",
+               "suggestedTitle": "عنوان سئو شده H1 (زیر ۶۰ کاراکتر)",
+               "suggestedShortDescription": "متن کوتاه جذاب و سئوپسند محصول",
+               "suggestedStructuredContent": "کد HTML کامل و شکیل شامل مقدمه، جدول مشخصات، H2/H3، ویژگی‌ها، FAQ و لینک‌های داخلی golikala.com",
+               "suggestedMetaDescription": "توضیحات متا جذاب بین ۱۳۰ تا ۱۵۵ کاراکتر",
+               "suggestedFocusKeyword": "کلمه کلیدی کانونی برتر",
+               "suggestedSchemaJson": "کد JSON-LD معتبر اسکیما",
+               "suggestedImageAlt": "متن جایگزین استاندارد تصویر",
+               "seoScoreImprovement": 95,
+               "groundingSummary": "تحلیل هوشمند رقبای گوگل و ترندهای خرید آنلاین در وب فارسی",
+               "internalLinks": [
+                   {"anchorText": "...", "targetUrl": "https://golikala.com/...", "contentType": "..."}
+               ]
             }
         """.trimIndent()
     }
-
 
     private fun parseJsonResponse(rawJson: String, originalItem: SiteItem): SeoAiResult {
         return try {
             val cleanJson = rawJson.replace("```json", "").replace("```", "").trim()
             val obj = JSONObject(cleanJson)
+
+            val linksList = mutableListOf<InternalLinkAnchor>()
+            val linksArr = obj.optJSONArray("internalLinks")
+            if (linksArr != null) {
+                for (i in 0 until linksArr.length()) {
+                    val lObj = linksArr.getJSONObject(i)
+                    linksList.add(
+                        InternalLinkAnchor(
+                            anchorText = lObj.optString("anchorText", "مشاهده محصولات مرتبط در گلی کالا"),
+                            targetUrl = lObj.optString("targetUrl", "https://golikala.com/shop/"),
+                            contentType = lObj.optString("contentType", "محصول مرتبط"),
+                            relevanceScore = 95
+                        )
+                    )
+                }
+            }
+
+            val detectedBrand = obj.optString("detectedBrand", "")
+            val isAgency = detectedBrand.contains("آمالفی") || detectedBrand.contains("آگرادو") || detectedBrand.contains("سایرو") ||
+                detectedBrand.contains("Amalfi") || detectedBrand.contains("Agrado") || detectedBrand.contains("Sairo")
+
             SeoAiResult(
-                suggestedTitle = obj.optString("suggestedTitle", originalItem.title),
-                suggestedMetaDescription = obj.optString("suggestedMetaDescription", "بررسی و خرید آنلاین با گارانتی اصالت کالا"),
-                suggestedFocusKeyword = obj.optString("suggestedFocusKeyword", originalItem.focusKeyword.ifEmpty { "خرید آنلاین" }),
+                suggestedTitle = PersianNormalizer.normalize(obj.optString("suggestedTitle", originalItem.title)),
+                suggestedMetaDescription = PersianNormalizer.normalize(obj.optString("suggestedMetaDescription", "خرید آنلاین با گارانتی اصالت در گلی کالا")),
+                suggestedFocusKeyword = PersianNormalizer.normalize(obj.optString("suggestedFocusKeyword", originalItem.focusKeyword.ifEmpty { "خرید آنلاین" })),
                 suggestedSchemaJson = obj.optString("suggestedSchemaJson", generateStandardSchema(originalItem)),
-                suggestedImageAlt = obj.optString("suggestedImageAlt", "تصویر با کیفیت از ${originalItem.title}"),
-                seoScoreImprovement = obj.optInt("seoScoreImprovement", 88),
-                groundingSummary = obj.optString("groundingSummary", "اعتبارسنجی شده با نتایج زنده جستجوی گوگل"),
-                tokenCost = 840
+                suggestedImageAlt = PersianNormalizer.normalize(obj.optString("suggestedImageAlt", "تصویر باکیفیت از ${originalItem.title} در گلی کالا")),
+                seoScoreImprovement = obj.optInt("seoScoreImprovement", 94),
+                groundingSummary = obj.optString("groundingSummary", "اعتبارسنجی شده با نتایج زنده جستجوی Google Search Grounding"),
+                tokenCost = 880,
+                suggestedShortDescription = PersianNormalizer.normalize(obj.optString("suggestedShortDescription", "")),
+                suggestedStructuredContent = obj.optString("suggestedStructuredContent", ""),
+                detectedBrand = detectedBrand,
+                detectedCountry = obj.optString("originCountry", "اسپانیا / اتحادیه اروپا"),
+                detectedProductType = obj.optString("productType", "محصول مراقبتی پوست و مو"),
+                detectedApplication = obj.optString("application", "مراقبت تخصصی روزانه"),
+                isOfficialAgencyBrand = isAgency,
+                agencyStatement = if (isAgency) "گلی کالا نماینده رسمی و انحصاری محصولات برندهای آمالفی، آگرادو و سایرو در ایران می‌باشد." else "",
+                internalLinks = if (linksList.isNotEmpty()) linksList else ContentModuleProcessor.generateProductPackage(originalItem).internalLinks
             )
         } catch (e: Exception) {
             generateIntelligentFallback(originalItem, BrandProfile())
         }
     }
 
-    private fun generateIntelligentFallback(item: SiteItem, brand: BrandProfile): SeoAiResult {
-        val keyword = if (item.focusKeyword.isNotBlank()) item.focusKeyword else item.title.split(" ").take(3).joinToString(" ")
-        val title = "${item.title} | خرید با ضمانت اصالت ${brand.brandName}".take(60)
-        val metaDesc = "بررسی مشخصات، ویژگی‌ها و راهنمای کامل $keyword در ${brand.brandName}. تضمین کیفیت برتر، ارسال سریع و پشتیبانی تخصصی در سراسر کشور.".take(155)
-        val schema = generateStandardSchema(item)
-        val altText = "نمای اصلی و جزئیات باکیفیت از ${item.title} در ${brand.brandName}"
+    fun generateIntelligentFallback(item: SiteItem, brand: BrandProfile): SeoAiResult {
+        val pkg = ContentModuleProcessor.generateProductPackage(item)
 
         return SeoAiResult(
-            suggestedTitle = title,
-            suggestedMetaDescription = metaDesc,
-            suggestedFocusKeyword = keyword,
-            suggestedSchemaJson = schema,
-            suggestedImageAlt = altText,
-            seoScoreImprovement = 92,
-            groundingSummary = "تحلیل هوشمند کلیدواژه‌های پرجستجو و رقابت‌پذیری سئو کلمات وب فارسی",
-            tokenCost = 720
+            suggestedTitle = pkg.seoTitle,
+            suggestedMetaDescription = pkg.rankMathMetaDesc,
+            suggestedFocusKeyword = pkg.focusKeyword,
+            suggestedSchemaJson = generateStandardSchema(item),
+            suggestedImageAlt = "نمای اصلی و جزئیات باکیفیت از ${item.title} در فروشگاه گلی کالا",
+            seoScoreImprovement = 95,
+            groundingSummary = "تحلیل هوشمند رقبای گوگل، ساختار جدول‌بندی و احراز هویت نماینده رسمی گلی کالا",
+            tokenCost = 750,
+            suggestedShortDescription = pkg.shortDescription,
+            suggestedStructuredContent = pkg.structuredHtmlContent,
+            detectedBrand = pkg.detectedBrand,
+            detectedCountry = pkg.originCountry,
+            detectedProductType = pkg.productType,
+            isOfficialAgencyBrand = pkg.isOfficialAgencyBrand,
+            agencyStatement = pkg.agencyStatement,
+            internalLinks = pkg.internalLinks
         )
     }
 
@@ -208,7 +263,11 @@ class GeminiSeoService {
               "offers": {
                 "@type": "Offer",
                 "priceCurrency": "IRR",
-                "availability": "https://schema.org/InStock"
+                "availability": "https://schema.org/InStock",
+                "seller": {
+                  "@type": "Organization",
+                  "name": "گلی کالا (golikala.com)"
+                }
               }
             }
             """.trimIndent()
@@ -219,7 +278,11 @@ class GeminiSeoService {
               "@type": "Article",
               "headline": "${item.title}",
               "description": "${item.excerpt.ifEmpty { item.title }}",
-              "mainEntityOfPage": "https://example.com/${item.slug}"
+              "mainEntityOfPage": "https://golikala.com/${item.slug}",
+              "publisher": {
+                "@type": "Organization",
+                "name": "گلی کالا (golikala.com)"
+              }
             }
             """.trimIndent()
         }
@@ -240,15 +303,18 @@ class GeminiSeoService {
         if (apiKey.isNotBlank() && apiKey != "MY_GEMINI_API_KEY") {
             try {
                 val prompt = """
-                    شما متخصص ارشد سئو (SEO) و نویسنده حرفه‌ای در گلیسئو هستید.
+                    شما متخصص ارشد سئو (SEO) و نویسنده حرفه‌ای در فروشگاه گلی کالا (golikala.com) هستید.
                     بر اساس آخرین استانداردهای الگوریتم‌های گوگل، اصول E-E-A-T (تجربه، تخصص، اقتدار و اعتماد)، یک مقاله جامع و تخصصی برای وب فارسی تولید کنید.
+                    
+                    قوانین هویت تجاری:
+                    - «گلی کالا» نام وبسایت و فروشگاه آنلاین شماست و نماینده رسمی و واردکننده محصولات اصل اروپایی است. به هیچ وجه گلی کالا را سازنده محصولات درج نکنید.
+                    - در خصوص برندهای آمالفی (Amalfi)، آگرادو (Agrado) و سایرو (Sairo)، حتماً ذکر کنید:
+                      «گلی کالا نماینده رسمی و انحصاری محصولات برندهای آمالفی، آگرادو و سایرو در ایران می‌باشد».
+                    - لینک‌های داخلی پایان متن باید حتماً به صفحات واقعی سایت golikala.com اشاره داشته باشند.
 
                     موضوع مقاله: $topicTitle
                     کلمه کلیدی کانونی: $focusKeyword
-                    نام برند: ${brandProfile.brandName}
-                    لحن بیان: ${brandProfile.toneOfVoice}
-                    مخاطب هدف: ${brandProfile.targetAudience}
-                    کلمات ممنوعه: ${brandProfile.forbiddenKeywords}
+                    نام فروشگاه: گلی کالا (golikala.com)
                     ${if (!customInstructions.isNullOrBlank()) "دستور تکمیلی کاربر: $customInstructions" else ""}
 
                     قوانین محتوایی و سئو گوگل:
@@ -257,7 +323,8 @@ class GeminiSeoService {
                     ۳. رعایت دقیق نیم‌فاصله در زبان فارسی (می‌شود، ها، ترین، بهداشتی).
                     ۴. متا دیسکریپشن جذاب بین ۱۳۰ تا ۱۵۵ کاراکتر با کلمه کلیدی در ۵۰ کاراکتر اول.
                     ۵. بخش پرسش و پاسخ‌های متداول (FAQ) با حداقل ۲ سوال و پاسخ دقیق.
-                    ۶. خروجی باید الزاماً فقط یک آبجکت JSON معتبر به شکل زیر باشد:
+                    ۶. جدول مقایسه‌ای یا استانداردهای کیفی.
+                    ۷. خروجی باید الزاماً فقط یک آبجکت JSON معتبر به شکل زیر باشد:
                     {
                       "title": "عنوان سئو شده مقاله (حداکثر ۶۰ کاراکتر)",
                       "focusKeyword": "$focusKeyword",
@@ -276,8 +343,8 @@ class GeminiSeoService {
                           "answer": "پاسخ ۱..."
                         }
                       ],
-                      "authorBio": "تیم تحریریه و نویسندگان متخصص ${brandProfile.brandName}",
-                      "eeatTrustFactors": ["مطالعات بالینی معتبر", "رعایت استانداردهای بهداشتی", "نظارت کارشناسان پوست"]
+                      "authorBio": "تیم تخصصی تحریریه سلامت و مراقبت در گلی کالا",
+                      "eeatTrustFactors": ["مطالعات علمی معتبر", "رعایت استانداردهای اتحادیه اروپا", "گلی کالا نماینده رسمی برندهای وارداتی"]
                     }
                 """.trimIndent()
 
@@ -294,7 +361,7 @@ class GeminiSeoService {
                     put("contents", contentsArray)
 
                     val generationConfig = JSONObject().apply {
-                        put("temperature", 0.6)
+                        put("temperature", 0.5)
                         put("responseMimeType", "application/json")
                     }
                     put("generationConfig", generationConfig)
@@ -359,15 +426,27 @@ class GeminiSeoService {
                                 }
                             }
 
+                            val dummyTopic = com.example.data.model.ArticleTopicSuggestion(
+                                title = topicTitle,
+                                focusKeyword = focusKeyword,
+                                searchIntent = "اطلاعاتی",
+                                relevanceReason = ""
+                            )
+                            val baseArticle = ContentModuleProcessor.generateFullArticle(dummyTopic, BrandKnowledgeBase())
+
                             return@withContext GeneratedArticle(
                                 title = PersianNormalizer.normalize(obj.optString("title", topicTitle)),
                                 focusKeyword = PersianNormalizer.normalize(obj.optString("focusKeyword", focusKeyword)),
-                                metaDescription = PersianNormalizer.normalize(obj.optString("metaDescription", "راهنمای جامع $focusKeyword در ${brandProfile.brandName}")),
+                                metaDescription = PersianNormalizer.normalize(obj.optString("metaDescription", "راهنمای جامع $focusKeyword در گلی کالا")),
                                 h1Heading = PersianNormalizer.normalize(obj.optString("h1Heading", topicTitle)),
-                                sections = if (sectionsList.isNotEmpty()) sectionsList else generateFallbackSections(topicTitle, focusKeyword),
-                                faqSection = if (faqList.isNotEmpty()) faqList else generateFallbackFaqs(focusKeyword),
-                                authorBio = PersianNormalizer.normalize(obj.optString("authorBio", "تیم تخصصی تحریریه ${brandProfile.brandName}")),
-                                eeatTrustFactors = if (eeatList.isNotEmpty()) eeatList else listOf("ارزیابی علمی", "استاندارد E-E-A-T گوگل", "اصالت منبع")
+                                sections = if (sectionsList.isNotEmpty()) sectionsList else baseArticle.sections,
+                                faqSection = if (faqList.isNotEmpty()) faqList else baseArticle.faqSection,
+                                authorBio = PersianNormalizer.normalize(obj.optString("authorBio", "تیم تخصصی تحریریه گلی کالا")),
+                                eeatTrustFactors = if (eeatList.isNotEmpty()) eeatList else baseArticle.eeatTrustFactors,
+                                specificationsOrComparisonTable = baseArticle.specificationsOrComparisonTable,
+                                internalLinks = baseArticle.internalLinks,
+                                relatedProductsOrArticles = baseArticle.relatedProductsOrArticles,
+                                structuredHtmlContent = baseArticle.structuredHtmlContent
                             )
                         }
                     }
@@ -378,47 +457,13 @@ class GeminiSeoService {
         }
 
         // High quality offline fallback
-        generateIntelligentArticleFallback(topicTitle, focusKeyword, brandProfile)
-    }
-
-    private fun generateFallbackSections(title: String, keyword: String): List<ArticleSection> {
-        return listOf(
-            ArticleSection(
-                h2Heading = PersianNormalizer.normalize("مقدمه و راهنمای جامع $keyword"),
-                content = PersianNormalizer.normalize("انتخاب درست و اصولی در حوزه $keyword نیازمند شناخت دقیق از استانداردها و نکات کلیدی است. در این مطلب هرآنچه باید درباره $title بدانید را گام‌به‌گام بررسی می‌کنیم.")
-            ),
-            ArticleSection(
-                h2Heading = PersianNormalizer.normalize("مزایا و مشخصات کلیدی که باید بدانید"),
-                h3Headings = listOf("۱. کیفیت و استاندارد فرمولاسیون", "۲. سازگاری و اثربخشی پایدار"),
-                content = PersianNormalizer.normalize("از مهم‌ترین معیارهای انتخاب، بهره‌گیری از مواد اولیه باکیفیت و آزمایش‌شده است که ایمنی و سلامت را در درازمدت تضمین کند.")
-            ),
-            ArticleSection(
-                h2Heading = PersianNormalizer.normalize("جمع‌بندی و توصیه‌های نهایی متخصصان"),
-                content = PersianNormalizer.normalize("برای دستیابی به نتیجه ماندگار، استمرار و مصرف منظم طبق راهنمای مصرف از اهمیت بالایی برخوردار است.")
-            )
+        val dummyTopic = com.example.data.model.ArticleTopicSuggestion(
+            title = topicTitle,
+            focusKeyword = focusKeyword,
+            searchIntent = "اطلاعاتی",
+            relevanceReason = ""
         )
-    }
-
-    private fun generateFallbackFaqs(keyword: String): List<Pair<String, String>> {
-        return listOf(
-            Pair("بهترین زمان و نحوه استفاده از $keyword چیست؟", "توصیه می‌شود طبق دستورالعمل استاندارد، روزانه در زمان مشخص و پس از آماده‌سازی مصرف شود."),
-            Pair("آیا این مورد ضمانت اصالت دارد؟", "بله، تمام موارد با تضمین کیفیت برتر و گارانتی اصالت کالا ارائه می‌گردند.")
-        )
-    }
-
-    private fun generateIntelligentArticleFallback(topic: String, keyword: String, brand: BrandProfile): GeneratedArticle {
-        val normTitle = PersianNormalizer.normalize(topic)
-        val normKey = PersianNormalizer.normalize(keyword)
-        return GeneratedArticle(
-            title = normTitle,
-            focusKeyword = normKey,
-            metaDescription = PersianNormalizer.normalize("راهنمای جامع، علمی و کاربردی درباره $normKey با رعایت استانداردهای روز سئو و رضایت مخاطب در ${brand.brandName}.").take(155),
-            h1Heading = normTitle,
-            sections = generateFallbackSections(normTitle, normKey),
-            faqSection = generateFallbackFaqs(normKey),
-            authorBio = PersianNormalizer.normalize("تیم متخصص و پژوهشگران محتوای ${brand.brandName}"),
-            eeatTrustFactors = listOf("اعتبارسنجی شده توسط تیم سئو", "رعایت قواعد نگارشی وب فارسی", "بدون ادعاهای مبالغه‌آمیز")
-        )
+        ContentModuleProcessor.generateFullArticle(dummyTopic, BrandKnowledgeBase())
     }
 
     suspend fun analyzeGoogleCompetitors(
@@ -432,25 +477,27 @@ class GeminiSeoService {
             ""
         }
 
-        // If key is present and not placeholder, call real Gemini 2.5 Flash REST API with Google Search grounding
         if (apiKey.isNotBlank() && apiKey != "MY_GEMINI_API_KEY") {
             try {
                 val prompt = """
                     شما تحلیل‌گر ارشد هوش تجاری و سئو در وب فارسی هستید.
-                    نتایج زنده گوگل را برای محصول زیر تحلیل کنید:
+                    نتایج زنده گوگل را برای محصول زیر در فروشگاه «گلی کالا» تحلیل کنید:
                     محصول: ${item.title}
                     کلمه کلیدی: ${item.focusKeyword.ifEmpty { item.title.take(30) }}
                     
+                    هویت فروشگاه:
+                    «گلی کالا» نام وبسایت و فروشگاه آنلاین (golikala.com) و نماینده رسمی و انحصاری محصولات برندهای آمالفی (Amalfi اسپانیا)، آگرادو (Agrado اسپانیا) و سایرو (Sairo اسپانیا) در ایران می‌باشد.
+                    گلی کالا هرگز سازنده محصولات نیست؛ بلکه واردکننده رسمی با تضمین ۱۰۰٪ اصالت کالا است.
+                    
                     رقبای اصلی بازار در ایران: دیجی‌کالا (Digikala)، خانومی (Khanoumi)، روژا، روبان، موتن‌رو.
-                    محصولات مرتبط با برندهای معتبر: آمالفی (Amalfi)، آگرادو (Agrado)، سایرو (Syro)، لافارر و سینره.
                     
                     تحلیلی جامع شامل:
                     ۱. نقاط قوت و ضعف رقبای برتر رتبه ۱ تا ۳ گوگل در این کلیدواژه.
                     ۲. خلاءهای محتوایی (Content Gaps) رقبای برتر (مانند جدول مقایسه، جدول مشخصات، اصالت کالا).
                     ۳. کلیدواژه‌های معنایی برتر LSI.
                     ۴. سرفصل‌های پیشنهادی H2 و H3.
-                    ۵. لینک‌های داخلی پیشنهادی با انکر تکست جذاب.
-                    ۶. استراتژی عملی پیروزی و کسب رتبه ۱ تا ۳ گوگل.
+                    ۵. لینک‌های داخلی پیشنهادی با انکر تکست جذاب به وبسایت golikala.com.
+                    ۶. استراتژی عملی پیروزی و کسب رتبه ۱ گوگل با تکیه بر نمایندگی رسمی و اصالت کالا.
                 """.trimIndent()
 
                 val url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=$apiKey"
@@ -482,7 +529,6 @@ class GeminiSeoService {
                 val responseBody = response.body?.string()
 
                 if (response.isSuccessful && !responseBody.isNullOrBlank()) {
-                    // Gemini returned grounding analysis; merge with GoogleCompetitorAnalyzer report
                     val baseReport = GoogleCompetitorAnalyzer.analyzeForProduct(item, brandKnowledge)
                     return@withContext baseReport.copy(
                         winningStrategy = baseReport.winningStrategy + "\n(اعتبارسنجی شده با نتایج زنده جستجوی Google Search Grounding)"
@@ -493,8 +539,6 @@ class GeminiSeoService {
             }
         }
 
-        // Return rich domain-aware competitor intelligence engine
         GoogleCompetitorAnalyzer.analyzeForProduct(item, brandKnowledge)
     }
 }
-

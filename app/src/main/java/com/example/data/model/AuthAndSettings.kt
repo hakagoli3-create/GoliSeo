@@ -46,9 +46,9 @@ data class BudgetTracker(
 }
 
 data class BrandProfile(
-    val brandName: String = "گلی کالا (GoliKala)",
-    val toneOfVoice: String = "تخصصی، صادقانه، بهداشتی و مورد اعتماد خریداران بازار زیبایی و سلامت",
+    val brandName: String = "گلی کالا (golikala.com)",
+    val toneOfVoice: String = "تخصصی، صادقانه، بهداشتی و مورد اعتماد خریداران بازار زیبایی و سلامت بدون ادعاهای مبالغه‌آمیز",
     val targetAudience: String = "خریداران و مصرف‌کنندگان محصولات مراقبت از پوست، مو و بهداشت فردی اصل اروپایی",
-    val forbiddenKeywords: String = "ارزان‌ترین، ۱۰۰٪ معجزه، بدون رقیب، درمان قطعی",
-    val competitiveAdvantage: String = "نماینده رسمی برندهای آمالفی، اگرادو و سایرو در ایران، تضمین اصالت ۱۰۰٪ کالا"
+    val forbiddenKeywords: String = "درج گلی کالا به عنوان سازنده کالا، ارزان‌ترین، ۱۰۰٪ معجزه، بدون رقیب، درمان قطعی",
+    val competitiveAdvantage: String = "گلی کالا نماینده رسمی و انحصاری محصولات برندهای آمالفی، آگرادو و سایرو در ایران می‌باشد - واردکننده مستقیم و تضمین ۱۰۰٪ اصالت فیزیکی کالا با ضمانت مرجوعی ۷ روزه"
 )

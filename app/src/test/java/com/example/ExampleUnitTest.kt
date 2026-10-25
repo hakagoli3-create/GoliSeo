@@ -118,13 +118,23 @@ class ExampleUnitTest {
       focusKeyword = "ماسک مو آمالفی",
       type = SiteItemType.PRODUCT
     )
-    val structuredHtml = ContentModuleProcessor.rewriteContentWithAdvancedSeoStructure(sampleProduct, BrandKnowledgeBase())
-    // 1. Structure & Anti-wall of text
+    val pkg = ContentModuleProcessor.generateProductPackage(sampleProduct, BrandKnowledgeBase())
+    val structuredHtml = pkg.structuredHtmlContent
+
+    // 1. Pre-Writing Analysis & Official Agency
+    assertTrue("Must detect official agency brand", pkg.isOfficialAgencyBrand)
+    assertEquals("آمالفی (Amalfi)", pkg.detectedBrand)
+    assertEquals("اسپانیا (اتحادیه اروپا)", pkg.originCountry)
+    assertTrue("Must assert official agency", pkg.agencyStatement.contains("نماینده رسمی و انحصاری محصولات برندهای آمالفی، آگرادو و سایرو"))
+
+    // 2. Structure & Anti-wall of text
     assertTrue("Must have H2 headings", structuredHtml.contains("<h2"))
     assertTrue("Must have specifications table", structuredHtml.contains("<table"))
     assertTrue("Must have bullet points", structuredHtml.contains("✔") || structuredHtml.contains("<li"))
-    // 2. SEO & Internal linking
+
+    // 3. Real Internal Linking with golikala.com
     assertTrue("Must have internal links section", structuredHtml.contains("gliseo-internal-links-section"))
+    assertTrue("Must link to real golikala.com category or brand", structuredHtml.contains("https://golikala.com/"))
     assertTrue("Must have brand reference", structuredHtml.contains("آمالفی"))
   }
 }

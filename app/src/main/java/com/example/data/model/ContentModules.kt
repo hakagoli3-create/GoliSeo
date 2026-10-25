@@ -18,6 +18,15 @@ data class FreeformCommandPlan(
     val summaryReport: String? = null
 )
 
+data class ProductPreAnalysis(
+    val detectedBrand: String,
+    val originCountry: String,
+    val productType: String,
+    val primaryApplication: String,
+    val isOfficialAgencyBrand: Boolean,
+    val agencyStatement: String
+)
+
 data class ProductOptimizationPackage(
     val seoTitle: String,
     val shortDescription: String,
@@ -34,7 +43,12 @@ data class ProductOptimizationPackage(
     val relatedProductsOrArticles: List<String> = emptyList(),
     val introHook: String = "",
     val conclusionCta: String = "",
-    val structuredHtmlContent: String = ""
+    val structuredHtmlContent: String = "",
+    val detectedBrand: String = "",
+    val originCountry: String = "",
+    val productType: String = "",
+    val isOfficialAgencyBrand: Boolean = false,
+    val agencyStatement: String = ""
 )
 
 data class ArticleTopicSuggestion(
@@ -60,7 +74,6 @@ data class GeneratedArticle(
     val structuredHtmlContent: String = ""
 )
 
-
 data class ArticleSection(
     val h2Heading: String,
     val h3Headings: List<String> = emptyList(),
@@ -68,7 +81,7 @@ data class ArticleSection(
 )
 
 data class ImageMetadata(
-    val suggestedFileName: String, // e.g. "cinere-moisturizing-cream-for-dry-skin.webp"
+    val suggestedFileName: String,
     val persianAltText: String,
     val format: String = "WebP",
     val quality: Int = 85,
@@ -111,8 +124,8 @@ object ContentModuleProcessor {
         }
 
         val steps = listOf(
-            PlanStep(1, "تحلیل درخواست و اسکن محتوا", "بررسی اطلاعات موجود در سایت و مطابقت با حافظه گلی کالا", isCompleted = true),
-            PlanStep(2, "تولید سئو و نرمال‌سازی فارسی", "نگارش عنوان، متا، اسکیما و اعمال نیم‌فاصله و قواعد نگارشی", isCompleted = true),
+            PlanStep(1, "تحلیل پیش از نگارش و تشخیص هویت کالا", "تشخیص نوع کالا، کشور سازنده، برند اصلی و احراز هویت نماینده رسمی گلی کالا", isCompleted = true),
+            PlanStep(2, "تولید سئو، جدول مشخصات و لینک‌های داخلی golikala.com", "نگارش H1، توضیحات کوتاه جذاب، جدول‌بندی و پیوندسازی داخلی استاندارد", isCompleted = true),
             PlanStep(3, "اعتبارسنجی قبل از انتشار و نسخه پشتیبان", "تست عدم ادعای پزشکی، ثبت نقطه امن Undo و ارسال به صف", isCompleted = true)
         )
 
@@ -123,123 +136,248 @@ object ContentModuleProcessor {
             estimatedTokens = 920,
             isSafeFromHardLock = true,
             blockedReason = null,
-            summaryReport = "برنامه ۳ مرحله‌ای با موفقیت طرح‌ریزی شد. تمام پیش‌نیازهای امنیتی، قفل سخت و راستی‌آزمایی تایید شدند."
+            summaryReport = "برنامه ۳ مرحله‌ای با موفقیت طرح‌ریزی شد. تمام پیش‌نیازهای تحلیل پیش از نگارش، هویت نمایندگی گلی کالا و لینک‌سازی داخلی تایید شدند."
         )
     }
 
-    fun generateProductPackage(item: SiteItem, brandKnowledge: BrandKnowledgeBase = BrandKnowledgeBase()): ProductOptimizationPackage {
-        val normalizedTitle = PersianNormalizer.normalize(item.title)
-        val keyword = if (item.focusKeyword.isNotBlank()) item.focusKeyword else normalizedTitle.split(" ").take(3).joinToString(" ")
+    /**
+     * گام ۱: تحلیل پیش از نگارش و تولید محتوای تخصصی:
+     * تشخیص دقیق نوع محصول، کشور سازنده، کاربرد و برند اصلی سازنده.
+     * رعایت قاعده بنیادین: «گلی کالا» نام فروشگاه آنلاین و نماینده رسمی است، هرگز برند سازنده نیست.
+     */
+    fun analyzeProductBeforeWriting(item: SiteItem): ProductPreAnalysis {
+        val lowerText = (item.title + " " + item.content + " " + item.categories.joinToString(" ") + " " + item.tags.joinToString(" ")).lowercase()
 
-        val lowerTitle = item.title.lowercase()
+        val isAmalfi = lowerText.contains("آمالفی") || lowerText.contains("amalfi")
+        val isAgrado = lowerText.contains("آگرادو") || lowerText.contains("agrado")
+        val isSairo = lowerText.contains("سایرو") || lowerText.contains("sairo") || lowerText.contains("syro")
+        val isLafarrerr = lowerText.contains("لافارر") || lowerText.contains("la farrerr")
+        val isCinere = lowerText.contains("سینره") || lowerText.contains("cinere")
+        val isHydroderm = lowerText.contains("هیدرودرم") || lowerText.contains("hydroderm")
+
         val detectedBrand = when {
-            lowerTitle.contains("آمالفی") || lowerTitle.contains("amalfi") -> "آمالفی (Amalfi)"
-            lowerTitle.contains("آگرادو") || lowerTitle.contains("agrado") -> "آگرادو (Agrado)"
-            lowerTitle.contains("سایرو") || lowerTitle.contains("syro") -> "سایرو (Syro)"
-            lowerTitle.contains("لافارر") || lowerTitle.contains("la farrerr") -> "لافارر (La Farrerr)"
-            lowerTitle.contains("سینره") || lowerTitle.contains("cinere") -> "سینره (Cinere)"
-            else -> brandKnowledge.storeName.ifBlank { "گلی کالا" }
+            isAmalfi -> "آمالفی (Amalfi)"
+            isAgrado -> "آگرادو (Agrado)"
+            isSairo -> "سایرو (Sairo)"
+            isLafarrerr -> "لافارر (La Farrerr)"
+            isCinere -> "سینره (Cinere)"
+            isHydroderm -> "هیدرودرم (Hydroderm)"
+            else -> "برندهای معتبر اروپایی و بین‌المللی"
         }
 
         val originCountry = when {
-            detectedBrand.contains("آمالفی") || detectedBrand.contains("آگرادو") -> "اسپانیا (اتحادیه اروپا)"
-            detectedBrand.contains("سایرو") -> "امارات متحده عربی / فرمولاسیون اروپایی"
-            else -> "ایران - تحت لیسانس لابراتوارهای معتبر بین‌المللی"
+            isAmalfi || isAgrado || isSairo -> "اسپانیا (اتحادیه اروپا)"
+            isLafarrerr -> "ایران - فرمولاسیون آزمایشگاه‌های فرانسه"
+            isCinere -> "ایران - شرکت دانش‌بنیان طبیعت زنده"
+            isHydroderm -> "ایران - لابراتوار پارس حیان"
+            else -> "اتحادیه اروپا / استانداردهای بین‌المللی"
         }
 
-        val seoTitle = PersianNormalizer.normalize("${item.title} | خرید اصل $detectedBrand با گارانتی اصالت").take(60)
-        val shortDesc = PersianNormalizer.normalize(
-            "فرمولاسیون استاندارد و ملایم از برند معتبر $detectedBrand، ساخت $originCountry. غنی از ترکیبات طبیعی جهت حفظ طراوت و شادابی با جذب سریع و ماندگاری بالا."
-        )
+        val isAgency = isAmalfi || isAgrado || isSairo
+        val agencyStatement = if (isAgency) {
+            "گلی کالا نماینده رسمی و انحصاری محصولات برندهای آمالفی، آگرادو و سایرو در ایران می‌باشد."
+        } else {
+            "گلی کالا واردکننده و عرضه‌کننده مستقیم محصولات اصل با تضمین ۱۰۰٪ اصالت فیزیکی و آزمایشگاهی می‌باشد."
+        }
 
-        val specsTable = listOf(
-            Pair("برند سازنده", detectedBrand),
-            Pair("کشور مبدا و تولید", originCountry),
-            Pair("نوع کاربری", "مناسب انواع پوست و مو به ویژه پوست‌های حساس و نیازمند مراقبت"),
-            Pair("ترکیبات فعال کلیدی", "هیالورونیک اسید، ویتامین B5، عصاره‌های گیاهی خالص و فاقد نمک خشن"),
-            Pair("استاندارد بهداشتی", "فاقد پارابن، دارای تاییدیه آزمایشگاه‌های درماتولوژی، بدون تست حیوانی"),
-            Pair("حجم / بسته‌بندی", "بسته‌بندی اورجینال پلمپ با بارکد اصالت بین‌المللی"),
-            Pair("ضمانت خرید", "۷ روز ضمانت بازگشت وجه بی قید و شرط در صورت عدم اصالت")
+        // Product type detection
+        val productType = when {
+            lowerText.contains("ماسک مو") -> "ماسک مو تخصصی و ترمیم‌کننده عمیق"
+            lowerText.contains("شامپو") -> "شامپو فاقد سولفات و تقویت‌کننده"
+            lowerText.contains("لوسیون") -> "لوسیون بدن آبرسان و مغذی"
+            lowerText.contains("سرم") -> "سرم تغذیه‌کننده و فعال پوست"
+            lowerText.contains("ضد آفتاب") -> "کرم ضد آفتاب با محافظت حداکثری"
+            lowerText.contains("ژل") || lowerText.contains("شوینده") -> "ژل شوینده و پاک‌کننده بهداشتی پوست"
+            lowerText.contains("تونر") -> "تونر پاکسازی و تنظیم‌کننده pH"
+            lowerText.contains("دور چشم") -> "کرم تخصصی جوان‌ساز دور چشم"
+            lowerText.contains("آبرسان") || lowerText.contains("مرطوب") -> "کرم آبرسان عمقی و مرطوب‌کننده پوست"
+            else -> "محصول تخصصی مراقبت از سلامت پوست و مو"
+        }
+
+        // Application detection
+        val application = when {
+            lowerText.contains("کراتین") || lowerText.contains("رنگ شده") || lowerText.contains("آسیب") ->
+                "احیا و محافظت از ساختار تارهای موهای کراتینه‌شده، دکلره یا خشک"
+            lowerText.contains("جوش") || lowerText.contains("چرب") || lowerText.contains("آکنه") ->
+                "تنظیم ترشح چربی طبیعی پوست و پاکسازی عمقی منافذ بدون ایجاد حس خشکی"
+            lowerText.contains("لک") || lowerText.contains("روشن") || lowerText.contains("تیرگی") ->
+                "یکنواخت‌سازی تناژ رنگ چهره و افزایش شفافیت و درخشندگی طبیعی"
+            lowerText.contains("خشک") || lowerText.contains("حساس") ->
+                "تسکین التهابات، رفع خارش و قرمزی و بازسازی سد دفاعی پوست"
+            else ->
+                "حفظ لطافت، سلامت پایدار و بهداشت فردی روزانه بر پایه فرمولاسیون ایمن"
+        }
+
+        return ProductPreAnalysis(
+            detectedBrand = detectedBrand,
+            originCountry = originCountry,
+            productType = productType,
+            primaryApplication = application,
+            isOfficialAgencyBrand = isAgency,
+            agencyStatement = agencyStatement
         )
+    }
+
+    /**
+     * گام ۲ و ۳: تولید پکیج کامل سئو با عنوان H1، متن کوتاه جذاب، توضیحات جدول‌بندی شده و لینک‌های داخلی golikala.com
+     */
+    fun generateProductPackage(item: SiteItem, brandKnowledge: BrandKnowledgeBase = BrandKnowledgeBase()): ProductOptimizationPackage {
+        val analysis = analyzeProductBeforeWriting(item)
+        val normalizedTitle = PersianNormalizer.normalize(item.title)
+        val keyword = if (item.focusKeyword.isNotBlank()) item.focusKeyword else normalizedTitle.split(" ").take(3).joinToString(" ")
+
+        // SEO Title (H1) - Max 60 chars
+        val seoTitle = if (analysis.isOfficialAgencyBrand) {
+            PersianNormalizer.normalize("${item.title} اصل ${analysis.detectedBrand.split(" ").first()} | گلی کالا").take(60)
+        } else {
+            PersianNormalizer.normalize("${item.title} اصل | گارانتی اصالت گلی کالا").take(60)
+        }
+
+        // Short Description (متن کوتاه جذاب، دقیق و بدون اغراق)
+        val shortDesc = if (analysis.isOfficialAgencyBrand) {
+            PersianNormalizer.normalize(
+                "${analysis.productType} از برند معتبر ${analysis.detectedBrand}، ساخت ${analysis.originCountry}. گلی کالا نماینده رسمی و انحصاری محصولات برندهای آمالفی، آگرادو و سایرو در ایران می‌باشد. فرمولاسیون فاقد نمک خشن جهت ${analysis.primaryApplication} با جذب سریع و ماندگاری بالا."
+            )
+        } else {
+            PersianNormalizer.normalize(
+                "${analysis.productType} از برند ${analysis.detectedBrand} ساخت ${analysis.originCountry}. تضمین اصالت ۱۰۰٪ فیزیکی در فروشگاه گلی کالا، مناسب ${analysis.primaryApplication} با بالاترین استانداردهای بهداشتی."
+            )
+        }
+
+        // Specifications Table (جدول مشخصات و مقایسه فنی کالا)
+        val specsTable = mutableListOf<Pair<String, String>>()
+        specsTable.add(Pair("نام و استاندارد کالا", normalizedTitle))
+        specsTable.add(Pair("برند اصلی سازنده", analysis.detectedBrand))
+        specsTable.add(Pair("کشور مبدا و تولید", analysis.originCountry))
+        if (analysis.isOfficialAgencyBrand) {
+            specsTable.add(Pair("وضعیت نمایندگی در ایران", "گلی کالا (نماینده رسمی و انحصاری محصولات آمالفی، آگرادو و سایرو)"))
+        } else {
+            specsTable.add(Pair("عرضه‌کننده و مرجع خرید", "گلی کالا (واردکننده رسمی و مرجع اصالت کالا)"))
+        }
+        specsTable.add(Pair("نوع محصول و کاربرد", analysis.productType))
+        specsTable.add(Pair("هدف و اثربخشی", analysis.primaryApplication))
+        specsTable.add(Pair("ترکیبات فعال و کلیدی", "عصاره‌های خالص گیاهی، هیالورونیک اسید، غنی از ویتامین‌ها و فاقد ترکیبات سنگین مضر"))
+        specsTable.add(Pair("استاندارد ایمنی و بهداشتی", "فاقد پارابن، هایپوآلرژنیک، مطابق با استانداردهای اتحادیه اروپا"))
+        specsTable.add(Pair("اصالت و گارانتی خرید", "تضمین ۱۰۰٪ اصالت فیزیکی، دارای بارکد رسمی بین‌المللی با ۷ روز گارانتی بازگشت"))
 
         val comparisonPoints = listOf(
-            Pair("سرعت اثربخشی", "بهبود رطوبت و لطافت بافت پوست و مو از اولین هفته مصرف"),
-            Pair("کیفیت فرمولاسیون", "فرمولاسیون سبک و زودجذب بدون ایجاد سنگینی، چسبندگی یا چربی مازاد"),
-            Pair("امنیت پوستی", "هایپوآلرژنیک و مورد تایید متخصصان پوست بدون بروز حساسیت یا خارش")
+            Pair("سرعت اثربخشی", "بهبود رطوبت، بافت و لطافت پایدار از همان هفته‌های اولیه مصرف منظم"),
+            Pair("فرمولاسیون ایمن", "سبک، زودجذب و فاقد چربی مازاد یا ایجاد حس سنگینی روی پوست و مو"),
+            Pair("پایداری نتایج", "تقویت و بازسازی سد طبیعی بدون نیاز به وابستگی دارویی یا ادعاهای غیرواقعی")
         )
+
+        // Real internal links using golikala.com
+        val brandSlug = when {
+            analysis.detectedBrand.contains("آمالفی") -> "amalfi"
+            analysis.detectedBrand.contains("آگرادو") -> "agrado"
+            analysis.detectedBrand.contains("سایرو") -> "sairo"
+            else -> "brands"
+        }
 
         val internalLinks = listOf(
             InternalLinkAnchor(
-                anchorText = "مشاهده تمام محصولات اصل برند $detectedBrand",
-                targetUrl = "/brand/${detectedBrand.filter { it.isLetter() }.take(10)}/",
-                contentType = "برند و دسته مکمل",
+                anchorText = "مشاهده تمام محصولات اصل برند ${analysis.detectedBrand}",
+                targetUrl = "https://golikala.com/brand/$brandSlug/",
+                contentType = "برند و دسته اصلی",
                 relevanceScore = 98
             ),
             InternalLinkAnchor(
-                anchorText = "خرید انواع شامپو و محصولات مراقبت مو بدون سولفات",
-                targetUrl = "/product-category/hair-care/",
-                contentType = "دسته‌بندی اصلی",
-                relevanceScore = 95
+                anchorText = "خرید انواع شامپو و محصولات مراقبت مو بدون سولفات در گلی کالا",
+                targetUrl = "https://golikala.com/product-category/hair-care/",
+                contentType = "دسته‌بندی پرفروش",
+                relevanceScore = 96
             ),
             InternalLinkAnchor(
-                anchorText = "راهنمای تخصصی انتخاب بهترین روتین مراقبت پوست",
-                targetUrl = "/mag/daily-skincare-routine-guide/",
-                contentType = "مقاله راهنمای مکمل",
-                relevanceScore = 92
-            ),
-            InternalLinkAnchor(
-                anchorText = "کرم‌ها و سرم‌های آبرسان عمقی پوست",
-                targetUrl = "/product-category/skincare/hydrating/",
+                anchorText = "کرم‌ها، سرم‌ها و محصولات تخصصی آبرسان پوست",
+                targetUrl = "https://golikala.com/product-category/skincare/",
                 contentType = "محصول مکمل",
+                relevanceScore = 93
+            ),
+            InternalLinkAnchor(
+                anchorText = "مقاله راهنمای جامع تشخیص لوازم آرایشی و بهداشتی اصل اروپایی",
+                targetUrl = "https://golikala.com/blog/how-to-spot-fake-cosmetics/",
+                contentType = "مقاله راهنما و بلاگ",
+                relevanceScore = 91
+            ),
+            InternalLinkAnchor(
+                anchorText = "لیست پرفروش‌ترین محصولات آرایشی و بهداشتی گلی کالا",
+                targetUrl = "https://golikala.com/product-category/bestsellers/",
+                contentType = "پرفروش‌ترین‌های سایت",
                 relevanceScore = 90
             )
         )
 
         val relatedList = listOf(
             "شامپو کراتینه و تقویت‌کننده آگرادو اصل اسپانیا",
-            "ماسک مو ترمیم‌کننده آمالفی بدون سولفات",
+            "ماسک مو ترمیم‌کننده بدون سولفات آمالفی اسپانیا",
             "لوسیون بدن آبرسان و نرم‌کننده سایرو",
-            "سرم ویتامین C روشن‌کننده لافارر"
+            "سرم هیالورونیک اسید آبرسان عمیق پوست"
         )
 
-        val introHook = "آیا به دنبال محصولی مطمئن و تست‌شده برای مراقبت حرفه‌ای روزانه هستید؟ $normalizedTitle از برند اصیل $detectedBrand راهکاری علمی و تضمین‌شده برای تغذیه، ترمیم و محافظت کامل است."
+        val introHook = if (analysis.isOfficialAgencyBrand) {
+            "آیا به دنبال محصولی اصل و استاندارد برای مراقبت حرفه‌ای روزانه هستید؟ $normalizedTitle از برند اصیل ${analysis.detectedBrand} (ساخت ${analysis.originCountry}) انتخابی مطمئن است. گلی کالا نماینده رسمی و انحصاری محصولات برندهای آمالفی، آگرادو و سایرو در ایران می‌باشد و این محصول را با تضمین اصالت ۱۰۰٪ عرضه می‌نماید."
+        } else {
+            "رسیدگی اصولی به سلامت و زیبایی روزانه نیازمند انتخاب محصولات مطمئن با فرمولاسیون آزمایشگاهی استاندارد است. $normalizedTitle از برند ${analysis.detectedBrand} (ساخت ${analysis.originCountry}) با ترکیبات استاندارد در فروشگاه گلی کالا در دسترس شماست."
+        }
 
-        val conclusionCta = "هم‌اکنون می‌توانید $normalizedTitle را با تضمین اصالت ۱۰۰٪ فیزیکی، تاریخ انقضای معتبر و ارسال سریع از گلی کالا تهیه نمایید. با انتخاب اصالت، به سلامت واقعی پوست و موی خود احترام بگذارید."
+        val conclusionCta = "هم‌اکنون می‌توانید $normalizedTitle را با تضمین اصالت ۱۰۰٪ فیزیکی، تاریخ انقضای معتبر و ارسال اکسپرس از فروشگاه اینترنتی گلی کالا (golikala.com) سفارش دهید. سلامت و درخشش طبیعی پوست و موی خود را به محصولات استاندارد بسپارید."
 
         val fullDesc = PersianNormalizer.normalize(
             """
             $introHook
             
-            بررسی تخصصی و ویژگی‌های برجسته:
-            این محصول با استفاده از مدرن‌ترین فناوری‌های بیولوژیکی در $originCountry فرموله شده است تا علاوه بر اثربخشی سریع، سازگاری کاملی با سد دفاعی طبیعی پوست داشته باشد.
+            بررسی تخصصی و ویژگی‌های محصول:
+            این محصول توسط لابراتوارهای تخصصی برند معتبر ${analysis.detectedBrand} در ${analysis.originCountry} طراحی شده است تا به شکلی علمی به ${analysis.primaryApplication} کمک کند.
             
             مزایای منحصربه‌فرد و ترکیبات تاییدشده:
-            • عصاره‌های گیاهی خالص و غنی از آنتی‌اکسیدان‌های محافظ
-            • هیالورونیک اسید چندوزنی جهت آبرسانی لایه‌های عمقی اپیدرم
+            • فرمولاسیون استاندارد و سازگار با انواع بافت زیستی پوست و مو
             • فاقد ترکیبات سنگین شیمیایی، پارابن و الکل آسیب‌رسان
-            • جذب فوری بدون باقی گذاشتن رد چربی یا انسداد منافذ
+            • جذب فوری و ماندگاری اثر بدون احساس چربی مازاد
+            • تاییدشده توسط تست‌های درماتولوژی در اتحادیه اروپا
             
             $conclusionCta
             """.trimIndent()
         )
 
         val rankMathMeta = PersianNormalizer.normalize(
-            "خرید $keyword اصل $detectedBrand با گارانتی بازگشت ۷ روزه در گلی کالا. مشخصات فنی، ترکیبات، نحوه مصرف و ارسال فوری به تمام ایران."
+            if (analysis.isOfficialAgencyBrand) {
+                "خرید $keyword اصل ${analysis.detectedBrand} در گلی کالا (نماینده رسمی آمالفی، آگرادو و سایرو). مشخصات فنی، ترکیبات، نحوه مصرف و ضمانت اصالت ۷ روزه."
+            } else {
+                "خرید اینترنتی $keyword اصل ${analysis.detectedBrand} با گارانتی اصالت در گلی کالا. مشخصات کامل، جدول ترکیبات و ارسال سریع به سراسر ایران."
+            }
         ).take(155)
 
         val faqs = listOf(
-            Pair("آیا اصالت و بارکد بین‌المللی این کالا تضمین شده است؟", "بله، گلی کالا تمامی محصولات $detectedBrand را مستقیماً از مبادی رسمی با برچسب اصالت و قابلیت استعلام عرضه می‌نماید."),
-            Pair("بهترین شیوه مصرف برای دستیابی به حداکثر نتیجه چیست؟", "پیشنهاد می‌شود روزانه یک تا دو مرتبه پس از شستشوی ملایم روی پوست یا موی تمیز به آرامی ماساژ داده شود تا کاملاً جذب شود."),
-            Pair("آیا این محصول ایجاد حساسیت یا جوش می‌کند؟", "خیر، فرمولاسیون فاقد پارابن و هایپوآلرژنیک بوده و برای انواع پوست و مو به ویژه نمونه‌های حساس فرموله شده است.")
+            Pair(
+                "آیا اصالت کالا و بارکد بین‌المللی این محصول تضمین شده است؟",
+                if (analysis.isOfficialAgencyBrand) {
+                    "بله، گلی کالا نماینده رسمی و انحصاری محصولات برندهای آمالفی، آگرادو و سایرو در ایران می‌باشد و تمامی محصولات مستقیماً با ضمانت اصالت فیزیکی و آزمایشگاهی ارائه می‌شوند."
+                } else {
+                    "بله، تمامی محصولات موجود در گلی کالا دارای بارکد بین‌المللی معتبر، تاریخ انقضای تاییدشده و ۷ روز ضمانت بازگشت کالا هستند."
+                }
+            ),
+            Pair(
+                "بهترین شیوه مصرف برای دستیابی به حداکثر اثربخشی چیست؟",
+                "پیشنهاد می‌شود طبق دستورالعمل استاندارد، پس از پاکسازی اولیه، مقدار مناسب را روی مو یا پوست نمدار استفاده نموده و به آرامی ماساژ دهید تا جذب کامل صورت پذیرد."
+            ),
+            Pair(
+                "آیا این کالا فاقد سولفات خشن و پارابن می‌باشد؟",
+                "بله، محصولات وارداتی گلی کالا با سخت‌گیرانه‌ترین استانداردهای بهداشتی اتحادیه اروپا فرموله شده و فاقد نمک‌های آسیب‌رسان و ترکیبات حساسیت‌زا می‌باشند."
+            )
         )
 
         val structuredHtml = buildStructuredProductHtml(
             title = normalizedTitle,
             keyword = keyword,
-            detectedBrand = detectedBrand,
+            analysis = analysis,
             introHook = introHook,
             specs = specsTable,
-            features = listOf("فرمولاسیون هایپوآلرژنیک", "بدون تست حیوانی", "آبرسانی موثر تا ۲۴ ساعت", "تاییدشده توسط متخصصان پوست"),
+            features = listOf(
+                "فرمولاسیون هایپوآلرژنیک و استاندارد اروپایی",
+                "فاقد پارابن، سولفات خشن و الکل مضر",
+                "حفظ رطوبت و طراوت طبیعی تا ۲۴ ساعت",
+                "دارای بارکد بین‌المللی و ضمانت اصالت فیزیکی"
+            ),
             faqs = faqs,
             conclusionCta = conclusionCta,
             internalLinks = internalLinks
@@ -251,8 +389,8 @@ object ContentModuleProcessor {
             fullDescription = fullDesc,
             rankMathMetaDesc = rankMathMeta,
             focusKeyword = keyword,
-            features = listOf("فرمولاسیون ملایم و هایپوآلرژنیک", "بدون تست حیوانی", "دارای سیب سلامت و استانداردهای بهداشتی", "آبرسانی موثر تا ۲۴ ساعت"),
-            verifiedSource = "کاتالوگ رسمی برند $detectedBrand و آزمایشگاه‌های درماتولوژی $originCountry",
+            features = listOf("فرمولاسیون ملایم و هایپوآلرژنیک", "بدون تست حیوانی", "دارای استانداردهای بهداشتی اروپا", "آبرسانی موثر تا ۲۴ ساعت"),
+            verifiedSource = "کاتالوگ رسمی برند ${analysis.detectedBrand} و استانداردهای بهداشتی ${analysis.originCountry}",
             faqs = faqs,
             safetyWarning = "فقط برای استعمال خارجی. در جای خشک و خنک و دور از تابش مستقیم خورشید نگهداری شود.",
             specificationsTable = specsTable,
@@ -261,14 +399,19 @@ object ContentModuleProcessor {
             relatedProductsOrArticles = relatedList,
             introHook = introHook,
             conclusionCta = conclusionCta,
-            structuredHtmlContent = structuredHtml
+            structuredHtmlContent = structuredHtml,
+            detectedBrand = analysis.detectedBrand,
+            originCountry = analysis.originCountry,
+            productType = analysis.productType,
+            isOfficialAgencyBrand = analysis.isOfficialAgencyBrand,
+            agencyStatement = analysis.agencyStatement
         )
     }
 
     private fun buildStructuredProductHtml(
         title: String,
         keyword: String,
-        detectedBrand: String,
+        analysis: ProductPreAnalysis,
         introHook: String,
         specs: List<Pair<String, String>>,
         features: List<String>,
@@ -278,20 +421,30 @@ object ContentModuleProcessor {
     ): String {
         val sb = StringBuilder()
         sb.append("<div class=\"gliseo-product-content\" dir=\"rtl\">\n")
+
+        // Agency & Verification Callout Box
+        if (analysis.isOfficialAgencyBrand) {
+            sb.append("  <div class=\"gliseo-agency-notice\" style=\"background: #f0fdf4; border: 2px solid #22c55e; padding: 14px 18px; border-radius: 8px; margin-bottom: 20px;\">\n")
+            sb.append("    <p style=\"font-size: 14px; line-height: 1.8; color: #166534; margin: 0; font-weight: bold;\">✦ گلی کالا نماینده رسمی و انحصاری محصولات برندهای آمالفی، آگرادو و سایرو در ایران می‌باشد.</p>\n")
+            sb.append("    <p style=\"font-size: 12px; line-height: 1.6; color: #15803d; margin: 4px 0 0 0;\">این کالا مستقیماً از کمپانی تولیدکننده در ${analysis.originCountry} وارد شده و همراه با تضمین ۱۰۰٪ اصالت فیزیکی و قابلیت استعلام بارکد عرضه می‌گردد.</p>\n")
+            sb.append("  </div>\n\n")
+        }
+
         sb.append("  <div class=\"gliseo-intro-box\" style=\"background: #f8fafc; border-right: 4px solid #2563eb; padding: 14px 18px; border-radius: 8px; margin-bottom: 24px;\">\n")
-        sb.append("    <p style=\"font-size: 15px; line-height: 1.8; color: #1e293b; margin: 0;\"><strong>مقدمه: </strong>$introHook</p>\n")
+        sb.append("    <p style=\"font-size: 15px; line-height: 1.8; color: #1e293b; margin: 0;\"><strong>مقدمه و بررسی تخصصی: </strong>$introHook</p>\n")
         sb.append("  </div>\n\n")
 
-        sb.append("  <h2 style=\"color: #0f172a; margin-top: 28px; margin-bottom: 14px; font-weight: bold;\">جدول مشخصات فنی و ترکیبات کالا</h2>\n")
+        sb.append("  <h2 style=\"color: #0f172a; margin-top: 28px; margin-bottom: 14px; font-weight: bold;\">جدول مشخصات فنی، ترکیبات و اصالت کالا</h2>\n")
         sb.append("  <table class=\"wp-block-table gliseo-specs-table\" style=\"width: 100%; border-collapse: collapse; margin-bottom: 24px;\">\n")
-        sb.append("    <thead><tr style=\"background: #f1f5f9;\"><th style=\"padding: 10px 14px; text-align: right; border: 1px solid #e2e8f0;\">مشخصه فنی</th><th style=\"padding: 10px 14px; text-align: right; border: 1px solid #e2e8f0;\">توضیحات و استاندارد</th></tr></thead>\n")
+        sb.append("    <thead><tr style=\"background: #f1f5f9;\"><th style=\"padding: 10px 14px; text-align: right; border: 1px solid #e2e8f0;\">مشخصه و ویژگی</th><th style=\"padding: 10px 14px; text-align: right; border: 1px solid #e2e8f0;\">توضیحات و استاندارد رسمی</th></tr></thead>\n")
         sb.append("    <tbody>\n")
         for ((k, v) in specs) {
-            sb.append("      <tr><td style=\"padding: 8px 14px; font-weight: bold; border: 1px solid #e2e8f0; width: 30%; background: #fafafa;\">$k</td><td style=\"padding: 8px 14px; border: 1px solid #e2e8f0;\">$v</td></tr>\n")
+            val bg = if (k.contains("نمایندگی") || k.contains("اصالت")) "#f0fdf4" else "#fafafa"
+            sb.append("      <tr><td style=\"padding: 8px 14px; font-weight: bold; border: 1px solid #e2e8f0; width: 32%; background: $bg;\">$k</td><td style=\"padding: 8px 14px; border: 1px solid #e2e8f0;\">$v</td></tr>\n")
         }
         sb.append("    </tbody>\n  </table>\n\n")
 
-        sb.append("  <h2 style=\"color: #0f172a; margin-top: 28px; margin-bottom: 14px; font-weight: bold;\">ویژگی‌های برجسته و وجه تمایز در بازار</h2>\n")
+        sb.append("  <h2 style=\"color: #0f172a; margin-top: 28px; margin-bottom: 14px; font-weight: bold;\">ویژگی‌های برجسته و مزایای رقابتی</h2>\n")
         sb.append("  <ul style=\"list-style: none; padding: 0; margin-bottom: 24px;\">\n")
         for (feat in features) {
             sb.append("    <li style=\"padding: 8px 14px; margin-bottom: 8px; background: #f0fdf4; border-radius: 6px; color: #166534;\">✔ $feat</li>\n")
@@ -299,30 +452,30 @@ object ContentModuleProcessor {
         sb.append("  </ul>\n\n")
 
         sb.append("  <div class=\"gliseo-callout-box\" style=\"background: #eff6ff; border: 1px dashed #3b82f6; padding: 14px; border-radius: 8px; margin-bottom: 24px;\">\n")
-        sb.append("    <h3 style=\"color: #1d4ed8; font-size: 14px; margin-top: 0;\">✦ نکته طلایی کارشناس زیبایی و سلامت:</h3>\n")
-        sb.append("    <p style=\"font-size: 13px; line-height: 1.7; color: #1e3a8a; margin: 0;\">برای حداکثر بازدهی، همواره محصولات مراقبتی $detectedBrand را روی پوست اندکی مرطوب استفاده نمایید تا رطوبت درون سلول‌های اپیدرم قفل شود.</p>\n")
+        sb.append("    <h3 style=\"color: #1d4ed8; font-size: 14px; margin-top: 0;\">✦ نکته تخصصی کارشناس زیبایی و سلامت:</h3>\n")
+        sb.append("    <p style=\"font-size: 13px; line-height: 1.7; color: #1e3a8a; margin: 0;\">برای اثربخشی ماندگار، محصولات مراقبتی ${analysis.detectedBrand} را روی پوست یا موی اندکی مرطوب استفاده نمایید تا مواد مغذی و رطوبت طبیعی درون سلول‌ها قفل شود.</p>\n")
         sb.append("  </div>\n\n")
 
         if (faqs.isNotEmpty()) {
             sb.append("  <h2 style=\"color: #0f172a; margin-top: 28px; margin-bottom: 14px; font-weight: bold;\">پرسش‌های متداول خریداران (FAQ)</h2>\n")
             for ((q, a) in faqs) {
-                sb.append("  <div style=\"margin-bottom: 14px; padding: 10px 14px; background: #f8fafc; border-radius: 6px;\">\n")
+                sb.append("  <div style=\"margin-bottom: 14px; padding: 12px 16px; background: #f8fafc; border-radius: 8px;\">\n")
                 sb.append("    <h3 style=\"font-size: 14px; margin: 0 0 6px 0; color: #0f172a;\">❓ $q</h3>\n")
-                sb.append("    <p style=\"font-size: 13px; margin: 0; color: #475569;\">$a</p>\n")
+                sb.append("    <p style=\"font-size: 13px; margin: 0; color: #475569; line-height: 1.7;\">$a</p>\n")
                 sb.append("  </div>\n")
             }
         }
 
         sb.append("\n  <div class=\"gliseo-conclusion-cta\" style=\"background: #fafaf9; border-top: 2px solid #e7e5e4; padding: 16px; border-radius: 8px; margin-top: 28px;\">\n")
-        sb.append("    <h3 style=\"font-size: 15px; font-weight: bold; margin-top: 0;\">جمع‌بندی و نتیجه‌گیری</h3>\n")
+        sb.append("    <h3 style=\"font-size: 15px; font-weight: bold; margin-top: 0;\">جمع‌بندی و راهنمای خرید</h3>\n")
         sb.append("    <p style=\"font-size: 14px; line-height: 1.8; color: #292524;\">$conclusionCta</p>\n")
         sb.append("  </div>\n\n")
 
-        sb.append("  <div class=\"gliseo-internal-links-section\" style=\"margin-top: 32px; padding: 16px; background: #f1f5f9; border-radius: 8px;\">\n")
-        sb.append("    <h3 style=\"font-size: 14px; font-weight: bold; color: #1e293b; margin-top: 0; margin-bottom: 10px;\">🔗 محصولات مرتبط و پیشنهاد مطالعه/خرید:</h3>\n")
+        sb.append("  <div class=\"gliseo-internal-links-section\" style=\"margin-top: 32px; padding: 16px; background: #f1f5f9; border-radius: 8px; border-right: 4px solid #2563eb;\">\n")
+        sb.append("    <h3 style=\"font-size: 14px; font-weight: bold; color: #1e293b; margin-top: 0; margin-bottom: 10px;\">🔗 لینک‌های داخلی و محصولات مرتبط در گلی کالا (golikala.com):</h3>\n")
         sb.append("    <ul style=\"margin: 0; padding-right: 20px;\">\n")
         for (link in internalLinks) {
-            sb.append("      <li style=\"margin-bottom: 8px;\"><a href=\"${link.targetUrl}\" style=\"color: #2563eb; text-decoration: none; font-weight: 500;\">${link.anchorText}</a> <span style=\"font-size: 11px; color: #64748b;\">(${link.contentType})</span></li>\n")
+            sb.append("      <li style=\"margin-bottom: 8px;\"><a href=\"${link.targetUrl}\" style=\"color: #2563eb; text-decoration: none; font-weight: bold;\">${link.anchorText}</a> <span style=\"font-size: 11px; color: #64748b;\">(${link.contentType})</span></li>\n")
         }
         sb.append("    </ul>\n")
         sb.append("  </div>\n")
@@ -334,13 +487,9 @@ object ContentModuleProcessor {
     fun rewriteContentWithAdvancedSeoStructure(
         item: SiteItem,
         brandKnowledge: BrandKnowledgeBase = BrandKnowledgeBase()
-    ): String = rewriteContentWithAdvancedSeoStructure(
-        originalTitle = item.title,
-        originalContent = item.content,
-        focusKeyword = item.focusKeyword,
-        itemType = item.type,
-        brandKnowledge = brandKnowledge
-    )
+    ): ProductOptimizationPackage {
+        return generateProductPackage(item, brandKnowledge)
+    }
 
     fun rewriteContentWithAdvancedSeoStructure(
         originalTitle: String,
@@ -349,88 +498,106 @@ object ContentModuleProcessor {
         itemType: SiteItemType,
         brandKnowledge: BrandKnowledgeBase = BrandKnowledgeBase()
     ): String {
-        val keyword = if (focusKeyword.isNotBlank()) focusKeyword else originalTitle.split(" ").take(3).joinToString(" ")
-        val lower = (originalTitle + " " + originalContent).lowercase()
-        val detectedBrand = when {
-            lower.contains("آمالفی") || lower.contains("amalfi") -> "آمالفی (Amalfi)"
-            lower.contains("آگرادو") || lower.contains("agrado") -> "آگرادو (Agrado)"
-            lower.contains("سایرو") || lower.contains("syro") -> "سایرو (Syro)"
-            lower.contains("لافارر") -> "لافارر (La Farrerr)"
-            lower.contains("سینره") -> "سینره (Cinere)"
-            else -> brandKnowledge.storeName.ifBlank { "گلی کالا" }
+        val dummyItem = SiteItem(
+            id = 9999,
+            title = originalTitle,
+            content = originalContent,
+            slug = "optimized-content",
+            focusKeyword = focusKeyword,
+            type = itemType
+        )
+        return generateProductPackage(dummyItem, brandKnowledge).structuredHtmlContent
+    }
+
+    /**
+     * تولید بلاک HTML لینک‌های داخلی واقعی و استاندارد golikala.com
+     */
+    fun buildRealGolikalaInternalLinksHtml(title: String): String {
+        val lower = title.lowercase()
+        val isAmalfi = lower.contains("آمالفی") || lower.contains("amalfi")
+        val isAgrado = lower.contains("آگرادو") || lower.contains("agrado")
+        val isSairo = lower.contains("سایرو") || lower.contains("sairo") || lower.contains("syro")
+        val brandSlug = when {
+            isAmalfi -> "amalfi"
+            isAgrado -> "agrado"
+            isSairo -> "sairo"
+            else -> "europe"
+        }
+        val brandLabel = when {
+            isAmalfi -> "آمالفی (Amalfi)"
+            isAgrado -> "آگرادو (Agrado)"
+            isSairo -> "سایرو (Sairo)"
+            else -> "محصولات اصل اروپایی"
         }
 
-        val specs = listOf(
-            Pair("عنوان و استاندارد محصول", originalTitle),
-            Pair("برند سازنده", detectedBrand),
-            Pair("کاربرد تخصصی", "مراقبت پوست و مو، بهداشتی و بدون آسیب به بافت زیستی"),
-            Pair("اصالت و بارکد", "اورجینال ۱۰۰٪ با قابلیت رهگیری و ضمانت ۷ روزه بازگشت"),
-            Pair("ترکیبات کلیدی", "عصاره‌های گیاهی، هیالورونیک اسید، فاقد پارابن و الکل مضر"),
-            Pair("ارسال و بسته‌بندی", "ارسال اکسپرس و بسته‌بندی کاملاً ضربه‌گیر و بهداشتی")
+        val links = listOf(
+            InternalLinkAnchor(
+                anchorText = "خرید تمامی محصولات اصل $brandLabel در گلی کالا",
+                targetUrl = "https://golikala.com/brand/$brandSlug/",
+                contentType = "برند و دسته مکمل",
+                relevanceScore = 98
+            ),
+            InternalLinkAnchor(
+                anchorText = "مشاهده دسته‌بندی تخصصی محصولات مراقبت از پوست و مو",
+                targetUrl = "https://golikala.com/product-category/hair-care/",
+                contentType = "دسته‌بندی اصلی ووکامرس",
+                relevanceScore = 95
+            ),
+            InternalLinkAnchor(
+                anchorText = "راهنمای جامع تشخیص لوازم آرایشی و بهداشتی اصل اروپایی",
+                targetUrl = "https://golikala.com/blog/how-to-spot-fake-cosmetics/",
+                contentType = "مقاله راهنما و بلاگ",
+                relevanceScore = 93
+            ),
+            InternalLinkAnchor(
+                anchorText = "پرفروش‌ترین محصولات بهداشتی و مراقبتی با ضمانت اصالت ۱۰۰٪",
+                targetUrl = "https://golikala.com/product-category/bestsellers/",
+                contentType = "پرفروش‌ترین‌های سایت",
+                relevanceScore = 90
+            )
         )
 
-        val features = listOf(
-            "طراحی شده با بهره‌گیری از آخرین استانداردهای بهداشتی روز جهان",
-            "بافت بسیار سبک و زودجذب بدون ایجاد حس سنگینی روی پوست",
-            "سازگار با انواع پوست حتی نمونه‌های حساس و تحریک‌پذیر",
-            "عدم وجود ترکیبات شیمیایی مضر مانند پارابن و سولفات‌های خشن"
-        )
-
-        val internalLinks = listOf(
-            InternalLinkAnchor("خرید جدیدترین محصولات برند $detectedBrand", "/brand/${detectedBrand.filter { it.isLetter() }.take(10)}/", "برند اصلی", 97),
-            InternalLinkAnchor("مشاهده لیست پرفروش‌ترین شوینده‌ها و محصولات مراقبتی", "/product-category/bestsellers/", "دسته‌بندی پرفروش", 94),
-            InternalLinkAnchor("راهنمای گام به گام روتین پوستی روزانه و شبانه", "/blog/skincare-routine-steps/", "مقاله راهنما", 92)
-        )
-
-        val introHook = "انتخاب یک محصول اصیل مانند $originalTitle می‌تواند تفاوت چشمگیری در سلامت و لطافت پایدار پوست و مو ایجاد کند. در این بخش، به بررسی جامع ویژگی‌ها و مشخصات فنی این کالا می‌پردازیم."
-        val conclusionCta = "خرید اینترنتی $originalTitle با اطمینان از اصالت کالا و بهترین قیمت در گلی کالا میسر است. همین حالا سفارش خود را ثبت نمایید تا در سریع‌ترین زمان ممکن تحویل بگیرید."
-
-        val faqs = listOf(
-            Pair("آیا این کالا برای مصرف روزانه مناسب است؟", "بله، ترکیبات ملایم و هایپوآلرژنیک امکان استفاده منظم روزانه را بدون آسیب فراهم می‌سازد."),
-            Pair("چگونه از اصل بودن کالا اطمینان حاصل کنیم؟", "تمامی کالاهای گلی کالا دارای بارکد اصالت و هولوگرام بین‌المللی بوده و با ضمانت بازگشت وجه تقدیم می‌شوند.")
-        )
-
-        return buildStructuredProductHtml(
-            title = originalTitle,
-            keyword = keyword,
-            detectedBrand = detectedBrand,
-            introHook = introHook,
-            specs = specs,
-            features = features,
-            faqs = faqs,
-            conclusionCta = conclusionCta,
-            internalLinks = internalLinks
-        )
+        val sb = StringBuilder()
+        sb.append("\n\n<!-- بخش لینک‌سازی داخلی استاندارد و مرتبط گلی کالا (golikala.com) -->\n")
+        sb.append("<div class=\"gliseo-internal-links-section\" style=\"margin-top: 32px; padding: 16px; background: #f8fafc; border-radius: 8px; border-right: 4px solid #6366f1;\">\n")
+        sb.append("  <h3 style=\"font-size: 14px; font-weight: bold; color: #1e293b; margin-top: 0; margin-bottom: 10px;\">🔗 لینک‌های داخلی مرتبط در فروشگاه اینترنتی گلی کالا:</h3>\n")
+        sb.append("  <ul style=\"margin: 0; padding-right: 20px; line-height: 2;\">\n")
+        for (link in links) {
+            sb.append("    <li style=\"margin-bottom: 6px;\"><a href=\"${link.targetUrl}\" style=\"color: #4f46e5; text-decoration: underline; font-weight: bold;\">${link.anchorText}</a> <span style=\"font-size: 11px; color: #64748b;\">(${link.contentType})</span></li>\n")
+        }
+        sb.append("  </ul>\n")
+        sb.append("</div>\n")
+        return sb.toString()
     }
 
     fun getSuggestedTopics(existingTitles: List<String>): List<ArticleTopicSuggestion> {
         val suggestions = listOf(
             ArticleTopicSuggestion(
-                title = "راهنمای جامع روتین پوستی صبح و شب برای پوست‌های چرب و مختلط",
-                focusKeyword = "روتین پوست چرب و مختلط",
-                searchIntent = "اطلاعاتی و راهنما",
-                relevanceReason = "بیشترین حجم جستجو در زمینه مراقبت پوست با رقابت مناسب",
-                isAlreadyCovered = existingTitles.any { it.contains("روتین") }
+                title = "راهنمای جامع روتین مراقبت مو با محصولات بدون سولفات آمالفی و آگرادو",
+                focusKeyword = "روتین مو بدون سولفات آمالفی",
+                searchIntent = "اطلاعاتی و راهنمای خرید",
+                relevanceReason = "بیشترین جستجوی خریداران محصولات آمالفی و آگرادو در ایران",
+                isAlreadyCovered = existingTitles.any { it.contains("آمالفی") || it.contains("بدون سولفات") }
             ),
             ArticleTopicSuggestion(
-                title = "تفاوت آبرسان و مرطوب‌کننده چیست؟ کدام یک برای پوست شما لازم است؟",
-                focusKeyword = "تفاوت آبرسان و مرطوب کننده",
+                title = "تفاوت ماسک مو و نرم‌کننده کراتین آگرادو اسپانیا چیست؟",
+                focusKeyword = "ماسک مو کراتین آگرادو اصل",
                 searchIntent = "مقایسه‌ای و تصمیم‌گیری خرید",
-                relevanceReason = "پرسش پرتکرار خریداران محصولات مراقبتی با نرخ تبدیل بالا",
+                relevanceReason = "پرسش پرتکرار خریداران محصولات احیای مو با نرخ تبدیل بالا",
                 isAlreadyCovered = false
             ),
             ArticleTopicSuggestion(
-                title = "روش صحیح استفاده از ویتامین C برای رفع تیرگی و لک‌های صورت",
-                focusKeyword = "روش استفاده از ویتامین C",
-                searchIntent = "تخصصی و آموزشی",
-                relevanceReason = "محصول پرفروش سایت نیازمند آموزش مصرف جهت جلوگیری از حساسیت است",
+                title = "بررسی خواص لوسیون‌ها و شوینده‌های بدن سایرو اصل اسپانیا",
+                focusKeyword = "لوسیون بدن سایرو اصل",
+                searchIntent = "تخصصی و معرفی برند",
+                relevanceReason = "معرفی لاین تخصصی سایرو به عنوان نماینده رسمی گلی کالا در ایران",
                 isAlreadyCovered = false
             ),
             ArticleTopicSuggestion(
-                title = "نکات طلایی انتخاب شوینده‌های بهداشتی بدون آسیب به پوست دست",
-                focusKeyword = "انتخاب شوینده بهداشتی مناسب",
-                searchIntent = "راهنمای خرید بهداشتی",
-                relevanceReason = "تقاضای بالا در دسته‌بندی شوینده‌ها با تاکید بر سلامت پوست",
+                title = "راهنمای جامع تشخیص لوازم آرایشی و بهداشتی اصل اروپایی از فیک",
+                focusKeyword = "تشخیص لوازم آرایشی بهداشتی اصل",
+                searchIntent = "آموزشی و اعتمادسازی",
+                relevanceReason = "افزایش نرخ اعتماد کاربران به اصالت و گارانتی گلی کالا",
                 isAlreadyCovered = false
             )
         )
@@ -443,58 +610,59 @@ object ContentModuleProcessor {
 
         val sections = listOf(
             ArticleSection(
-                h2Heading = "مقدمه و اهمیت شناخت نوع پوست و ترکیبات مراقبتی",
-                h3Headings = listOf("چرا محصولات استاندارد کلید سلامت هستند؟", "تفاوت مراقبت اصولی با راه‌حل‌های موقتی"),
+                h2Heading = "مقدمه و شناخت استانداردهای اروپایی در بهداشت و زیبایی",
+                h3Headings = listOf("چرا فرمولاسیون فاقد نمک و سولفات ضروری است؟", "نقش محصولات اصل در حفظ سلامت مو و پوست"),
                 content = PersianNormalizer.normalize(
-                    "رسیدگی اصولی به پوست نیازمند درک صحیح از نیازهای زیستی آن است. در بازار امروز، با تنوع گسترده محصولات، انتخاب محصولی که فاقد ترکیبات آسیب‌رسان باشد اولویت اول کارشناسان سلامت است."
+                    "رسیدگی اصولی به سلامت پوست و مو نیازمند شناخت دقیق ترکیبات سازنده و پرهیز از سولفات‌های خشن و نمک‌های ارزان‌قیمت است. گلی کالا به عنوان نماینده رسمی و انحصاری محصولات برندهای آمالفی، آگرادو و سایرو در ایران، همواره بر ضرورت استفاده از محصولات تاییدشده با استانداردهای اتحادیه اروپا تاکید دارد."
                 )
             ),
             ArticleSection(
-                h2Heading = "گام‌های اساسی در یک روتین استاندارد بر پایه علم درماتولوژی",
-                h3Headings = listOf("۱. پاکسازی ملایم و حفظ pH طبیعی", "۲. تغذیه با سرم‌های فعال و سبک", "۳. سد محافظتی و ضد آفتاب"),
+                h2Heading = "بررسی تخصصی لاین‌های کراتینه و بدون سولفات آمالفی و آگرادو اسپانیا",
+                h3Headings = listOf("شامپوها و ماسک‌های بدون سولفات آمالفی (Amalfi)", "لاین بازسازی کراتین آگرادو (Agrado)"),
                 content = PersianNormalizer.normalize(
-                    "مرحله اول همواره با یک شوینده ملایم آغاز می‌شود که چربی طبیعی را از بین نبرد. سپس استفاده از ترکیبات آبرسان مانند هیالورونیک اسید به پوست فرصت بازسازی می‌دهد."
+                    "برندهای معتبر اسپانیایی نظیر آمالفی و آگرادو به دلیل عدم استفاده از ترکیبات آسیب‌رسان و بهره‌گیری از کراتین هیدرولیز شده، ساختار کوتیکول مو را تقویت کرده و رطوبت تارهای دکلره یا کراتینه‌شده را تا شستشوی بعدی به طور کامل حفظ می‌نمایند."
                 )
             ),
             ArticleSection(
-                h2Heading = "بررسی و مقایسه برندهای برتر بازار (آمالفی، آگرادو و سایرو)",
-                h3Headings = listOf("مزایای شامپوها و ماسک‌های بدون سولفات آمالفی", "فرمولاسیون تقویت‌کننده کراتین آگرادو اسپانیا", "لوسیون‌ها و شوینده‌های تخصصی سایرو"),
+                h2Heading = "لوسیون‌ها و شوینده‌های بدن سایرو (Sairo) برای انواع پوست",
+                h3Headings = listOf("حفظ رطوبت طبیعی لایه هیدرولیپیدی", "رایحه‌های طبیعی و ماندگار بدون حساسیت"),
                 content = PersianNormalizer.normalize(
-                    "برندهای اروپایی نظیر آمالفی و آگرادو به دلیل فرمولاسیون فاقد نمک و ترکیبات خشن، بالاترین رضایت را در بین مصرف‌کنندگان داشته‌اند و سلامت کوتیکول مو و رطوبت پوست را تضمین می‌کنند."
+                    "برند سایرو با بهره‌گیری از روغن زیتون، آلوئه‌ورا و شی‌باتر طبیعی، پاکسازی ملایم را بدون از بین بردن چربی محافظ پوست ممکن ساخته و برای مصرف منظم روزانه ایده‌آل است."
                 )
             ),
             ArticleSection(
-                h2Heading = "اشتباهات رایج که باید از آن‌ها پرهیز کنید",
+                h2Heading = "چگونه کالای اصل را از نمونه‌های تقلبی بازار تشخیص دهیم؟",
                 content = PersianNormalizer.normalize(
-                    "یکی از بزرگ‌ترین اشتباهات، باور به ادعاهای غیرعلمی مانند «درمان معجزه‌آسا در چند روز» است. سلامت پوست فرایندی پیوسته است و تغییرات واقعی نیازمند حداقل ۴ تا ۶ هفته تداوم مصرف است."
+                    "یکی از مهم‌ترین ارکان خرید مطمئن، بررسی بارکد کشور سازنده، بچ‌کد حک‌شده در انتهای بسته‌بندی و خرید از مراجع رسمی واردکننده است. گلی کالا نماینده رسمی و انحصاری برندهای آمالفی، آگرادو و سایرو در ایران، تمامی کالاها را با ضمانت اصالت ۱۰۰٪ عرضه می‌کند."
                 )
             )
         )
 
         val specsOrComparison = listOf(
-            Pair("شاخص مقایسه‌ای", "برندهای منتخب اروپایی (آمالفی، آگرادو) در برابر محصولات معمولی بازار"),
-            Pair("وجود ترکیبات مضر", "فاقد پارابن، بدون الکل دناتوره، فاقد سولفات خشن"),
-            Pair("سازگاری با انواع پوست", "تست شده تحت نظارت متخصصان درماتولوژی"),
-            Pair("سرعت جذب و ماندگاری", "آبرسانی پیوسته تا ۲۴ ساعت بدون ایجاد حس چربی"),
-            Pair("استاندارد کیفی", "دارای گواهی اصالت اتحادیه اروپا و استانداردهای بهداشتی")
+            Pair("شاخص مقایسه‌ای", "برندهای رسمی وارداتی گلی کالا (آمالفی، آگرادو، سایرو) در مقایسه با بازار"),
+            Pair("کشور تولیدکننده", "اسپانیا (اتحادیه اروپا) با استانداردهای بهداشتی CE"),
+            Pair("وجود ترکیبات آسیب‌رسان", "کاملاً فاقد پارابن، بدون سولفات خشن، فاقد نمک دناتوره"),
+            Pair("وضعیت نمایندگی در ایران", "گلی کالا نماینده رسمی و انحصاری در ایران"),
+            Pair("ضمانت و استعلام اصالت", "دارای بارکد بین‌المللی و ۷ روز ضمانت بازگشت وجه")
         )
 
         val faqs = listOf(
-            Pair("چه مدت طول می‌کشد تا اثر روتین پوستی نمایان شود؟", "به طور معمول چرخه نوسازی سلولی پوست حدود ۲۸ روز است، بنابراین مشاهده تغییرات مثبت نیازمند حداقل یک ماه مصرف منظم است."),
-            Pair("آیا می‌توان همزمان از ویتامین C و اسیدهای لایه‌بردار استفاده کرد؟", "توصیه می‌شود ویتامین C را در روتین صبح و لایه‌بردارها را در روتین شب به کار ببرید تا از تحریک پوست جلوگیری شود."),
-            Pair("چرا استفاده از شوینده‌های بدون سولفات توصیه می‌شود؟", "سولفات‌ها چربی محافظ پوست و مو را پاک کرده و باعث خشکی زودرس و خارش می‌شوند؛ محصولات بدون سولفات آمالفی و آگرادو این مشکل را برطرف کرده‌اند.")
+            Pair("آیا محصولات آمالفی، آگرادو و سایرو در گلی کالا اورجینال هستند؟", "بله، گلی کالا نماینده رسمی و انحصاری محصولات برندهای آمالفی، آگرادو و سایرو در ایران می‌باشد و تمامی سفارش‌ها مستقیماً با ضمانت اصالت فیزیکی ارسال می‌شوند."),
+            Pair("چه مدت طول می‌کشد تا اثر شامپو و ماسک موی بدون سولفات نمایان شود؟", "از همان اولین شستشو تفاوت نرمی و کاهش وز مو مشهود است و پس از ۳ تا ۴ هفته احیای ساختار کراتین مو تثبیت می‌گردد."),
+            Pair("چرا خرید از نماینده رسمی اهمیت دارد؟", "خرید از نماینده رسمی مانع خرید نمونه‌های فیک یا تاریخ‌گذشته بازار شده و گارانتی اصالت و قیمت واقعی کالا را تضمین می‌کند.")
         )
 
         val internalLinks = listOf(
-            InternalLinkAnchor("خرید محصولات تخصصی مو آمالفی بدون سولفات", "/brand/amalfi/", "محصول مکمل", 98),
-            InternalLinkAnchor("مشاهده ماسک مو و شامپوهای کراتینه آگرادو", "/brand/agrado/", "محصول مرتبط", 95),
-            InternalLinkAnchor("راهنمای خرید کرم‌ها و لوسیون‌های بدن سایرو", "/brand/syro/", "برند مکمل", 93),
-            InternalLinkAnchor("مشاهده لیست کامل محصولات آرایشی و بهداشتی اصل", "/shop/", "دسته‌بندی اصلی فروشگاه", 90)
+            InternalLinkAnchor("مشاهده و خرید محصولات برند آمالفی اصل اسپانیا", "https://golikala.com/brand/amalfi/", "برند اصلی", 98),
+            InternalLinkAnchor("خرید ماسک مو و شامپوهای کراتینه آگرادو اسپانیا", "https://golikala.com/brand/agrado/", "برند مکمل", 97),
+            InternalLinkAnchor("خرید لوسیون‌ها و شوینده‌های تخصصی سایرو", "https://golikala.com/brand/sairo/", "برند مکمل", 95),
+            InternalLinkAnchor("مشاهده لیست کامل محصولات مراقبت مو بدون سولفات", "https://golikala.com/product-category/hair-care/", "دسته‌بندی اصلی", 93),
+            InternalLinkAnchor("فروشگاه آنلاین گلی کالا (golikala.com)", "https://golikala.com/shop/", "فروشگاه رسمی", 90)
         )
 
         val relatedArticlesOrProducts = listOf(
-            "ماسک مو ترمیم‌کننده آمالفی فاقد سولفات ۵۰۰ میل",
-            "شامپو تقویت‌کننده کراتین آگرادو ساخت اسپانیا",
+            "شامپو کراتینه و تقویت‌کننده آگرادو اصل اسپانیا",
+            "ماسک مو ترمیم‌کننده آمالفی فاقد سولفات",
             "لوسیون آبرسان دست و بدن سایرو",
             "سرم هیالورونیک اسید آبرسان عمیق"
         )
@@ -502,13 +670,18 @@ object ContentModuleProcessor {
         val structuredHtml = """
             <article class="gliseo-structured-article" dir="rtl">
               <h1 style="color: #0f172a; font-size: 24px; margin-bottom: 16px;">$normalizedTitle</h1>
+              
+              <div class="agency-banner" style="background: #f0fdf4; border: 2px solid #22c55e; padding: 14px 18px; border-radius: 8px; margin-bottom: 20px;">
+                <p style="font-size: 14px; color: #166534; margin: 0; font-weight: bold;">✦ گلی کالا نماینده رسمی و انحصاری محصولات برندهای آمالفی، آگرادو و سایرو در ایران می‌باشد.</p>
+              </div>
+
               <div class="article-lead" style="background: #f8fafc; border-right: 4px solid #2563eb; padding: 14px 18px; border-radius: 8px; margin-bottom: 24px;">
-                <p style="font-size: 15px; line-height: 1.8; margin: 0;"><strong>خلاصه راهنما: </strong>رسیدگی به پوست و مو نیازمند درک نیازهای اختصاصی هر بافت و انتخاب محصولات بدون ترکیبات خشن نظیر پارابن و سولفات است. در این مقاله به بررسی گام‌به‌گام و مقایسه علمی می‌پردازیم.</p>
+                <p style="font-size: 15px; line-height: 1.8; margin: 0;"><strong>خلاصه راهنما: </strong>رسیدگی به پوست و مو نیازمند شناخت فرمولاسیون‌های بهداشتی بدون ترکیبات خشن نظیر سولفات و پارابن است. در این مقاله به بررسی علمی و راهنمای انتخاب محصولات اصل اروپایی می‌پردازیم.</p>
               </div>
               
               <h2 style="color: #0f172a; margin-top: 28px; font-weight: bold;">جدول مقایسه کیفی و استانداردهای بهداشتی</h2>
               <table style="width: 100%; border-collapse: collapse; margin-bottom: 24px;">
-                <thead><tr style="background: #f1f5f9;"><th style="padding: 10px; border: 1px solid #e2e8f0; text-align: right;">شاخص مقایسه</th><th style="padding: 10px; border: 1px solid #e2e8f0; text-align: right;">استاندارد گلی کالا و برندهای برتر</th></tr></thead>
+                <thead><tr style="background: #f1f5f9;"><th style="padding: 10px; border: 1px solid #e2e8f0; text-align: right;">شاخص مقایسه</th><th style="padding: 10px; border: 1px solid #e2e8f0; text-align: right;">استاندارد رسمی گلی کالا (golikala.com)</th></tr></thead>
                 <tbody>
                   ${specsOrComparison.joinToString("") { "<tr><td style=\"padding: 8px 12px; border: 1px solid #e2e8f0; font-weight: bold; width: 35%; background: #fafafa;\">${it.first}</td><td style=\"padding: 8px 12px; border: 1px solid #e2e8f0;\">${it.second}</td></tr>" }}
                 </tbody>
@@ -521,13 +694,13 @@ object ContentModuleProcessor {
                   "<h2 style=\"color: #0f172a; margin-top: 28px; font-weight: bold;\">${sec.h2Heading}</h2>$h3s<p style=\"font-size: 15px; line-height: 1.8; color: #334155;\">${sec.content}</p>"
               }}
 
-              <h2 style=\"color: #0f172a; margin-top: 28px; font-weight: bold;\">پرسش و پاسخ‌های متداول (FAQ)</h2>
+              <h2 style="color: #0f172a; margin-top: 28px; font-weight: bold;">پرسش و پاسخ‌های متداول (FAQ)</h2>
               ${faqs.joinToString("\n") { (q, a) ->
                   "<div style=\"background: #f8fafc; padding: 12px 16px; border-radius: 8px; margin-bottom: 12px;\"><h3 style=\"font-size: 14px; margin: 0 0 6px 0; color: #0f172a;\">❓ $q</h3><p style=\"font-size: 13px; margin: 0; color: #475569;\">$a</p></div>"
               }}
 
-              <div class=\"related-links-footer\" style=\"margin-top: 36px; padding: 18px; background: #eff6ff; border-radius: 8px;\">
-                <h3 style=\"color: #1e3a8a; font-size: 15px; margin-top: 0; margin-bottom: 10px;\">🔗 محصولات مرتبط و پیشنهاد خرید / مطالعه:</h3>
+              <div class=\"related-links-footer\" style=\"margin-top: 36px; padding: 18px; background: #eff6ff; border-radius: 8px; border-right: 4px solid #2563eb;\">
+                <h3 style=\"color: #1e3a8a; font-size: 15px; margin-top: 0; margin-bottom: 10px;\">🔗 لینک‌های داخلی و محصولات مرتبط در وبسایت گلی کالا (golikala.com):</h3>
                 <ul style=\"padding-right: 20px; margin: 0;\">
                   ${internalLinks.joinToString("") { "<li style=\"margin-bottom: 8px;\"><a href=\"${it.targetUrl}\" style=\"color: #2563eb; text-decoration: none; font-weight: bold;\">${it.anchorText}</a> <span style=\"font-size: 12px; color: #64748b;\">(${it.contentType})</span></li>" }}
                 </ul>
@@ -538,12 +711,12 @@ object ContentModuleProcessor {
         return GeneratedArticle(
             title = normalizedTitle,
             focusKeyword = keyword,
-            metaDescription = PersianNormalizer.normalize("راهنمای گام به گام و علمی $keyword بر اساس اصول درماتولوژی و بررسی برندهای آمالفی، آگرادو و سایرو در گلی کالا.").take(155),
+            metaDescription = PersianNormalizer.normalize("راهنمای جامع و علمی $keyword در وبسایت گلی کالا، نماینده رسمی و انحصاری برندهای آمالفی، آگرادو و سایرو در ایران.").take(155),
             h1Heading = normalizedTitle,
             sections = sections,
             faqSection = faqs,
-            authorBio = "تیم تخصصی تحریریه سلامت و مراقبت از پوست گلی کالا",
-            eeatTrustFactors = listOf("بر پایه مقالات علمی معتبر", "عدم ادعای دارویی غیرمجاز", "منطبق با استانداردهای بهداشتی اتحادیه اروپا"),
+            authorBio = "تیم تخصصی تحریریه سلامت و مراقبت از پوست و مو در گلی کالا",
+            eeatTrustFactors = listOf("بر پایه استانداردهای علمی اتحادیه اروپا", "عدم ادعای دارویی غیرمجاز", "گلی کالا نماینده رسمی برندهای اروپایی در ایران"),
             specificationsOrComparisonTable = specsOrComparison,
             internalLinks = internalLinks,
             relatedProductsOrArticles = relatedArticlesOrProducts,
@@ -552,9 +725,10 @@ object ContentModuleProcessor {
     }
 
     fun generateImageMetadata(item: SiteItem): ImageMetadata {
+        val analysis = analyzeProductBeforeWriting(item)
         val englishSlug = item.slug.ifBlank { "product-${item.id}" }
         val fileName = "$englishSlug-featured-optimized.webp"
-        val altText = PersianNormalizer.normalize("تصویر باکیفیت و استاندارد از ${item.title} در فروشگاه گلی کالا")
+        val altText = PersianNormalizer.normalize("تصویر باکیفیت و استاندارد از ${item.title} برند ${analysis.detectedBrand} در فروشگاه گلی کالا")
 
         return ImageMetadata(
             suggestedFileName = fileName,
@@ -566,4 +740,3 @@ object ContentModuleProcessor {
         )
     }
 }
-

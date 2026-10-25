@@ -100,6 +100,54 @@ fun ProductStudioDialog(
                     }
                 }
 
+                // Step 1: Pre-Writing Product Analysis & Brand Identity Card
+                item {
+                    Card(
+                        colors = CardDefaults.cardColors(containerColor = if (pkg.isOfficialAgencyBrand) GliseoSuccess.copy(alpha = 0.08f) else GliseoPrimary.copy(alpha = 0.08f)),
+                        shape = RoundedCornerShape(10.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(modifier = Modifier.padding(12.dp)) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    imageVector = Icons.Default.AutoAwesome,
+                                    contentDescription = null,
+                                    tint = if (pkg.isOfficialAgencyBrand) GliseoSuccess else GliseoPrimary,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    text = "۱. تحلیل پیش از نگارش و تشخیص هویت کالا:",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = if (pkg.isOfficialAgencyBrand) GliseoSuccess else GliseoPrimary
+                                )
+                            }
+                            Spacer(modifier = Modifier.height(6.dp))
+                            Text(text = "• برند سازنده اصلی: ${pkg.detectedBrand.ifBlank { "تشخیص داده شده" }} (گلی کالا نماینده و واردکننده است، نه سازنده)", fontSize = 10.sp, fontWeight = FontWeight.SemiBold)
+                            Text(text = "• کشور مبدا و استاندارد: ${pkg.originCountry.ifBlank { "اسپانیا / اتحادیه اروپا" }}", fontSize = 10.sp)
+                            Text(text = "• نوع محصول: ${pkg.productType.ifBlank { "کالای مراقبتی بهداشتی" }}", fontSize = 10.sp)
+                            if (pkg.isOfficialAgencyBrand) {
+                                Spacer(modifier = Modifier.height(6.dp))
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clip(RoundedCornerShape(6.dp))
+                                        .background(GliseoSuccess.copy(alpha = 0.15f))
+                                        .padding(horizontal = 8.dp, vertical = 6.dp)
+                                ) {
+                                    Text(
+                                        text = "✦ گلی کالا نماینده رسمی و انحصاری محصولات برندهای آمالفی، آگرادو و سایرو در ایران می‌باشد.",
+                                        fontSize = 10.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = GliseoSuccess
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+
                 // SEO Title & Focus Keyword
                 item {
                     Card(

@@ -60,17 +60,17 @@ object GoogleCompetitorAnalyzer {
         val lowerTitle = item.title.lowercase()
         val isAmalfi = lowerTitle.contains("آمالفی") || lowerTitle.contains("amalfi")
         val isAgrado = lowerTitle.contains("آگرادو") || lowerTitle.contains("agrado")
-        val isSyro = lowerTitle.contains("سایرو") || lowerTitle.contains("syro")
+        val isSyro = lowerTitle.contains("سایرو") || lowerTitle.contains("sairo") || lowerTitle.contains("syro")
         val isLafarrerr = lowerTitle.contains("لافارر") || lowerTitle.contains("la farrerr")
         val isCinere = lowerTitle.contains("سینره") || lowerTitle.contains("cinere")
 
         val brandTag = when {
             isAmalfi -> "آمالفی (Amalfi)"
             isAgrado -> "آگرادو (Agrado)"
-            isSyro -> "سایرو (Syro)"
+            isSyro -> "سایرو (Sairo)"
             isLafarrerr -> "لافارر (La Farrerr)"
             isCinere -> "سینره (Cinere)"
-            else -> "محصولات تخصصی بهداشتی و آرایشی"
+            else -> "محصولات تخصصی بهداشتی و آرایشی اصل"
         }
 
         val topCompetitors = listOf(
@@ -195,37 +195,47 @@ object GoogleCompetitorAnalyzer {
 
         val internalLinks = listOf(
             InternalLinkAnchor(
-                anchorText = "خرید انواع شامپو و مراقبت مو بدون سولفات",
-                targetUrl = "/product-category/hair-care/",
-                contentType = "دسته‌بندی اصلی",
+                anchorText = "خرید انواع شامپو و مراقبت مو بدون سولفات در گلی کالا",
+                targetUrl = "https://golikala.com/product-category/hair-care/",
+                contentType = "دسته‌بندی اصلی ووکامرس",
                 relevanceScore = 98
             ),
             InternalLinkAnchor(
-                anchorText = "مقاله راهنمای جامع تشخیص لوازم آرایشی و بهداشتی اصل",
-                targetUrl = "/blog/how-to-spot-fake-cosmetics/",
-                contentType = "مقاله راهنما",
-                relevanceScore = 94
-            ),
-            InternalLinkAnchor(
-                anchorText = "مشاهده تمام محصولات برند $brandTag",
-                targetUrl = "/brand/${brandTag.lowercase().replace(" ", "-")}/",
+                anchorText = "مشاهده تمام محصولات اصل برند $brandTag",
+                targetUrl = "https://golikala.com/brand/${if (isAmalfi) "amalfi" else if (isAgrado) "agrado" else if (isSyro) "sairo" else "europe"}/",
                 contentType = "برند و دسته مکمل",
                 relevanceScore = 96
             ),
             InternalLinkAnchor(
+                anchorText = "مقاله راهنمای جامع تشخیص لوازم آرایشی و بهداشتی اصل",
+                targetUrl = "https://golikala.com/blog/how-to-spot-fake-cosmetics/",
+                contentType = "مقاله راهنما و بلاگ",
+                relevanceScore = 94
+            ),
+            InternalLinkAnchor(
                 anchorText = "سرم‌ها و کرم‌های آبرسان عمقی پوست",
-                targetUrl = "/product-category/skincare/hydrating/",
+                targetUrl = "https://golikala.com/product-category/skincare/",
                 contentType = "محصول مکمل",
-                relevanceScore = 91
+                relevanceScore = 92
+            ),
+            InternalLinkAnchor(
+                anchorText = "مشاهده لیست پرفروش‌ترین محصولات آرایشی و بهداشتی",
+                targetUrl = "https://golikala.com/product-category/bestsellers/",
+                contentType = "پرفروش‌ترین‌های سایت",
+                relevanceScore = 90
             )
         )
 
+        val agencyNote = if (isAmalfi || isAgrado || isSyro) {
+            "\n✦ گلی کالا نماینده رسمی و انحصاری محصولات برندهای آمالفی، آگرادو و سایرو در ایران می‌باشد؛ این مزیت رقابتی بی‌نظیر را در صدر توضیحات برجسته کنید."
+        } else ""
+
         val strategy = """
             برای کسب رتبه ۱ گوگل در عبارت «$keyword»:
-            ۱. متن را با یک قلاب گیرا (Hook) درباره حل مشکل کاربر آغاز کنید و از پاراگراف‌های طولانی پرهیز نمایید.
+            ۱. هوش مصنوعی باید ابتدا نوع کالا، کشور سازنده و کاربرد دقیق را شناسایی کند و سپس عنوان سئو H1، چکیده جذاب و توضیحات سئوپسند را بنگارد.$agencyNote
             ۲. یک جدول جامع از مشخصات فنی و ترکیبات فعال را در ابتدای محتوا قرار دهید تا پاسخگوی سرچ‌های مقایسه‌ای باشد.
             ۳. با افزودن بخش اختصاصی تشخیص اصالت کالا و نماد بارکد، مزیت اعتماد رقبای دیجی‌کالا و خانومی را خنثی کنید.
-            ۴. در انتهای متن، حتماً بخش «محصولات مکمل و پیشنهاد مطالعه» با لینک‌های داخلی تعبیه شود تا نرخ ماندگاری کاربر (Dwell Time) را حداقل ۶۰ درصد افزایش دهد.
+            ۴. در انتهای متن، حتماً بخش «محصولات مکمل و پیشنهاد مطالعه» با لینک‌های داخلی واقعی golikala.com تعبیه شود تا نرخ ماندگاری کاربر (Dwell Time) را حداقل ۶۰ درصد افزایش دهد.
         """.trimIndent()
 
         return CompetitorAnalysisReport(

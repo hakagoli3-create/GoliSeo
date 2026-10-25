@@ -972,6 +972,9 @@ fun ItemEditorView(
     }
 
     fun applyAiResultFields(res: SeoAiResult) {
+        if (res.suggestedTitle.isNotBlank()) title = PersianNormalizer.normalize(res.suggestedTitle)
+        if (res.suggestedShortDescription.isNotBlank()) excerpt = PersianNormalizer.normalize(res.suggestedShortDescription)
+        if (res.suggestedStructuredContent.isNotBlank()) content = res.suggestedStructuredContent
         metaTitle = PersianNormalizer.normalize(res.suggestedTitle)
         metaDescription = PersianNormalizer.normalize(res.suggestedMetaDescription)
         focusKeyword = PersianNormalizer.normalize(res.suggestedFocusKeyword)
@@ -1146,13 +1149,36 @@ fun ItemEditorView(
                                         colors = ButtonDefaults.buttonColors(containerColor = GliseoSuccess),
                                         shape = RoundedCornerShape(6.dp)
                                     ) {
-                                        Text("اعمال در فرم", fontSize = 10.sp)
+                                        Text("اعمال همه در فرم", fontSize = 10.sp)
+                                    }
+                                }
+                                if (aiResult.isOfficialAgencyBrand) {
+                                    Spacer(modifier = Modifier.height(6.dp))
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .clip(RoundedCornerShape(6.dp))
+                                            .background(GliseoSuccess.copy(alpha = 0.12f))
+                                            .padding(horizontal = 8.dp, vertical = 6.dp)
+                                    ) {
+                                        Text(
+                                            text = "✦ گلی کالا نماینده رسمی و انحصاری محصولات برندهای آمالفی، آگرادو و سایرو در ایران می‌باشد.",
+                                            fontSize = 10.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = GliseoSuccess
+                                        )
                                     }
                                 }
                                 Spacer(modifier = Modifier.height(6.dp))
-                                Text(text = "عنوان: ${aiResult.suggestedTitle}", fontSize = 10.sp, fontWeight = FontWeight.SemiBold)
-                                Text(text = "کلمه کلیدی: ${aiResult.suggestedFocusKeyword}", fontSize = 10.sp, color = GliseoPrimary)
-                                Text(text = "توضیحات متا: ${aiResult.suggestedMetaDescription}", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                if (aiResult.detectedBrand.isNotBlank()) {
+                                    Text(text = "• برند سازنده: ${aiResult.detectedBrand} (کشور: ${aiResult.detectedCountry})", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
+                                Text(text = "• عنوان سئو (H1): ${aiResult.suggestedTitle}", fontSize = 10.sp, fontWeight = FontWeight.SemiBold)
+                                Text(text = "• کلمه کلیدی: ${aiResult.suggestedFocusKeyword}", fontSize = 10.sp, color = GliseoPrimary)
+                                Text(text = "• توضیحات متا: ${aiResult.suggestedMetaDescription}", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                if (aiResult.suggestedShortDescription.isNotBlank()) {
+                                    Text(text = "• متن کوتاه جذاب: ${aiResult.suggestedShortDescription.take(90)}...", fontSize = 9.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
                                 Text(text = "امتیاز جدید: +${aiResult.seoScoreImprovement}٪ (${aiResult.groundingSummary})", fontSize = 10.sp, color = GliseoSuccess, fontWeight = FontWeight.Bold)
                             }
                         }
@@ -1325,11 +1351,16 @@ fun ItemEditorView(
                                 ) {
                                     Button(
                                         onClick = {
-                                            val rewritten = ContentModuleProcessor.rewriteContentWithAdvancedSeoStructure(
+                                            val pkg = ContentModuleProcessor.generateProductPackage(
                                                 item.copy(title = title, content = content, excerpt = excerpt, focusKeyword = focusKeyword),
                                                 brandKnowledgeBase
                                             )
-                                            content = rewritten
+                                            title = pkg.seoTitle
+                                            excerpt = pkg.shortDescription
+                                            content = pkg.structuredHtmlContent
+                                            metaTitle = pkg.seoTitle
+                                            metaDescription = pkg.rankMathMetaDesc
+                                            focusKeyword = pkg.focusKeyword
                                             onRewriteContentAdvanced()
                                         },
                                         colors = ButtonDefaults.buttonColors(containerColor = GliseoSecondary),
@@ -1360,7 +1391,7 @@ fun ItemEditorView(
                                 ) {
                                     OutlinedButton(
                                         onClick = {
-                                            val specs = ContentModuleProcessor.generateProductPackage(item.copy(title = title, focusKeyword = focusKeyword)).specificationsTable
+                                            val specs = ContentModuleProcessor.generateProductPackage(item.copy(title = title, focusKeyword = focusKeyword), brandKnowledgeBase).specificationsTable
                                             val tableHtml = buildString {
                                                 append("\n\n<!-- جدول مشخصات و مقایسه کالا -->\n")
                                                 append("<div class=\"wp-block-table is-style-stripes\" style=\"margin:16px 0; overflow-x:auto;\">\n")
@@ -1383,17 +1414,7 @@ fun ItemEditorView(
 
                                     OutlinedButton(
                                         onClick = {
-                                            val linksHtml = buildString {
-                                                append("\n\n<!-- بخش محصولات مرتبط و پیشنهاد خرید -->\n")
-                                                append("<div class=\"gliseo-internal-links-section\" style=\"margin-top:24px; padding:16px; background:#F8FAFC; border-right:4px solid #6366F1; border-radius:8px;\">\n")
-                                                append("<h3 style=\"margin-top:0; color:#1E293B; font-size:15px;\">🔗 محصولات مرتبط و پیشنهاد مطالعه/خرید</h3>\n")
-                                                append("<p style=\"font-size:12px; color:#64748B;\">برای بررسی محصولات مکمل و مقایسه دقیق‌تر، از صفحات زیر دیدن فرمایید:</p>\n")
-                                                append("<ul style=\"padding-right:20px; line-height:2;\">\n")
-                                                append("<li><a href=\"/shop\" style=\"color:#6366F1; text-decoration:underline; font-weight:bold;\">مشاهده تمامی محصولات آرایشی و بهداشتی اصل</a></li>\n")
-                                                append("<li><a href=\"/category/hair-care\" style=\"color:#6366F1; text-decoration:underline;\">خرید محصولات مراقبت مو آمالفی، آگرادو و سایرو</a></li>\n")
-                                                append("<li><a href=\"/blog\" style=\"color:#6366F1; text-decoration:underline;\">راهنمای تخصصی مراقبت از پوست و مو</a></li>\n")
-                                                append("</ul>\n</div>\n")
-                                            }
+                                            val linksHtml = ContentModuleProcessor.buildRealGolikalaInternalLinksHtml(title)
                                             content = content + linksHtml
                                         },
                                         shape = RoundedCornerShape(8.dp),

@@ -243,7 +243,7 @@ fun CompetitorAnalysisDialog(
                                         Text(text = gap.description, fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                         Spacer(modifier = Modifier.height(6.dp))
                                         Row(verticalAlignment = Alignment.Top) {
-                                            Text(text = "راهکار گلیسئو: ", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = GliseoSuccess)
+                                            Text(text = "راهکار گلی کالا: ", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = GliseoSuccess)
                                             Text(text = gap.recommendation, fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurface)
                                         }
                                     }
@@ -352,7 +352,7 @@ fun CompetitorAnalysisDialog(
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     Icon(imageVector = Icons.Default.TrendingUp, contentDescription = null, tint = GliseoSuccess, modifier = Modifier.size(16.dp))
                                     Spacer(modifier = Modifier.width(6.dp))
-                                    Text(text = "راهکار برنده گلیسئو برای کسب رتبه ۱ گوگل:", fontWeight = FontWeight.Bold, fontSize = 11.sp, color = GliseoSuccess)
+                                    Text(text = "راهکار برنده گلی کالا برای کسب رتبه ۱ گوگل:", fontWeight = FontWeight.Bold, fontSize = 11.sp, color = GliseoSuccess)
                                 }
                                 Spacer(modifier = Modifier.height(6.dp))
                                 Text(text = report.winningStrategy, fontSize = 10.sp, lineHeight = 18.sp, color = Color(0xFF14532D))
