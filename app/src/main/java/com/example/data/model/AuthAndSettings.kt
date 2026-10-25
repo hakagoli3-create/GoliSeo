@@ -34,13 +34,15 @@ data class ConnectionTestResult(
 )
 
 data class BudgetTracker(
-    val dailyBudgetCapUsd: Double = 5.00,
-    val currentSpentUsd: Double = 1.15,
-    val dailyTokenCap: Int = 100_000,
-    val tokensUsedToday: Int = 23_450
+    val dailyBudgetCapUsd: Double = 0.00,
+    val currentSpentUsd: Double = 0.00,
+    val dailyTokenCap: Int = 1_000_000,
+    val tokensUsedToday: Int = 24_500,
+    val isUnlimitedFree: Boolean = true,
+    val planName: String = "پلن نامحدود و کاملاً رایگان (بدون هزینه)"
 ) {
-    val usagePercentage: Float get() = (currentSpentUsd / dailyBudgetCapUsd).toFloat().coerceIn(0f, 1f)
-    val isExceeded: Boolean get() = currentSpentUsd >= dailyBudgetCapUsd
+    val usagePercentage: Float get() = 0f
+    val isExceeded: Boolean get() = false
 }
 
 data class BrandProfile(

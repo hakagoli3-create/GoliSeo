@@ -19,11 +19,14 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Article
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Sync
 import androidx.compose.material.icons.filled.Done
 import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.Lock
@@ -121,6 +124,11 @@ fun ContentStudioScreen(
     onValidatePrePublish: (SiteItem) -> Unit,
     onDismissValidation: () -> Unit,
     onLearnUserEdit: (String, String, String) -> Unit,
+    onSyncSite: () -> Unit = {},
+    isSyncing: Boolean = false,
+    onGenerateCustomArticle: (String, String, String?) -> Unit = { _, _, _ -> },
+    onAddNewContent: (String, String, SiteItemType, String, String, String) -> Unit = { _, _, _, _, _, _ -> },
+    onScheduleArticle: (GeneratedArticle, Int, String?) -> Unit = { _, _, _ -> },
     modifier: Modifier = Modifier
 ) {
     var showFreeformDialog by remember { mutableStateOf(false) }
@@ -128,6 +136,7 @@ fun ContentStudioScreen(
     var showBrandKnowledgeDialog by remember { mutableStateOf(false) }
     var showSchedulerDialogForItem by remember { mutableStateOf<SiteItem?>(null) }
     var showImageStudioForItem by remember { mutableStateOf<SiteItem?>(null) }
+    var showCreateContentDialog by remember { mutableStateOf(false) }
 
     if (selectedItem != null) {
         ItemEditorView(
@@ -157,6 +166,9 @@ fun ContentStudioScreen(
             onOpenArticleStudio = { showArticleStudioDialog = true },
             onOpenBrandKnowledge = { showBrandKnowledgeDialog = true },
             onBatchOptimizeAllProducts = onBatchOptimizeProducts,
+            onOpenCreateContent = { showCreateContentDialog = true },
+            onSyncSite = onSyncSite,
+            isSyncing = isSyncing,
             modifier = modifier
         )
     }
@@ -178,11 +190,23 @@ fun ContentStudioScreen(
             topics = topicSuggestions,
             previewArticle = articlePreview,
             onSelectTopicToGenerate = onSelectArticleTopic,
+            onGenerateCustomTopic = onGenerateCustomArticle,
             onPublishArticle = onPublishArticle,
+            onScheduleArticle = onScheduleArticle,
             onDismiss = {
                 showArticleStudioDialog = false
                 onDismissArticlePreview()
             }
+        )
+    }
+
+    if (showCreateContentDialog) {
+        CreateContentDialog(
+            onCreate = { title, content, type, keyword, excerpt, price ->
+                onAddNewContent(title, content, type, keyword, excerpt, price)
+                showCreateContentDialog = false
+            },
+            onDismiss = { showCreateContentDialog = false }
         )
     }
 
@@ -241,6 +265,9 @@ fun ItemListView(
     onOpenArticleStudio: () -> Unit,
     onOpenBrandKnowledge: () -> Unit,
     onBatchOptimizeAllProducts: () -> Unit,
+    onOpenCreateContent: () -> Unit = {},
+    onSyncSite: () -> Unit = {},
+    isSyncing: Boolean = false,
     modifier: Modifier = Modifier
 ) {
     var selectedFilter by remember { mutableStateOf("ALL") }
@@ -276,6 +303,22 @@ fun ItemListView(
 
         // Phase 2 Content Modules Action Bar
         LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            item {
+                ModuleQuickButton(
+                    title = "+ محتوای جدید",
+                    icon = Icons.Default.Add,
+                    color = GliseoPrimary,
+                    onClick = onOpenCreateContent
+                )
+            }
+            item {
+                ModuleQuickButton(
+                    title = if (isSyncing) "در حال همگام‌سازی..." else "همگام‌سازی با سایت",
+                    icon = if (isSyncing) Icons.Default.Refresh else Icons.Default.Sync,
+                    color = GliseoSecondary,
+                    onClick = onSyncSite
+                )
+            }
             item {
                 ModuleQuickButton(
                     title = "دستور آزاد فارسی",
@@ -583,6 +626,90 @@ fun ItemEditorView(
                         fontSize = 11.sp,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
+                }
+            }
+        }
+
+        // Gemini AI SEO Optimizer Card
+        item {
+            Card(
+                colors = CardDefaults.cardColors(containerColor = GliseoPrimary.copy(alpha = 0.08f)),
+                shape = RoundedCornerShape(12.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(modifier = Modifier.padding(14.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(imageVector = Icons.Default.AutoAwesome, contentDescription = null, tint = GliseoPrimary, modifier = Modifier.size(20.dp))
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Column {
+                                Text(text = "بهینه‌سازی هوشمند با هوش مصنوعی (Gemini AI)", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = GliseoPrimary)
+                                Text(text = "تولید سئو، متادیسکریپشن، اسکیما و کلمات کلیدی با اتصال زنده گوگل", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    if (aiOptimizing) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 8.dp),
+                            horizontalArrangement = Arrangement.Center,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp, color = GliseoPrimary)
+                            Spacer(modifier = Modifier.width(10.dp))
+                            Text(text = "در حال تحلیل و بهینه‌سازی با جمینای...", fontSize = 11.sp, color = GliseoPrimary)
+                        }
+                    } else {
+                        Button(
+                            onClick = onGenerateAiSeo,
+                            colors = ButtonDefaults.buttonColors(containerColor = GliseoPrimary),
+                            shape = RoundedCornerShape(8.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Icon(imageVector = Icons.Default.AutoAwesome, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("اجرای تحلیل و بهینه‌سازی سئو با جمینای", fontWeight = FontWeight.Bold, fontSize = 11.sp)
+                        }
+                    }
+
+                    if (aiResult != null) {
+                        Spacer(modifier = Modifier.height(10.dp))
+                        Card(
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                            shape = RoundedCornerShape(8.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column(modifier = Modifier.padding(10.dp)) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(text = "پیشنهادات تولیدشده توسط جمینای:", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = GliseoSuccess)
+                                    Button(
+                                        onClick = { applyAiFields(aiResult) },
+                                        colors = ButtonDefaults.buttonColors(containerColor = GliseoSuccess),
+                                        shape = RoundedCornerShape(6.dp)
+                                    ) {
+                                        Text("اعمال همه در فرم", fontSize = 10.sp)
+                                    }
+                                }
+                                Spacer(modifier = Modifier.height(6.dp))
+                                Text(text = "عنوان پیشنهادی: ${aiResult.suggestedTitle}", fontSize = 10.sp, fontWeight = FontWeight.SemiBold)
+                                Text(text = "کلمه کلیدی: ${aiResult.suggestedFocusKeyword}", fontSize = 10.sp, color = GliseoPrimary)
+                                Text(text = "توضیحات متا: ${aiResult.suggestedMetaDescription}", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text(text = "افزایش امتیاز سئو: +${aiResult.seoScoreImprovement}٪ (${aiResult.groundingSummary})", fontSize = 10.sp, color = GliseoSuccess, fontWeight = FontWeight.Bold)
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -908,6 +1035,125 @@ fun ImageStudioDialog(
         confirmButton = {
             OutlinedButton(onClick = onDismiss) {
                 Text("تایید")
+            }
+        }
+    )
+}
+
+@Composable
+fun CreateContentDialog(
+    onCreate: (title: String, content: String, type: SiteItemType, keyword: String, excerpt: String, price: String) -> Unit,
+    onDismiss: () -> Unit
+) {
+    var title by remember { mutableStateOf("") }
+    var content by remember { mutableStateOf("") }
+    var focusKeyword by remember { mutableStateOf("") }
+    var selectedType by remember { mutableStateOf(SiteItemType.POST) }
+    var price by remember { mutableStateOf("") }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(imageVector = Icons.Default.Add, contentDescription = null, tint = GliseoPrimary)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "ایجاد محتوای جدید برای سایت",
+                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+                    )
+                }
+                IconButton(onClick = onDismiss) {
+                    Icon(imageVector = Icons.Default.Close, contentDescription = "بستن")
+                }
+            }
+        },
+        text = {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Text(
+                    text = "نوع محتوا را انتخاب نموده و مشخصات اولیه را وارد کنید تا هوش مصنوعی سئو آن را بهینه‌سازی کند:",
+                    fontSize = 11.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
+                // Type Chips
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    SiteItemType.entries.forEach { type ->
+                        FilterChip(
+                            selected = selectedType == type,
+                            onClick = { selectedType = type },
+                            label = { Text(type.persianLabel, fontSize = 10.sp) }
+                        )
+                    }
+                }
+
+                OutlinedTextField(
+                    value = title,
+                    onValueChange = { title = it },
+                    label = { Text("عنوان ${selectedType.persianLabel}") },
+                    shape = RoundedCornerShape(8.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true
+                )
+
+                OutlinedTextField(
+                    value = focusKeyword,
+                    onValueChange = { focusKeyword = it },
+                    label = { Text("کلمه کلیدی کانونی سئو") },
+                    shape = RoundedCornerShape(8.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true
+                )
+
+                if (selectedType == SiteItemType.PRODUCT) {
+                    OutlinedTextField(
+                        value = price,
+                        onValueChange = { price = it },
+                        label = { Text("قیمت (تومان)") },
+                        placeholder = { Text("مثال: ۲۵۰٬۰۰۰") },
+                        shape = RoundedCornerShape(8.dp),
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true
+                    )
+                }
+
+                OutlinedTextField(
+                    value = content,
+                    onValueChange = { content = it },
+                    label = { Text("متن یا توضیحات اولیه") },
+                    shape = RoundedCornerShape(8.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                    minLines = 3
+                )
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = {
+                    if (title.isNotBlank()) {
+                        val finalKeyword = focusKeyword.ifBlank { title.split(" ").take(3).joinToString(" ") }
+                        onCreate(title, content, selectedType, finalKeyword, content.take(120), price)
+                    }
+                },
+                colors = ButtonDefaults.buttonColors(containerColor = GliseoPrimary),
+                shape = RoundedCornerShape(8.dp),
+                enabled = title.isNotBlank()
+            ) {
+                Icon(imageVector = Icons.Default.Done, contentDescription = null, modifier = Modifier.size(16.dp))
+                Spacer(modifier = Modifier.width(4.dp))
+                Text("ثبت و بهینه‌سازی خودکار")
+            }
+        },
+        dismissButton = {
+            OutlinedButton(onClick = onDismiss) {
+                Text("انصراف")
             }
         }
     )

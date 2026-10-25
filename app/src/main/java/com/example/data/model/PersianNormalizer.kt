@@ -52,21 +52,21 @@ object PersianNormalizer {
         result = String(chars)
 
         // 4. Half-space prefixes: «می » -> «می‌», «نمی » -> «نمی‌»
-        result = result.replace(Regex("\\bمی\\s+"), "می$ZWNJ")
-            .replace(Regex("\\bنمی\\s+"), "نمی$ZWNJ")
+        result = result.replace(Regex("(?:^|(?<=\\s))می\\s+"), "می$ZWNJ")
+            .replace(Regex("(?:^|(?<=\\s))نمی\\s+"), "نمی$ZWNJ")
 
         // 5. Half-space suffixes: « ها», « تر», « ترین»
-        result = result.replace(Regex("\\s+ها\\b"), "${ZWNJ}ها")
-            .replace(Regex("\\s+های\\b"), "${ZWNJ}های")
-            .replace(Regex("\\s+هایی\\b"), "${ZWNJ}هایی")
-            .replace(Regex("\\s+تر\\b"), "${ZWNJ}تر")
-            .replace(Regex("\\s+ترین\\b"), "${ZWNJ}ترین")
-            .replace(Regex("\\s+ام\\b"), "${ZWNJ}ام")
-            .replace(Regex("\\s+ات\\b"), "${ZWNJ}ات")
-            .replace(Regex("\\s+اش\\b"), "${ZWNJ}اش")
-            .replace(Regex("\\s+مان\\b"), "${ZWNJ}مان")
-            .replace(Regex("\\s+تان\\b"), "${ZWNJ}تان")
-            .replace(Regex("\\s+شان\\b"), "${ZWNJ}شان")
+        result = result.replace(Regex("\\s+هایی(?=[\\s،؛.!?،؟:]|$)"), "${ZWNJ}هایی")
+            .replace(Regex("\\s+های(?=[\\s،؛.!?،؟:]|$)"), "${ZWNJ}های")
+            .replace(Regex("\\s+ها(?=[\\s،؛.!?،؟:]|$)"), "${ZWNJ}ها")
+            .replace(Regex("\\s+ترین(?=[\\s،؛.!?،؟:]|$)"), "${ZWNJ}ترین")
+            .replace(Regex("\\s+تر(?=[\\s،؛.!?،؟:]|$)"), "${ZWNJ}تر")
+            .replace(Regex("\\s+ام(?=[\\s،؛.!?،؟:]|$)"), "${ZWNJ}ام")
+            .replace(Regex("\\s+ات(?=[\\s،؛.!?،؟:]|$)"), "${ZWNJ}ات")
+            .replace(Regex("\\s+اش(?=[\\s،؛.!?،؟:]|$)"), "${ZWNJ}اش")
+            .replace(Regex("\\s+مان(?=[\\s،؛.!?،؟:]|$)"), "${ZWNJ}مان")
+            .replace(Regex("\\s+تان(?=[\\s،؛.!?،؟:]|$)"), "${ZWNJ}تان")
+            .replace(Regex("\\s+شان(?=[\\s،؛.!?،؟:]|$)"), "${ZWNJ}شان")
 
         // 6. Common compound cosmetic/hygiene words with half-space
         val compoundTerms = listOf(

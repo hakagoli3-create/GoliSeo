@@ -395,26 +395,25 @@ fun ApiBudgetCard(budgetTracker: BudgetTracker) {
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(imageVector = Icons.Default.Paid, contentDescription = null, tint = GliseoTertiary, modifier = Modifier.size(18.dp))
+                    Icon(imageVector = Icons.Default.Paid, contentDescription = null, tint = GliseoSuccess, modifier = Modifier.size(18.dp))
                     Spacer(modifier = Modifier.width(6.dp))
-                    Text(text = "سقف بودجه و مصرف روزانه API", style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold))
+                    Text(text = "پلن حرفه‌ای: کاملاً رایگان و بدون محدودیت", style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold, color = GliseoSuccess))
                 }
-                Text(
-                    text = "$${budgetTracker.currentSpentUsd} از $${budgetTracker.dailyBudgetCapUsd}",
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Bold
-                )
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(6.dp))
+                        .background(GliseoSuccess.copy(alpha = 0.15f))
+                        .padding(horizontal = 8.dp, vertical = 2.dp)
+                ) {
+                    Text(text = "۱۰۰٪ رایگان", fontSize = 10.sp, color = GliseoSuccess, fontWeight = FontWeight.Bold)
+                }
             }
 
-            Spacer(modifier = Modifier.height(8.dp))
-            LinearProgressIndicator(
-                progress = { budgetTracker.usagePercentage },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(6.dp)
-                    .clip(RoundedCornerShape(3.dp)),
-                color = if (budgetTracker.usagePercentage > 0.8f) GliseoError else GliseoPrimary,
-                trackColor = MaterialTheme.colorScheme.surfaceVariant
+            Spacer(modifier = Modifier.height(6.dp))
+            Text(
+                text = "دسترسی کامل به تمام امکانات هوش مصنوعی جمینای، تولید محتوا، خلبان خودکار و اتصال نامحدود به وردپرس بدون نیاز به پرداخت.",
+                fontSize = 11.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
 
             Spacer(modifier = Modifier.height(6.dp))
@@ -423,15 +422,15 @@ fun ApiBudgetCard(budgetTracker: BudgetTracker) {
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Text(
-                    text = "توکن‌های مصرفی امروز: ${budgetTracker.tokensUsedToday} توکن",
+                    text = "توکن‌های پردازش‌شده: ${budgetTracker.tokensUsedToday} توکن",
                     fontSize = 10.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Text(
-                    text = if (budgetTracker.isExceeded) "سقف مجاز پر شد" else "وضعیت مصرف: عادی",
+                    text = "سقف مجاز: نامحدود (Unlimited)",
                     fontSize = 10.sp,
-                    color = if (budgetTracker.isExceeded) GliseoError else GliseoSuccess,
-                    fontWeight = FontWeight.SemiBold
+                    color = GliseoSuccess,
+                    fontWeight = FontWeight.Bold
                 )
             }
         }

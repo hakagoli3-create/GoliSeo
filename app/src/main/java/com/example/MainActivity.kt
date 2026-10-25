@@ -79,6 +79,7 @@ fun GliseoApp(viewModel: GliseoViewModel) {
     val productPackage by viewModel.productStudioPackage.collectAsState()
     val topicSuggestions by viewModel.topicSuggestions.collectAsState()
     val articlePreview by viewModel.generatedArticlePreview.collectAsState()
+    val isSyncing by viewModel.isSyncing.collectAsState()
 
     val snackbarHostState = remember { SnackbarHostState() }
 
@@ -170,6 +171,11 @@ fun GliseoApp(viewModel: GliseoViewModel) {
                     onValidatePrePublish = { item -> viewModel.validatePrePublish(item) },
                     onDismissValidation = { viewModel.dismissValidationResult() },
                     onLearnUserEdit = { original, approved, category -> viewModel.learnUserEdit(original, approved, category) },
+                    onSyncSite = { viewModel.syncWithSite() },
+                    isSyncing = isSyncing,
+                    onGenerateCustomArticle = { title, keyword, instr -> viewModel.generateCustomArticle(title, keyword, instr) },
+                    onAddNewContent = { title, content, type, keyword, excerpt, price -> viewModel.addNewContent(title, content, type, keyword, excerpt, price) },
+                    onScheduleArticle = { article, days, occ -> viewModel.publishGeneratedArticleWithStatus(article, "future") },
                     modifier = Modifier.padding(innerPadding)
                 )
             }

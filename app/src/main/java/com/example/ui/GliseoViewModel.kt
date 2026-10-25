@@ -81,6 +81,9 @@ class GliseoViewModel(application: Application) : AndroidViewModel(application) 
     private val _connectionResult = MutableStateFlow<ConnectionTestResult?>(null)
     val connectionResult: StateFlow<ConnectionTestResult?> = _connectionResult.asStateFlow()
 
+    private val _isSyncing = MutableStateFlow(false)
+    val isSyncing: StateFlow<Boolean> = _isSyncing.asStateFlow()
+
     // Diff / Rollback Dialog
     private val _activeDiffLog = MutableStateFlow<AuditLog?>(null)
     val activeDiffLog: StateFlow<AuditLog?> = _activeDiffLog.asStateFlow()
@@ -436,6 +439,45 @@ class GliseoViewModel(application: Application) : AndroidViewModel(application) 
         repository.learnFromUserEdit(original, approved, category)
         viewModelScope.launch {
             _uiMessages.emit(UiMessage("الگوی ویرایش شما ذخیره شد و در حافظه یادگیری گلی کالا قرار گرفت."))
+        }
+    }
+
+    fun syncWithSite() {
+        viewModelScope.launch {
+            _isSyncing.value = true
+            val res = repository.syncSiteContent(siteConfig.value)
+            _isSyncing.value = false
+            res.onSuccess { count ->
+                _uiMessages.emit(UiMessage("همگام‌سازی کامل شد: $count آیتم از سایت بارگذاری شدند."))
+            }.onFailure { ex ->
+                _uiMessages.emit(UiMessage("خطا در همگام‌سازی با سایت: ${ex.message}", isError = true))
+            }
+        }
+    }
+
+    fun generateCustomArticle(title: String, focusKeyword: String, instructions: String? = null) {
+        viewModelScope.launch {
+            _aiOptimizing.value = true
+            val article = repository.generateCustomArticle(title, focusKeyword, instructions)
+            _generatedArticlePreview.value = article
+            _aiOptimizing.value = false
+            _uiMessages.emit(UiMessage("مقاله تخصصی با جمینای تولید شد و آماده انتشار/زمان‌بندی است."))
+        }
+    }
+
+    fun publishGeneratedArticleWithStatus(article: GeneratedArticle, targetStatus: String = "publish") {
+        viewModelScope.launch {
+            repository.publishNewArticle(article, targetStatus)
+            _generatedArticlePreview.value = null
+            val statusMsg = if (targetStatus == "future") "زمان‌بندی شده در وردپرس" else "منتشر شد"
+            _uiMessages.emit(UiMessage("مقاله با موفقیت ایجاد، اعتبارسنجی و $statusMsg."))
+        }
+    }
+
+    fun addNewContent(title: String, content: String, type: SiteItemType, focusKeyword: String, excerpt: String = "", regularPrice: String = "") {
+        viewModelScope.launch {
+            repository.addNewSiteItem(title, content, type, focusKeyword, excerpt, regularPrice)
+            _uiMessages.emit(UiMessage("${type.persianLabel} جدید با موفقیت ایجاد و اعتبارسنجی شد."))
         }
     }
 

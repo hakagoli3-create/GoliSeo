@@ -738,14 +738,15 @@ class GliseoRepository(private val context: Context) {
         // If safe, execute or queue based on plan target
         if (!isDryRun) {
             consumeBudgetTokens(plan.estimatedTokens)
-            // Apply optimization on relevant items or queue them
-            val targetItems = when (plan.targetType) {
-                SiteItemType.PRODUCT -> _items.value.filter { it.type == SiteItemType.PRODUCT }
-                SiteItemType.PAGE -> _items.value.filter { it.type == SiteItemType.PAGE }
-                SiteItemType.POST -> _items.value.filter { it.type == SiteItemType.POST }
+            val allFlag = prompt.contains("همه") || prompt.contains("تمام") || prompt.contains("کل")
+            val targetItems = when {
+                allFlag && !prompt.contains("محصول") && !prompt.contains("برگه") && !prompt.contains("پست") -> _items.value
+                plan.targetType == SiteItemType.PRODUCT -> _items.value.filter { it.type == SiteItemType.PRODUCT }
+                plan.targetType == SiteItemType.PAGE -> _items.value.filter { it.type == SiteItemType.PAGE }
+                else -> _items.value.filter { it.type == SiteItemType.POST }
             }
 
-            for (item in targetItems.take(2)) {
+            for (item in targetItems) {
                 queueTask(item.id, TaskType.SEO_META, isDryRun = false)
             }
         }
@@ -788,11 +789,44 @@ class GliseoRepository(private val context: Context) {
         return ContentModuleProcessor.getSuggestedTopics(existingTitles)
     }
 
-    fun generateFullArticleFromTopic(topic: ArticleTopicSuggestion): GeneratedArticle {
-        return ContentModuleProcessor.generateFullArticle(topic, _brandKnowledgeBase.value)
+    suspend fun generateFullArticleFromTopic(
+        topic: ArticleTopicSuggestion,
+        customInstructions: String? = null
+    ): GeneratedArticle = withContext(Dispatchers.IO) {
+        val brand = BrandProfile(
+            brandName = _brandKnowledgeBase.value.storeName,
+            toneOfVoice = _brandKnowledgeBase.value.brandTone,
+            targetAudience = _brandKnowledgeBase.value.audienceProfile,
+            forbiddenKeywords = _brandKnowledgeBase.value.forbiddenTerms.joinToString("، ")
+        )
+        geminiService.generateArticleWithGemini(
+            topicTitle = topic.title,
+            focusKeyword = topic.focusKeyword,
+            brandProfile = brand,
+            customInstructions = customInstructions
+        )
     }
 
-    suspend fun publishNewArticle(article: GeneratedArticle) = withContext(Dispatchers.IO) {
+    suspend fun generateCustomArticle(
+        topicTitle: String,
+        focusKeyword: String,
+        customInstructions: String? = null
+    ): GeneratedArticle = withContext(Dispatchers.IO) {
+        val brand = BrandProfile(
+            brandName = _brandKnowledgeBase.value.storeName,
+            toneOfVoice = _brandKnowledgeBase.value.brandTone,
+            targetAudience = _brandKnowledgeBase.value.audienceProfile,
+            forbiddenKeywords = _brandKnowledgeBase.value.forbiddenTerms.joinToString("، ")
+        )
+        geminiService.generateArticleWithGemini(
+            topicTitle = topicTitle,
+            focusKeyword = focusKeyword,
+            brandProfile = brand,
+            customInstructions = customInstructions
+        )
+    }
+
+    suspend fun publishNewArticle(article: GeneratedArticle, targetStatus: String = "publish") = withContext(Dispatchers.IO) {
         val newId = System.currentTimeMillis()
         val sectionsBody = article.sections.joinToString("\n\n") { section ->
             "## ${section.h2Heading}\n${section.content}\n" +
@@ -801,16 +835,18 @@ class GliseoRepository(private val context: Context) {
                 } else ""
         }
 
+        val safeSlug = "blog-" + PersianNormalizer.normalize(article.focusKeyword).replace(" ", "-").take(40)
         val newItem = SiteItem(
             id = newId,
             title = article.title,
             content = sectionsBody,
             excerpt = article.metaDescription,
-            slug = "blog-${article.focusKeyword.replace(" ", "-")}",
+            slug = safeSlug,
             categories = listOf("مقالات آموزشی", "مراقبت پوست"),
             type = SiteItemType.POST,
+            status = targetStatus,
             focusKeyword = article.focusKeyword,
-            metaTitle = "${article.title} | گلی کالا",
+            metaTitle = "${article.title} | ${_brandKnowledgeBase.value.storeName}",
             metaDescription = article.metaDescription,
             schemaJson = """{"@context":"https://schema.org","@type":"Article","headline":"${article.title}"}""",
             imageAlt = "تصویر شاخص برای مقاله ${article.title}",
@@ -830,13 +866,13 @@ class GliseoRepository(private val context: Context) {
                 metaDescription = newItem.metaDescription,
                 schemaJson = newItem.schemaJson,
                 imageAlt = newItem.imageAlt,
-                reason = "انتشار مقاله جدید بر پایه اصول E-E-A-T"
+                reason = "انتشار مقاله جدید بر پایه اصول E-E-A-T و جمینای"
             )
         )
 
         recordLog(
             target = newItem,
-            actionName = "تولید مقاله کامل (E-E-A-T)",
+            actionName = "تولید مقاله کامل (E-E-A-T و جمینای)",
             reason = "نگارش مقاله با ساختار H1-H3 و بررسی عدم هم‌پوشانی کلیدواژه",
             role = _userSession.value.role,
             status = LogStatus.SUCCESS,
@@ -846,6 +882,207 @@ class GliseoRepository(private val context: Context) {
 
         _items.value = _items.value + newItem
         consumeBudgetTokens(1200)
+    }
+
+    suspend fun addNewSiteItem(
+        title: String,
+        content: String,
+        type: SiteItemType,
+        focusKeyword: String,
+        excerpt: String = "",
+        regularPrice: String = ""
+    ) = withContext(Dispatchers.IO) {
+        val newId = System.currentTimeMillis()
+        val normTitle = PersianNormalizer.normalize(title)
+        val normContent = PersianNormalizer.normalize(content)
+        val normKeyword = PersianNormalizer.normalize(focusKeyword)
+        val slug = (if (type == SiteItemType.PRODUCT) "prod-" else "page-") + newId
+
+        val newItem = SiteItem(
+            id = newId,
+            title = normTitle,
+            content = normContent,
+            excerpt = if (excerpt.isNotBlank()) PersianNormalizer.normalize(excerpt) else normContent.take(120),
+            slug = slug,
+            categories = listOf(if (type == SiteItemType.PRODUCT) "محصولات ووکامرس" else "برگه‌های سایت"),
+            regularPrice = regularPrice,
+            type = type,
+            focusKeyword = normKeyword,
+            metaTitle = "$normTitle | ${_brandKnowledgeBase.value.storeName}".take(60),
+            metaDescription = "مشاهده و اطلاعات کامل درباره $normKeyword در ${_brandKnowledgeBase.value.storeName}.".take(150),
+            schemaJson = if (type == SiteItemType.PRODUCT) {
+                """{"@context":"https://schema.org","@type":"Product","name":"$normTitle"}"""
+            } else {
+                """{"@context":"https://schema.org","@type":"WebPage","name":"$normTitle"}"""
+            },
+            seoScore = 75
+        )
+
+        val snapshotId = snapshotDao.insertSnapshot(
+            SnapshotEntity(
+                timestamp = System.currentTimeMillis(),
+                targetType = newItem.type.name,
+                targetId = newItem.id,
+                title = newItem.title,
+                content = newItem.content,
+                excerpt = newItem.excerpt,
+                metaTitle = newItem.metaTitle,
+                metaDescription = newItem.metaDescription,
+                schemaJson = newItem.schemaJson,
+                imageAlt = newItem.imageAlt,
+                reason = "ایجاد ${type.persianLabel} جدید"
+            )
+        )
+
+        recordLog(
+            target = newItem,
+            actionName = "ایجاد ${type.persianLabel} جدید",
+            reason = "افزودن محتوای جدید به سایت با اعتبارسنجی سئو",
+            role = _userSession.value.role,
+            status = LogStatus.SUCCESS,
+            diffs = listOf(DiffItem("ایجاد ${type.persianLabel}", "موجود نبود", normTitle)),
+            snapshotId = snapshotId
+        )
+
+        _items.value = _items.value + newItem
+    }
+
+    suspend fun syncSiteContent(config: SiteConfig): Result<Int> = withContext(Dispatchers.IO) {
+        if (config.isDemoMode) {
+            loadInitialMockData()
+            return@withContext Result.success(_items.value.size)
+        }
+
+        try {
+            val client = NetworkClientProvider.createOkHttpClient()
+            val wpApi = NetworkClientProvider.createWordPressApi(config.siteUrl, client)
+            val wpAuth = NetworkClientProvider.createBasicAuth(config.wpUsername, config.wpAppPassword)
+
+            val fetchedItems = mutableListOf<SiteItem>()
+
+            // 1. Fetch Posts
+            val postsResp = wpApi.getPosts(perPage = 20, authHeader = wpAuth)
+            if (postsResp.isSuccessful) {
+                val bodyStr = postsResp.body()?.string() ?: "[]"
+                val postsArray = JSONArray(bodyStr)
+                for (i in 0 until postsArray.length()) {
+                    val p = postsArray.getJSONObject(i)
+                    val id = p.optLong("id", System.currentTimeMillis() + i)
+                    val titleObj = p.optJSONObject("title")
+                    val contentObj = p.optJSONObject("content")
+                    val excerptObj = p.optJSONObject("excerpt")
+                    val title = titleObj?.optString("rendered", "نوشته وردپرس") ?: "نوشته وردپرس"
+                    val content = contentObj?.optString("rendered", "") ?: ""
+                    val excerpt = excerptObj?.optString("rendered", "") ?: ""
+                    val slug = p.optString("slug", "post-$id")
+                    val status = p.optString("status", "publish")
+
+                    fetchedItems.add(
+                        SiteItem(
+                            id = id,
+                            title = title.replace(Regex("<[^>]*>"), "").trim(),
+                            content = content.replace(Regex("<[^>]*>"), "").trim(),
+                            excerpt = excerpt.replace(Regex("<[^>]*>"), "").trim(),
+                            slug = slug,
+                            categories = listOf("وبلاگ وردپرس"),
+                            type = SiteItemType.POST,
+                            status = status,
+                            focusKeyword = title.split(" ").take(3).joinToString(" "),
+                            metaTitle = title.take(60),
+                            metaDescription = excerpt.take(150),
+                            schemaJson = """{"@context":"https://schema.org","@type":"Article","headline":"$title"}""",
+                            seoScore = 70
+                        )
+                    )
+                }
+            }
+
+            // 2. Fetch Pages
+            val pagesResp = wpApi.getPages(perPage = 20, authHeader = wpAuth)
+            if (pagesResp.isSuccessful) {
+                val bodyStr = pagesResp.body()?.string() ?: "[]"
+                val pagesArray = JSONArray(bodyStr)
+                for (i in 0 until pagesArray.length()) {
+                    val p = pagesArray.getJSONObject(i)
+                    val id = p.optLong("id", System.currentTimeMillis() + 1000 + i)
+                    val titleObj = p.optJSONObject("title")
+                    val contentObj = p.optJSONObject("content")
+                    val title = titleObj?.optString("rendered", "برگه وردپرس") ?: "برگه وردپرس"
+                    val content = contentObj?.optString("rendered", "") ?: ""
+                    val slug = p.optString("slug", "page-$id")
+                    val status = p.optString("status", "publish")
+
+                    fetchedItems.add(
+                        SiteItem(
+                            id = id,
+                            title = title.replace(Regex("<[^>]*>"), "").trim(),
+                            content = content.replace(Regex("<[^>]*>"), "").trim(),
+                            excerpt = content.take(120),
+                            slug = slug,
+                            categories = listOf("برگه‌های اصلی"),
+                            type = SiteItemType.PAGE,
+                            status = status,
+                            focusKeyword = title.split(" ").take(2).joinToString(" "),
+                            metaTitle = title.take(60),
+                            metaDescription = content.take(150),
+                            schemaJson = """{"@context":"https://schema.org","@type":"WebPage","name":"$title"}""",
+                            seoScore = 75
+                        )
+                    )
+                }
+            }
+
+            // 3. Fetch WooCommerce Products
+            if (config.wcConsumerKey.isNotBlank()) {
+                val wcApi = NetworkClientProvider.createWooCommerceApi(config.siteUrl, client)
+                val wcAuth = NetworkClientProvider.createBasicAuth(config.wcConsumerKey, config.wcConsumerSecret)
+                val prodResp = wcApi.getProducts(perPage = 20, authHeader = wcAuth)
+                if (prodResp.isSuccessful) {
+                    val bodyStr = prodResp.body()?.string() ?: "[]"
+                    val prodArray = JSONArray(bodyStr)
+                    for (i in 0 until prodArray.length()) {
+                        val pr = prodArray.getJSONObject(i)
+                        val id = pr.optLong("id", System.currentTimeMillis() + 2000 + i)
+                        val name = pr.optString("name", "محصول ووکامرس")
+                        val desc = pr.optString("description", "")
+                        val shortDesc = pr.optString("short_description", "")
+                        val price = pr.optString("regular_price", "")
+                        val salePrice = pr.optString("sale_price", "")
+                        val slug = pr.optString("slug", "prod-$id")
+                        val status = pr.optString("status", "publish")
+
+                        fetchedItems.add(
+                            SiteItem(
+                                id = id,
+                                title = name.replace(Regex("<[^>]*>"), "").trim(),
+                                content = desc.replace(Regex("<[^>]*>"), "").trim(),
+                                excerpt = shortDesc.replace(Regex("<[^>]*>"), "").trim(),
+                                slug = slug,
+                                categories = listOf("محصولات ووکامرس"),
+                                regularPrice = if (price.isNotBlank()) "$price تومان" else "تماس بگیرید",
+                                salePrice = if (salePrice.isNotBlank()) "$salePrice تومان" else "",
+                                type = SiteItemType.PRODUCT,
+                                status = status,
+                                focusKeyword = name.split(" ").take(3).joinToString(" "),
+                                metaTitle = name.take(60),
+                                metaDescription = shortDesc.take(150),
+                                schemaJson = """{"@context":"https://schema.org","@type":"Product","name":"$name"}""",
+                                seoScore = 65
+                            )
+                        )
+                    }
+                }
+            }
+
+            if (fetchedItems.isNotEmpty()) {
+                _items.value = fetchedItems
+                Result.success(fetchedItems.size)
+            } else {
+                Result.success(_items.value.size)
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
     }
 
     // --- Phase 2: Scheduling & Jalali Calendar ---

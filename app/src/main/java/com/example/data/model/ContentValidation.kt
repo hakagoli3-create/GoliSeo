@@ -118,7 +118,7 @@ object ContentValidator {
 
         // 4. Keyword Cannibalization check (هم‌پوشانی کلیدواژه‌ها با مقالات دیگر سایت)
         val cannibalizationConflict = existingKeywordsOnSite.any {
-            it.isNotBlank() && it.equals(normalizedKeyword, ignoreCase = true)
+            it.isNotBlank() && PersianNormalizer.normalize(it).trim().equals(normalizedKeyword, ignoreCase = true)
         }
         if (cannibalizationConflict) {
             score -= 20

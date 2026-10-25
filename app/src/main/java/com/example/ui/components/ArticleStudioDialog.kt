@@ -47,14 +47,35 @@ import com.example.ui.theme.GliseoSecondary
 import com.example.ui.theme.GliseoSuccess
 import com.example.ui.theme.GliseoTertiary
 
+import androidx.compose.material.icons.filled.CalendarMonth
+import androidx.compose.material.icons.filled.Create
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Tab
+import androidx.compose.material3.TabRow
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+
 @Composable
 fun ArticleStudioDialog(
     topics: List<ArticleTopicSuggestion>,
     previewArticle: GeneratedArticle?,
     onSelectTopicToGenerate: (ArticleTopicSuggestion) -> Unit,
+    onGenerateCustomTopic: (String, String, String?) -> Unit = { _, _, _ -> },
     onPublishArticle: (GeneratedArticle) -> Unit,
+    onScheduleArticle: (GeneratedArticle, Int, String?) -> Unit = { _, _, _ -> },
     onDismiss: () -> Unit
 ) {
+    var selectedTab by remember { mutableStateOf(0) } // 0 = پیشنهادات هوشمند, 1 = موضوع دلخواه
+    var customTitle by remember { mutableStateOf("") }
+    var customKeyword by remember { mutableStateOf("") }
+    var customInstruction by remember { mutableStateOf("") }
+
+    var scheduleDays by remember { mutableStateOf(3) }
+    var scheduleOccasion by remember { mutableStateOf("جشنواره و بازاریابی محتوایی") }
+    var isSchedulingMode by remember { mutableStateOf(false) }
+
     AlertDialog(
         onDismissRequest = onDismiss,
         title = {
@@ -139,63 +160,188 @@ fun ArticleStudioDialog(
                             }
                         }
                     }
+
+                    // Scheduling Option inside Preview
+                    item {
+                        Card(
+                            colors = CardDefaults.cardColors(
+                                containerColor = if (isSchedulingMode) GliseoPrimary.copy(alpha = 0.1f) else MaterialTheme.colorScheme.surfaceVariant
+                            ),
+                            shape = RoundedCornerShape(8.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column(modifier = Modifier.padding(10.dp)) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Icon(imageVector = Icons.Default.CalendarMonth, contentDescription = null, tint = GliseoPrimary, modifier = Modifier.size(16.dp))
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Text(text = "زمان‌بندی انتشار شمسی در آینده", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                    }
+                                    Button(
+                                        onClick = { isSchedulingMode = !isSchedulingMode },
+                                        colors = ButtonDefaults.buttonColors(
+                                            containerColor = if (isSchedulingMode) GliseoPrimary else MaterialTheme.colorScheme.outline
+                                        ),
+                                        shape = RoundedCornerShape(6.dp)
+                                    ) {
+                                        Text(if (isSchedulingMode) "فعال (زمان‌بندی)" else "غیرفعال (انتشار فوری)", fontSize = 10.sp)
+                                    }
+                                }
+
+                                if (isSchedulingMode) {
+                                    Spacer(modifier = Modifier.height(6.dp))
+                                    Text(text = "انتشار خودکار پس از چند روز: $scheduleDays روز آینده", fontSize = 10.sp, color = GliseoPrimary)
+                                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                        listOf(1, 2, 3, 5, 7, 14).forEach { d ->
+                                            OutlinedButton(
+                                                onClick = { scheduleDays = d },
+                                                shape = RoundedCornerShape(6.dp),
+                                                colors = if (scheduleDays == d) ButtonDefaults.outlinedButtonColors(containerColor = GliseoPrimary.copy(alpha = 0.2f)) else ButtonDefaults.outlinedButtonColors()
+                                            ) {
+                                                Text("$d روز", fontSize = 9.sp)
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
             } else {
-                // Topic Suggestions View
+                // Topic Selection View with Tabs
                 Column(modifier = Modifier.fillMaxWidth()) {
-                    Text(
-                        text = "پیشنهاد موضوعات هوشمند بر اساس خلاءهای محتوایی سایت و جلوگیری از هم‌پوشانی کلیدواژه‌ها (Anti-Cannibalization):",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                    TabRow(selectedTabIndex = selectedTab) {
+                        Tab(
+                            selected = selectedTab == 0,
+                            onClick = { selectedTab = 0 },
+                            text = { Text("پیشنهادات هوشمند سئو", fontSize = 11.sp) }
+                        )
+                        Tab(
+                            selected = selectedTab == 1,
+                            onClick = { selectedTab = 1 },
+                            text = { Text("نگارش با موضوع دلخواه", fontSize = 11.sp) }
+                        )
+                    }
 
                     Spacer(modifier = Modifier.height(10.dp))
 
-                    LazyColumn(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(300.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        items(topics) { topic ->
-                            Card(
-                                colors = CardDefaults.cardColors(
-                                    containerColor = if (topic.isAlreadyCovered) GliseoError.copy(alpha = 0.08f)
-                                    else MaterialTheme.colorScheme.surfaceVariant
-                                ),
-                                shape = RoundedCornerShape(10.dp),
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clickable {
-                                        if (!topic.isAlreadyCovered) onSelectTopicToGenerate(topic)
-                                    }
-                            ) {
-                                Column(modifier = Modifier.padding(12.dp)) {
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.SpaceBetween,
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Box(
-                                            modifier = Modifier
-                                                .clip(RoundedCornerShape(6.dp))
-                                                .background(GliseoPrimary.copy(alpha = 0.15f))
-                                                .padding(horizontal = 6.dp, vertical = 2.dp)
+                    if (selectedTab == 0) {
+                        Text(
+                            text = "پیشنهاد موضوعات هوشمند بر اساس خلاءهای محتوایی سایت و جلوگیری از هم‌پوشانی کلیدواژه‌ها (Anti-Cannibalization):",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        LazyColumn(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(280.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            items(topics) { topic ->
+                                Card(
+                                    colors = CardDefaults.cardColors(
+                                        containerColor = if (topic.isAlreadyCovered) GliseoError.copy(alpha = 0.08f)
+                                        else MaterialTheme.colorScheme.surfaceVariant
+                                    ),
+                                    shape = RoundedCornerShape(10.dp),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clickable {
+                                            if (!topic.isAlreadyCovered) onSelectTopicToGenerate(topic)
+                                        }
+                                ) {
+                                    Column(modifier = Modifier.padding(12.dp)) {
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalAlignment = Alignment.CenterVertically
                                         ) {
-                                            Text(text = "قصد جستجو: ${topic.searchIntent}", fontSize = 9.sp, color = GliseoPrimary, fontWeight = FontWeight.Bold)
+                                            Box(
+                                                modifier = Modifier
+                                                    .clip(RoundedCornerShape(6.dp))
+                                                    .background(GliseoPrimary.copy(alpha = 0.15f))
+                                                    .padding(horizontal = 6.dp, vertical = 2.dp)
+                                            ) {
+                                                Text(text = "قصد جستجو: ${topic.searchIntent}", fontSize = 9.sp, color = GliseoPrimary, fontWeight = FontWeight.Bold)
+                                            }
+
+                                            if (topic.isAlreadyCovered) {
+                                                Text(text = "⚠️ کلیدواژه هم‌پوشان (موجود است)", color = GliseoError, fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                                            }
                                         }
 
-                                        if (topic.isAlreadyCovered) {
-                                            Text(text = "⚠️ کلیدواژه هم‌پوشان (موجود است)", color = GliseoError, fontSize = 9.sp, fontWeight = FontWeight.Bold)
-                                        }
+                                        Spacer(modifier = Modifier.height(6.dp))
+                                        Text(text = topic.title, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                        Spacer(modifier = Modifier.height(2.dp))
+                                        Text(text = "کلیدواژه: ${topic.focusKeyword}", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                        Text(text = topic.relevanceReason, fontSize = 9.sp, color = GliseoTertiary)
                                     }
-
-                                    Spacer(modifier = Modifier.height(6.dp))
-                                    Text(text = topic.title, fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                                    Spacer(modifier = Modifier.height(2.dp))
-                                    Text(text = "کلیدواژه: ${topic.focusKeyword}", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                    Text(text = topic.relevanceReason, fontSize = 9.sp, color = GliseoTertiary)
                                 }
+                            }
+                        }
+                    } else {
+                        // Custom Topic Tab
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(280.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Text(
+                                text = "موضوع دلخواه خود را وارد کنید تا هوش مصنوعی مقاله کامل با ساختار H1-H3 و FAQ برای شما بنویسد:",
+                                fontSize = 11.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+
+                            OutlinedTextField(
+                                value = customTitle,
+                                onValueChange = { customTitle = it },
+                                label = { Text("عنوان یا موضوع مقاله...") },
+                                placeholder = { Text("مثال: راهنمای انتخاب بهترین ضد آفتاب پوست چرب") },
+                                shape = RoundedCornerShape(8.dp),
+                                modifier = Modifier.fillMaxWidth(),
+                                singleLine = true
+                            )
+
+                            OutlinedTextField(
+                                value = customKeyword,
+                                onValueChange = { customKeyword = it },
+                                label = { Text("کلمه کلیدی کانونی (Focus Keyword)") },
+                                placeholder = { Text("مثال: بهترین ضد آفتاب پوست چرب") },
+                                shape = RoundedCornerShape(8.dp),
+                                modifier = Modifier.fillMaxWidth(),
+                                singleLine = true
+                            )
+
+                            OutlinedTextField(
+                                value = customInstruction,
+                                onValueChange = { customInstruction = it },
+                                label = { Text("دستورات تکمیلی (لحن، تاکیدها، نکات خاص)") },
+                                shape = RoundedCornerShape(8.dp),
+                                modifier = Modifier.fillMaxWidth(),
+                                minLines = 2
+                            )
+
+                            Button(
+                                onClick = {
+                                    val t = customTitle.ifBlank { "راهنمای جامع مراقبت و سلامت پوست" }
+                                    val k = customKeyword.ifBlank { t.split(" ").take(3).joinToString(" ") }
+                                    onGenerateCustomTopic(t, k, customInstruction)
+                                },
+                                colors = ButtonDefaults.buttonColors(containerColor = GliseoPrimary),
+                                shape = RoundedCornerShape(8.dp),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Icon(imageVector = Icons.Default.AutoAwesome, contentDescription = null, modifier = Modifier.size(16.dp))
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text("تولید کامل مقاله با هوش مصنوعی جمینای", fontWeight = FontWeight.Bold, fontSize = 11.sp)
                             }
                         }
                     }
@@ -205,13 +351,23 @@ fun ArticleStudioDialog(
         confirmButton = {
             if (previewArticle != null) {
                 Button(
-                    onClick = { onPublishArticle(previewArticle) },
+                    onClick = {
+                        if (isSchedulingMode) {
+                            onScheduleArticle(previewArticle, scheduleDays, scheduleOccasion)
+                        } else {
+                            onPublishArticle(previewArticle)
+                        }
+                    },
                     colors = ButtonDefaults.buttonColors(containerColor = GliseoPrimary),
                     shape = RoundedCornerShape(8.dp)
                 ) {
-                    Icon(imageVector = Icons.Default.Publish, contentDescription = null, modifier = Modifier.size(16.dp))
+                    Icon(
+                        imageVector = if (isSchedulingMode) Icons.Default.CalendarMonth else Icons.Default.Publish,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp)
+                    )
                     Spacer(modifier = Modifier.width(4.dp))
-                    Text("انتشار مقاله در وردپرس")
+                    Text(if (isSchedulingMode) "زمان‌بندی مقاله در وردپرس" else "انتشار آنی مقاله در وردپرس")
                 }
             }
         },
