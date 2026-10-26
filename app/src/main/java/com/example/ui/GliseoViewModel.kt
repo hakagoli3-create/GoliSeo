@@ -386,6 +386,12 @@ class GliseoViewModel(application: Application) : AndroidViewModel(application) 
 
     fun applyProductPackage(productId: Long) {
         val pkg = _productStudioPackage.value ?: return
+        if (pkg.isGenerationHalted) {
+            viewModelScope.launch {
+                _uiMessages.emit(UiMessage("خطا: ثبت اطلاعات به دلیل عدم احراز هویت یا وجود تناقض مسدود است."))
+            }
+            return
+        }
         viewModelScope.launch {
             repository.applyProductStudioPackage(productId, pkg)
             _productStudioPackage.value = null

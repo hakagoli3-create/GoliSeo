@@ -97,7 +97,10 @@ data class ProductOptimizationPackage(
     val agencyStatement: String = "",
     val imageMetadata: ImageMetadata? = null,
     val visionAnalysis: ProductVisionAnalysis? = null,
-    val contradictionAudit: ContradictionAuditResult? = null
+    val contradictionAudit: ContradictionAuditResult? = null,
+    val verificationReport: ProductVerificationReport? = null,
+    val isGenerationHalted: Boolean = false,
+    val haltReasonPersian: String? = null
 )
 
 data class ArticleTopicSuggestion(
@@ -1146,8 +1149,24 @@ object ContentModuleProcessor {
             visionAnalysis = vision
         )
 
+        val verification = ProductVerificationEngine.verifyProduct(item)
+        if (verification.isGenerationHalted) {
+            return candidatePackage.copy(
+                seoTitle = "[تولید متوقف شد] ${item.title}",
+                shortDescription = verification.haltReasonPersian ?: "تولید سئو به دلیل عدم احراز هویت کالا متوقف شد.",
+                fullDescription = "<div class=\"gliseo-halt-notice\" style=\"background: #fef2f2; border: 2px solid #ef4444; padding: 16px; border-radius: 8px; color: #991b1b;\"><h3>⛔ فرآیند تولید سئو متوقف شد</h3><p>${verification.haltReasonPersian}</p></div>",
+                verificationReport = verification,
+                isGenerationHalted = true,
+                haltReasonPersian = verification.haltReasonPersian
+            )
+        }
+
         val audit = ZeroContradictionGuard.audit(analysis, candidatePackage)
-        return candidatePackage.copy(contradictionAudit = audit)
+        return candidatePackage.copy(
+            contradictionAudit = audit,
+            verificationReport = verification,
+            isGenerationHalted = false
+        )
     }
 
     private fun buildStructuredProductHtml(

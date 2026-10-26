@@ -100,6 +100,103 @@ fun ProductStudioDialog(
                     }
                 }
 
+                // Circuit Breaker Halt Banner if identity is unverified or contradictory
+                if (pkg.isGenerationHalted) {
+                    item {
+                        Card(
+                            colors = CardDefaults.cardColors(containerColor = GliseoHardLock.copy(alpha = 0.12f)),
+                            shape = RoundedCornerShape(10.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column(modifier = Modifier.padding(12.dp)) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(imageVector = Icons.Default.Shield, contentDescription = null, tint = GliseoHardLock, modifier = Modifier.size(20.dp))
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(
+                                        text = "⛔ فرآیند تولید سئو متوقف شد (مدارشکن احراز هویت)",
+                                        color = GliseoHardLock,
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
+                                Spacer(modifier = Modifier.height(6.dp))
+                                Text(
+                                    text = pkg.haltReasonPersian ?: "اطلاعات حیاتی کالا قابل احراز نیست یا تناقض ساختاری وجود دارد.",
+                                    fontSize = 11.sp,
+                                    lineHeight = 18.sp,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                            }
+                        }
+                    }
+                }
+
+                // Three-Bucket Verification Report (تأییدشده، متناقض، نامشخص)
+                pkg.verificationReport?.let { report ->
+                    item {
+                        Card(
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                            shape = RoundedCornerShape(10.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column(modifier = Modifier.padding(12.dp)) {
+                                Text(
+                                    text = "🔍 گزارش تطبیق با کاتالوگ‌های رسمی و اعتبارسنجی:",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = GliseoPrimary
+                                )
+                                Spacer(modifier = Modifier.height(6.dp))
+
+                                // 1. Verified Claims
+                                if (report.verifiedClaims.isNotEmpty()) {
+                                    Text(text = "🟢 اطلاعات تأییدشده:", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = GliseoSuccess)
+                                    report.verifiedClaims.forEach { claim ->
+                                        Text(text = "• ${claim.field}: ${claim.value} [مرجع: ${claim.sourceName}]", fontSize = 9.sp, lineHeight = 15.sp)
+                                    }
+                                    Spacer(modifier = Modifier.height(6.dp))
+                                }
+
+                                // 2. Contradictory Claims
+                                if (report.contradictoryClaims.isNotEmpty()) {
+                                    Text(text = "🔴 اطلاعات متناقض و مسدودشده:", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = GliseoHardLock)
+                                    report.contradictoryClaims.forEach { claim ->
+                                        Text(text = "• ${claim.field}: ${claim.conflictingClaim ?: claim.value}", fontSize = 9.sp, color = GliseoHardLock, lineHeight = 15.sp)
+                                    }
+                                    Spacer(modifier = Modifier.height(6.dp))
+                                }
+
+                                // 3. Unverified Claims
+                                if (report.unverifiedClaims.isNotEmpty()) {
+                                    Text(text = "🟡 اطلاعات نامشخص / نیازمند استعلام:", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = GliseoTertiary)
+                                    report.unverifiedClaims.forEach { claim ->
+                                        Text(text = "• ${claim.field}: ${claim.value} (${claim.evidenceSnippet})", fontSize = 9.sp, color = GliseoTertiary, lineHeight = 15.sp)
+                                    }
+                                    Spacer(modifier = Modifier.height(6.dp))
+                                }
+
+                                // 4. Authoritative Sources
+                                if (report.authoritativeSources.isNotEmpty()) {
+                                    Text(text = "🌐 مراجع رسمی تطبیق داده شده:", fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                    report.authoritativeSources.forEach { src ->
+                                        Text(text = "• $src", fontSize = 9.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    }
+                                    Spacer(modifier = Modifier.height(6.dp))
+                                }
+
+                                // Technical Dependencies Note
+                                if (report.technicalDependenciesNote.isNotBlank()) {
+                                    Text(
+                                        text = "⚙️ ${report.technicalDependenciesNote}",
+                                        fontSize = 9.sp,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+
                 // Step 1: Pre-Writing Product Analysis & Brand Identity Card
                 item {
                     Card(
@@ -293,12 +390,19 @@ fun ProductStudioDialog(
         confirmButton = {
             Button(
                 onClick = onApplySingle,
-                colors = ButtonDefaults.buttonColors(containerColor = GliseoPrimary),
+                enabled = !pkg.isGenerationHalted,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = if (pkg.isGenerationHalted) MaterialTheme.colorScheme.surfaceVariant else GliseoPrimary
+                ),
                 shape = RoundedCornerShape(8.dp)
             ) {
-                Icon(imageVector = Icons.Default.Check, contentDescription = null, modifier = Modifier.size(16.dp))
+                Icon(
+                    imageVector = if (pkg.isGenerationHalted) Icons.Default.Close else Icons.Default.Check,
+                    contentDescription = null,
+                    modifier = Modifier.size(16.dp)
+                )
                 Spacer(modifier = Modifier.width(4.dp))
-                Text("اعمال روی این محصول")
+                Text(if (pkg.isGenerationHalted) "تولید متوقف است (عدم احراز هویت)" else "اعمال روی این محصول")
             }
         },
         dismissButton = {

@@ -1292,6 +1292,20 @@ class GliseoRepository(private val context: Context) {
     }
 
     suspend fun applyProductStudioPackage(productId: Long, pkg: ProductOptimizationPackage) = withContext(Dispatchers.IO) {
+        val currentItem = _items.value.find { it.id == productId } ?: return@withContext
+        if (pkg.isGenerationHalted) {
+            val haltMsg = pkg.haltReasonPersian ?: "تولید سئو به دلیل عدم احراز هویت متوقف است."
+            recordLog(
+                target = currentItem,
+                actionName = "مسدودسازی ثبت محتوا (مدارشکن)",
+                reason = "سامانه احراز هویت مانع از ثبت اطلاعات تاییدنشده گردید: $haltMsg",
+                role = UserRole.ADMIN,
+                status = LogStatus.FAILED,
+                diffs = listOf(DiffItem("وضعیت احراز هویت", "نامعتبر", "مسدود شده با سامانه خطای صفر")),
+                snapshotId = null
+            )
+            return@withContext
+        }
         val finalContent = pkg.structuredHtmlContent.ifBlank { pkg.fullDescription }
         val changes = mutableMapOf<String, Any?>(
             "title" to pkg.seoTitle,

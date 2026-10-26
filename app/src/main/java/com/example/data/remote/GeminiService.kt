@@ -44,7 +44,10 @@ data class SeoAiResult(
     val suggestedImageFileName: String = "",
     val visionSummary: String = "",
     val isZeroContradictionVerified: Boolean = true,
-    val contradictionAuditSummary: String = ""
+    val contradictionAuditSummary: String = "",
+    val verificationReport: com.example.data.model.ProductVerificationReport? = null,
+    val isGenerationHalted: Boolean = false,
+    val haltReasonPersian: String? = null
 )
 
 class GeminiSeoService {
@@ -59,6 +62,32 @@ class GeminiSeoService {
         brandProfile: BrandProfile,
         userInstructions: String? = null
     ): SeoAiResult = withContext(Dispatchers.IO) {
+        if (item.isProduct) {
+            val verification = com.example.data.model.ProductVerificationEngine.verifyProduct(item)
+            if (verification.isGenerationHalted) {
+                return@withContext SeoAiResult(
+                    suggestedTitle = "[تولید متوقف شد] ${item.title}",
+                    suggestedMetaDescription = verification.haltReasonPersian ?: "تولید سئو به دلیل عدم احراز هویت متوقف شد.",
+                    suggestedFocusKeyword = "عدم احراز هویت",
+                    suggestedSchemaJson = "{}",
+                    suggestedImageAlt = item.title,
+                    seoScoreImprovement = 0,
+                    groundingSummary = "سامانه مدارشکن: به دلیل عدم احراز هویت قطعی یا وجود تناقض در ماهیت کالا، فرآیند تولید سئو متوقف گردید.",
+                    tokenCost = 0,
+                    suggestedShortDescription = verification.haltReasonPersian ?: "",
+                    suggestedStructuredContent = "<div class=\"gliseo-halt-notice\">${verification.haltReasonPersian}</div>",
+                    detectedBrand = "احراز نشده",
+                    detectedCountry = "احراز نشده",
+                    detectedProductType = "نامشخص",
+                    isZeroContradictionVerified = false,
+                    contradictionAuditSummary = verification.haltReasonPersian ?: "",
+                    verificationReport = verification,
+                    isGenerationHalted = true,
+                    haltReasonPersian = verification.haltReasonPersian
+                )
+            }
+        }
+
         val apiKey = try {
             BuildConfig.GEMINI_API_KEY
         } catch (e: Exception) {
@@ -269,16 +298,20 @@ class GeminiSeoService {
             val sanitizedPkg = com.example.data.model.ZeroContradictionGuard.auditAndSanitize(preAnalysis, rawPackage, originalItem)
             val audit = sanitizedPkg.contradictionAudit ?: com.example.data.model.ZeroContradictionGuard.audit(preAnalysis, sanitizedPkg)
 
+            val verification = sanitizedPkg.verificationReport ?: com.example.data.model.ProductVerificationEngine.verifyProduct(originalItem)
+            val isHalted = sanitizedPkg.isGenerationHalted || verification.isGenerationHalted
+            val haltReason = sanitizedPkg.haltReasonPersian ?: verification.haltReasonPersian
+
             SeoAiResult(
-                suggestedTitle = sanitizedPkg.seoTitle,
-                suggestedMetaDescription = sanitizedPkg.rankMathMetaDesc,
-                suggestedFocusKeyword = sanitizedPkg.focusKeyword,
+                suggestedTitle = if (isHalted) "[تولید متوقف شد] ${originalItem.title}" else sanitizedPkg.seoTitle,
+                suggestedMetaDescription = if (isHalted) (haltReason ?: "") else sanitizedPkg.rankMathMetaDesc,
+                suggestedFocusKeyword = if (isHalted) "عدم احراز هویت" else sanitizedPkg.focusKeyword,
                 suggestedSchemaJson = obj.optString("suggestedSchemaJson", generateStandardSchema(originalItem)),
                 suggestedImageAlt = PersianNormalizer.normalize(obj.optString("suggestedImageAlt", imgMeta.persianAltText)),
-                seoScoreImprovement = obj.optInt("seoScoreImprovement", 96),
+                seoScoreImprovement = if (isHalted) 0 else obj.optInt("seoScoreImprovement", 96),
                 groundingSummary = obj.optString("groundingSummary", "تحلیل پیش از نگارش عنوان و متادیتای بصری تصویر با Google Search Grounding"),
                 tokenCost = 880,
-                suggestedShortDescription = sanitizedPkg.shortDescription,
+                suggestedShortDescription = if (isHalted) (haltReason ?: "") else sanitizedPkg.shortDescription,
                 suggestedStructuredContent = sanitizedPkg.structuredHtmlContent.ifBlank { finalStructuredContent },
                 detectedBrand = sanitizedPkg.detectedBrand,
                 detectedCountry = sanitizedPkg.originCountry,
@@ -290,8 +323,11 @@ class GeminiSeoService {
                 suggestedImageTitle = "${originalItem.title} در گلی کالا",
                 suggestedImageFileName = imgMeta.suggestedFileName,
                 visionSummary = vision.visionSummary,
-                isZeroContradictionVerified = audit.isZeroContradictionVerified,
-                contradictionAuditSummary = audit.auditSummary
+                isZeroContradictionVerified = !isHalted && audit.isZeroContradictionVerified,
+                contradictionAuditSummary = audit.auditSummary,
+                verificationReport = verification,
+                isGenerationHalted = isHalted,
+                haltReasonPersian = haltReason
             )
         } catch (e: Exception) {
             generateIntelligentFallback(originalItem, BrandProfile())
@@ -311,8 +347,8 @@ class GeminiSeoService {
             suggestedFocusKeyword = pkg.focusKeyword,
             suggestedSchemaJson = generateStandardSchema(item),
             suggestedImageAlt = imgMeta.persianAltText,
-            seoScoreImprovement = 96,
-            groundingSummary = "تحلیل ۳ مرحله‌ای تصویر و عنوان، استخراج برند (${pkg.detectedBrand})، جدول مشخصات و اعتبارسنجی خطای صفر",
+            seoScoreImprovement = if (pkg.isGenerationHalted) 0 else 96,
+            groundingSummary = if (pkg.isGenerationHalted) "فرآیند تولید سئو توسط سامانه مدارشکن متوقف شد." else "تحلیل ۳ مرحله‌ای تصویر و عنوان، استخراج برند (${pkg.detectedBrand})، جدول مشخصات و اعتبارسنجی خطای صفر",
             tokenCost = 750,
             suggestedShortDescription = pkg.shortDescription,
             suggestedStructuredContent = pkg.structuredHtmlContent,
@@ -326,8 +362,11 @@ class GeminiSeoService {
             suggestedImageTitle = "${item.title} در گلی کالا",
             suggestedImageFileName = imgMeta.suggestedFileName,
             visionSummary = vision.visionSummary,
-            isZeroContradictionVerified = audit.isZeroContradictionVerified,
-            contradictionAuditSummary = audit.auditSummary
+            isZeroContradictionVerified = !pkg.isGenerationHalted && audit.isZeroContradictionVerified,
+            contradictionAuditSummary = audit.auditSummary,
+            verificationReport = pkg.verificationReport,
+            isGenerationHalted = pkg.isGenerationHalted,
+            haltReasonPersian = pkg.haltReasonPersian
         )
     }
 

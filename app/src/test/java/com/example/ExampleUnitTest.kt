@@ -459,6 +459,78 @@ class ExampleUnitTest {
     assertFalse("Must NOT contain hair instructions", pkg.shortDescription.contains("موی") || pkg.shortDescription.contains("تارهای مو") || pkg.shortDescription.contains("ماسک") || pkg.shortDescription.contains("شامپو") || pkg.shortDescription.contains("حمام"))
     assertTrue("Safety warning must exist for degreaser", pkg.safetyWarning.isNotBlank())
   }
+
+  @Test
+  fun testProductVerificationThreeBucketCategorizationAndSources() {
+    val amalfiProduct = SiteItem(
+      id = 160,
+      title = "ماسک مو کراتینه آمالفی (Amalfi) اصل اسپانیا ۵۰۰ میل",
+      content = "ماسک مو تخصصی آمالفی حاوی کراتین خالص ساخت والنسیا اسپانیا. پس از شستشوی مو با شامپو، ساقه موها را ماساژ داده و پس از ۵ دقیقه آبکشی کنید.",
+      slug = "amalfi-keratin-hair-mask-500ml",
+      categories = listOf("ماسک مو", "مراقبت مو"),
+      type = SiteItemType.PRODUCT
+    )
+
+    val report = com.example.data.model.ProductVerificationEngine.verifyProduct(amalfiProduct)
+    assertEquals(com.example.data.model.ProductVerificationOutcome.PASSED_VERIFIED, report.outcome)
+    assertFalse("Must not be halted", report.isGenerationHalted)
+
+    // 1. Verified claims
+    assertTrue("Must have verified claims", report.verifiedClaims.isNotEmpty())
+    assertTrue("Brand must be verified", report.verifiedClaims.any { it.field.contains("برند") && it.value.contains("آمالفی") })
+    assertTrue("Origin country must be verified", report.verifiedClaims.any { it.field.contains("کشور") && it.value.contains("اسپانیا") })
+    assertTrue("Agency status must be verified", report.verifiedClaims.any { it.field.contains("نمایندگی") && it.value.contains("انحصاری") })
+
+    // 2. Authoritative sources
+    assertTrue("Must include official Quimi Romar / Amalfi domain", report.authoritativeSources.any { it.contains("amalficosmetics.com") || it.contains("Quimi Romar") })
+
+    // 3. Package generation incorporates report
+    val pkg = ContentModuleProcessor.generateProductPackage(amalfiProduct)
+    assertFalse(pkg.isGenerationHalted)
+    assertEquals(report.outcome, pkg.verificationReport?.outcome)
+  }
+
+  @Test
+  fun testCircuitBreakerHaltsOnGenericOrInsufficientData() {
+    val invalidItem = SiteItem(
+      id = 161,
+      title = "تست",
+      content = "توضیحات تستی برای بررسی",
+      slug = "test-item",
+      type = SiteItemType.PRODUCT
+    )
+
+    val report = com.example.data.model.ProductVerificationEngine.verifyProduct(invalidItem)
+    assertEquals(com.example.data.model.ProductVerificationOutcome.HALTED_INSUFFICIENT_DATA, report.outcome)
+    assertTrue("Must halt generation", report.isGenerationHalted)
+    assertTrue("Halt reason must be in Persian", report.haltReasonPersian?.contains("نامعتبر") == true || report.haltReasonPersian?.contains("عنوان") == true)
+
+    val pkg = ContentModuleProcessor.generateProductPackage(invalidItem)
+    assertTrue("Package must be halted", pkg.isGenerationHalted)
+    assertTrue("Title must indicate halt", pkg.seoTitle.contains("متوقف شد"))
+  }
+
+  @Test
+  fun testCircuitBreakerHaltsOnFatalChemicalCosmeticContradiction() {
+    val dangerousProduct = SiteItem(
+      id = 162,
+      title = "رسوب‌زدا و جرم‌گیر شیرآلات و کتری پورچز (Porçöz) اصل ترکیه",
+      content = "شامپو آبرسان پوست صورت و موهای آسیب دیده با کراتین خالص و روغن آرگان.",
+      slug = "porcoz-fatal-contradiction-item",
+      categories = listOf("شوینده و نظافت"),
+      type = SiteItemType.PRODUCT
+    )
+
+    val report = com.example.data.model.ProductVerificationEngine.verifyProduct(dangerousProduct)
+    assertEquals(com.example.data.model.ProductVerificationOutcome.HALTED_FATAL_CONTRADICTION, report.outcome)
+    assertTrue("Must halt generation due to fatal contradiction", report.isGenerationHalted)
+    assertTrue("Halt reason must explain contradiction in Persian", report.haltReasonPersian?.contains("تناقض") == true)
+    assertTrue("Must record contradictory claim", report.contradictoryClaims.isNotEmpty())
+
+    val pkg = ContentModuleProcessor.generateProductPackage(dangerousProduct)
+    assertTrue("Package must be halted", pkg.isGenerationHalted)
+    assertTrue("Description must contain halt notice", pkg.fullDescription.contains("gliseo-halt-notice"))
+  }
 }
 
 
