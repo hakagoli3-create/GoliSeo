@@ -18,6 +18,27 @@ data class FreeformCommandPlan(
     val summaryReport: String? = null
 )
 
+enum class ProductArchetype(val farsiLabel: String) {
+    HAIR_SHAMPOO("شامپو تخصصی مو و پاک‌کننده ملایم پوست سر"),
+    HAIR_MASK("ماسک مو تخصصی و ترمیم‌کننده عمقی ساقه مو"),
+    HAIR_SERUM_BIPHASIC("سرم و اسپری دوفاز ضد وز و محافظ حرارتی مو"),
+    INTIMATE_HYGIENE("ژل بهداشتی بانوان و تنظیم‌کننده pH فیزیولوژیک"),
+    BODY_LOTION("لوسیون بدن آبرسان و تغذیه‌کننده ۲۴ ساعته"),
+    HAND_AND_NAIL("کرم نرم‌کننده دست و تقویت کوتیکول ناخن"),
+    SKIN_SUNSCREEN("کرم ضد آفتاب با محافظت حداکثری UVA و UVB"),
+    SKIN_MOISTURIZER("کرم آبرسان عمقی و مرطوب‌کننده صورت و گردن"),
+    SKIN_SERUM("سرم تخصصی تغذیه‌کننده و فعال پوست صورت"),
+    SKIN_CLEANSER_TONER("تونر پاکسازی و ژل شستشوی ملایم صورت"),
+    DETERGENT_DESCALER("رسوب‌زدا و جرم‌گیر فوق‌العاده قوی سطوح، شیرآلات و کتری"),
+    DETERGENT_DEGREASER("اسپری پاک‌کننده و حل‌کننده قوی چربی گاز، هود و فر"),
+    DETERGENT_DISHWASHER("قرص و شوینده پرقدرت ماشین ظرفشویی"),
+    DETERGENT_GLASS("اسپری شیشه‌شوی تخصصی ضد بخار و بدون رد"),
+    DETERGENT_SURFACE("شوینده و ضدعفونی‌کننده بهداشتی سطوح سخت خانگی"),
+    ORAL_CARE("خمیر دندان تخصصی و محافظ مینای دندان"),
+    DEODORANT("دئودورانت و رولان ضد تعریق با ماندگاری بالا"),
+    GENERAL_STANDARD("محصول استاندارد بهداشتی با ضمانت اصالت فیزیکی")
+}
+
 data class ProductPreAnalysis(
     val detectedBrand: String,
     val originCountry: String,
@@ -28,7 +49,11 @@ data class ProductPreAnalysis(
     val isDetergentOrCleaner: Boolean = false,
     val isHairCare: Boolean = false,
     val isSkinCare: Boolean = false,
-    val isPersonalHygiene: Boolean = false
+    val isPersonalHygiene: Boolean = false,
+    val archetype: ProductArchetype = ProductArchetype.GENERAL_STANDARD,
+    val targetSurfaceOrTissue: String = "",
+    val usageInstructions: String = "",
+    val safetyWarning: String = ""
 )
 
 data class ProductOptimizationPackage(
@@ -218,7 +243,7 @@ object ContentModuleProcessor {
             "گلی کالا واردکننده رسمی و مرجع اصالت کالا با تضمین ۱۰۰٪ اصالت فیزیکی و آزمایشگاهی می‌باشد."
         }
 
-        // Product category flags
+        // Product category & archetype detection
         val isDetergentOrCleaner = isPorcoz || isCif || isDomestos || isFinish || isFairy || isPril || isPersil ||
                 searchContext.contains("جرمگیر") || searchContext.contains("جرم گیر") ||
                 searchContext.contains("رسوب") || searchContext.contains("رسوب‌زدا") || searchContext.contains("رسوب زدا") ||
@@ -232,100 +257,162 @@ object ContentModuleProcessor {
                 searchContext.contains("لوله باز") || searchContext.contains("کاشی و سرامیک") ||
                 searchContext.contains("descaler") || searchContext.contains("cleaner") || searchContext.contains("limescale")
 
-        val isHairCare = !isDetergentOrCleaner && (
-                searchContext.contains("شامپو") || searchContext.contains("ماسک مو") ||
-                searchContext.contains("سرم مو") || searchContext.contains("کراتین") ||
-                searchContext.contains("نرم کننده مو") || searchContext.contains("شامپوی") ||
-                searchContext.contains("پوست سر") || searchContext.contains("تارهای مو") ||
-                searchContext.contains("موهای") || searchContext.contains("ریزش مو") ||
-                searchContext.contains("shampoo") || searchContext.contains("hair")
-        )
+        val archetype: ProductArchetype = when {
+            // Household Cleaners & Detergents
+            isPorcoz || searchContext.contains("رسوب") || searchContext.contains("جرمگیر") || searchContext.contains("جرم گیر") || searchContext.contains("descaler") || searchContext.contains("limescale") ->
+                ProductArchetype.DETERGENT_DESCALER
+            searchContext.contains("چربی زدا") || searchContext.contains("چربی‌زدا") || searchContext.contains("degreaser") || searchContext.contains("هود") || searchContext.contains("گاز") ->
+                ProductArchetype.DETERGENT_DEGREASER
+            searchContext.contains("ظرفشویی") || searchContext.contains("dishwasher") || isFinish || isFairy ->
+                ProductArchetype.DETERGENT_DISHWASHER
+            searchContext.contains("شیشه شور") || searchContext.contains("شیشه‌شور") || searchContext.contains("شیشه پاک") || searchContext.contains("شیشه‌پاک") ->
+                ProductArchetype.DETERGENT_GLASS
+            isDetergentOrCleaner ->
+                ProductArchetype.DETERGENT_SURFACE
 
-        val isPersonalHygiene = !isDetergentOrCleaner && !isHairCare && (
-                searchContext.contains("ژل بهداشتی") || searchContext.contains("شوینده بدن") ||
-                searchContext.contains("شامپو بدن") || searchContext.contains("لوسیون بدن") ||
-                searchContext.contains("صابون") || searchContext.contains("بادی واش") ||
-                searchContext.contains("body wash") || searchContext.contains("hygiene")
-        )
+            // Hair Care (Strict Separation: Shampoo vs Mask vs Biphasic Serum)
+            searchContext.contains("ماسک مو") || searchContext.contains("hair mask") ->
+                ProductArchetype.HAIR_MASK
+            searchContext.contains("دوفاز") || searchContext.contains("دو فاز") || searchContext.contains("سرم مو") || searchContext.contains("اسپری مو") ->
+                ProductArchetype.HAIR_SERUM_BIPHASIC
+            searchContext.contains("شامپو") || searchContext.contains("shampoo") ->
+                ProductArchetype.HAIR_SHAMPOO
 
-        val isSkinCare = !isDetergentOrCleaner && !isHairCare && !isPersonalHygiene
+            // Personal Hygiene
+            searchContext.contains("ژل بهداشتی") || searchContext.contains("بهداشتی بانوان") || searchContext.contains("intimate") || searchContext.contains("femme") ->
+                ProductArchetype.INTIMATE_HYGIENE
+            searchContext.contains("لوسیون بدن") || searchContext.contains("لوسیون") || searchContext.contains("شامپو بدن") || searchContext.contains("بادی واش") || searchContext.contains("body lotion") ->
+                ProductArchetype.BODY_LOTION
+            searchContext.contains("دست و ناخن") || searchContext.contains("کرم دست") || searchContext.contains("کوتیکول") || searchContext.contains("hand cream") ->
+                ProductArchetype.HAND_AND_NAIL
+            searchContext.contains("مام") || searchContext.contains("دئودورانت") || searchContext.contains("رول آن") || searchContext.contains("رولان") || searchContext.contains("deodorant") ->
+                ProductArchetype.DEODORANT
+            searchContext.contains("خمیر دندان") || searchContext.contains("خمیردندان") || searchContext.contains("دهان شویه") || searchContext.contains("toothpaste") ->
+                ProductArchetype.ORAL_CARE
+
+            // Skin Care
+            searchContext.contains("ضد آفتاب") || searchContext.contains("ضدآفتاب") || searchContext.contains("sunscreen") || searchContext.contains("spf") ->
+                ProductArchetype.SKIN_SUNSCREEN
+            searchContext.contains("سرم") ->
+                ProductArchetype.SKIN_SERUM
+            searchContext.contains("تونر") || searchContext.contains("میسلار") || searchContext.contains("ژل شستشوی صورت") || searchContext.contains("فوم") || searchContext.contains("cleanser") || searchContext.contains("toner") ->
+                ProductArchetype.SKIN_CLEANSER_TONER
+            searchContext.contains("آبرسان") || searchContext.contains("مرطوب") || searchContext.contains("دور چشم") || searchContext.contains("کرم") ->
+                ProductArchetype.SKIN_MOISTURIZER
+
+            else -> ProductArchetype.GENERAL_STANDARD
+        }
+
+        val isHairCare = archetype == ProductArchetype.HAIR_SHAMPOO || archetype == ProductArchetype.HAIR_MASK || archetype == ProductArchetype.HAIR_SERUM_BIPHASIC
+        val isPersonalHygiene = archetype == ProductArchetype.INTIMATE_HYGIENE || archetype == ProductArchetype.BODY_LOTION || archetype == ProductArchetype.HAND_AND_NAIL || archetype == ProductArchetype.DEODORANT || archetype == ProductArchetype.ORAL_CARE
+        val isSkinCare = archetype == ProductArchetype.SKIN_SUNSCREEN || archetype == ProductArchetype.SKIN_MOISTURIZER || archetype == ProductArchetype.SKIN_SERUM || archetype == ProductArchetype.SKIN_CLEANSER_TONER
+        val isDetergent = archetype == ProductArchetype.DETERGENT_DESCALER || archetype == ProductArchetype.DETERGENT_DEGREASER || archetype == ProductArchetype.DETERGENT_DISHWASHER || archetype == ProductArchetype.DETERGENT_GLASS || archetype == ProductArchetype.DETERGENT_SURFACE
 
         // Product type detection
-        val productType = when {
-            isDetergentOrCleaner -> when {
-                searchContext.contains("جرم") || searchContext.contains("رسوب") || isPorcoz ->
-                    "رسوب‌زدا و جرم‌گیر فوق‌العاده قوی سطوح و شیرآلات"
-                searchContext.contains("شیشه") ->
-                    "اسپری شیشه‌شوی تخصصی ضد بخار و بدون رد"
-                searchContext.contains("ظرف") ->
-                    "شوینده و چربی‌زدای پرقدرت ظروف"
-                searchContext.contains("چربی") || searchContext.contains("گاز") ->
-                    "اسپری پاک‌کننده و حل‌کننده فوق‌العاده چربی و سوختگی سطوح آشپزخانه"
-                searchContext.contains("سفیدکننده") || searchContext.contains("ضدعفونی") ->
-                    "محلول سفیدکننده و ضدعفونی‌کننده بهداشتی محیط"
-                else ->
-                    "شوینده، رسوب‌زدا و پاک‌کننده تخصصی سطوح سخت خانگی"
-            }
-            isHairCare -> when {
-                searchContext.contains("ماسک مو") -> "ماسک مو تخصصی و ترمیم‌کننده عمیق"
-                searchContext.contains("سرم مو") || searchContext.contains("دوفاز") -> "سرم و اسپری دوفاز محافظ حرارتی مو"
-                searchContext.contains("شامپو") -> "شامپو فاقد سولفات و تقویت‌کننده ساقه مو"
-                else -> "محصول تخصصی مراقبت و سلامت مو"
-            }
-            isPersonalHygiene -> when {
-                searchContext.contains("ژل بهداشتی") -> "ژل بهداشتی بانوان و تنظیم‌کننده pH فیزیولوژیک"
-                searchContext.contains("لوسیون") -> "لوسیون بدن آبرسان و مغذی ۲۴ ساعته"
-                else -> "ژل شوینده و پاک‌کننده بهداشتی پوست بدن"
-            }
-            else -> when {
-                searchContext.contains("سرم") -> "سرم تغذیه‌کننده و فعال پوست"
-                searchContext.contains("ضد آفتاب") -> "کرم ضد آفتاب با محافظت حداکثری"
-                searchContext.contains("تونر") -> "تونر پاکسازی و تنظیم‌کننده pH پوست"
-                searchContext.contains("دور چشم") -> "کرم تخصصی جوان‌ساز دور چشم"
-                searchContext.contains("دست") || searchContext.contains("ناخن") -> "کرم نرم‌کننده دست و تقویت کوتیکول ناخن"
-                searchContext.contains("آبرسان") || searchContext.contains("مرطوب") -> "کرم آبرسان عمقی و مرطوب‌کننده پوست"
-                else -> "محصول تخصصی مراقبت از سلامت و طراوت پوست"
-            }
+        val productType = when (archetype) {
+            ProductArchetype.HAIR_SHAMPOO -> "شامپو تخصصی مو و پاک‌کننده ملایم پوست سر"
+            ProductArchetype.HAIR_MASK -> "ماسک مو تخصصی و ترمیم‌کننده عمیق ساقه مو"
+            ProductArchetype.HAIR_SERUM_BIPHASIC -> "سرم و اسپری دوفاز ضد وز و محافظ حرارتی مو"
+            ProductArchetype.INTIMATE_HYGIENE -> "ژل بهداشتی بانوان و تنظیم‌کننده pH فیزیولوژیک"
+            ProductArchetype.BODY_LOTION -> "لوسیون بدن آبرسان و مغذی ۲۴ ساعته پوست"
+            ProductArchetype.HAND_AND_NAIL -> "کرم مرطوب‌کننده دست و تقویت‌کننده کوتیکول ناخن"
+            ProductArchetype.SKIN_SUNSCREEN -> "کرم ضد آفتاب با محافظت حداکثری در برابر پرتوهای UVA و UVB"
+            ProductArchetype.SKIN_MOISTURIZER -> "کرم آبرسان عمقی و مرطوب‌کننده بافت پوست"
+            ProductArchetype.SKIN_SERUM -> "سرم تخصصی تغذیه‌کننده و فعال لایه‌های پوستی"
+            ProductArchetype.SKIN_CLEANSER_TONER -> "تونر پاکسازی، تنظیم‌کننده منافذ و متعادل‌کننده پوست"
+            ProductArchetype.DETERGENT_DESCALER -> "رسوب‌زدا و جرم‌گیر فوق‌العاده قوی سطوح و شیرآلات"
+            ProductArchetype.DETERGENT_DEGREASER -> "اسپری پاک‌کننده و حل‌کننده فوق‌العاده چربی و سوختگی هود، فر و گاز"
+            ProductArchetype.DETERGENT_DISHWASHER -> "قرص و شوینده پرقدرت ماشین ظرفشویی با جلادهندگی ظروف"
+            ProductArchetype.DETERGENT_GLASS -> "اسپری شیشه‌شوی تخصصی ضد بخار و بدون بر جای گذاشتن رد"
+            ProductArchetype.DETERGENT_SURFACE -> "شوینده و ضدعفونی‌کننده بهداشتی سطوح سخت خانگی"
+            ProductArchetype.ORAL_CARE -> "خمیر دندان تخصصی محافظ مینا و ضد پلاک"
+            ProductArchetype.DEODORANT -> "دئودورانت و ضد تعریق ۲۴ ساعته با ماندگاری بالا"
+            ProductArchetype.GENERAL_STANDARD -> "محصول استاندارد بهداشتی با ضمانت اصالت فیزیکی"
         }
 
         // Application detection
-        val application = when {
-            isDetergentOrCleaner -> when {
-                searchContext.contains("جرم") || searchContext.contains("رسوب") || isPorcoz ->
-                    "پاکسازی سریع و کامل رسوبات آهکی کهنه، جرم سخت کاشی و سرامیک، زنگ‌زدگی شیرآلات و رسوب‌زدایی کتری بدون آسیب به لعاب استاندارد"
-                searchContext.contains("چربی") || searchContext.contains("گاز") ->
-                    "تجزیه فوری لایه‌های چربی کهنه، دوده و سوختگی سطوح گاز، هود و فر بدون نیاز به سایش مکانیکی شدید"
-                searchContext.contains("ظرف") ->
-                    "چربی‌زدایی ظروف، از بین بردن بوی نامطبوع و براق‌سازی شیشه و بلور"
-                else ->
-                    "پاکسازی عمیق آلودگی‌ها، گندزدایی بهداشتی سطوح سخت خانگی و ایجاد درخشش پایدار"
-            }
-            isHairCare -> when {
-                searchContext.contains("کراتین") || searchContext.contains("رنگ شده") || searchContext.contains("آسیب") ->
-                    "احیا، تغذیه و محافظت از ساختار تارهای موهای کراتینه‌شده، رنگ‌شده یا آسیب‌دیده با فرمول بدون نمک خشن"
-                searchContext.contains("ریزش") || searchContext.contains("تقویت") ->
-                    "تقویت فولیکول‌ها، کاهش ریزش ناشی از شکستگی ساقه و افزایش شادابی و ضخامت تارهای مو"
-                searchContext.contains("روشن") || searchContext.contains("بلوند") || searchContext.contains("بابونه") ->
-                    "حفظ شفافیت رنگ موهای روشن، افزایش بازتاب نور و تغذیه فیبر مو بدون ایجاد حس سنگینی"
-                else ->
-                    "شستشوی ملایم، باز کردن گره‌های مو و تثبیت درخشش طبیعی بدون حذف چربی‌های محافظ زیستی"
-            }
-            isPersonalHygiene -> when {
-                searchContext.contains("ژل بهداشتی") ->
-                    "حفظ تعادل طبیعی فلور میکروبی، تنظیم pH فیزیولوژیک و جلوگیری از خارش، خشکی و بوی نامطبوع"
-                else ->
-                    "پاکسازی روزانه آلودگی‌های پوست بدن، ایجاد لطافت ابریشمی و رفع خشکی و کشیدگی ناشی از استحمام"
-            }
-            else -> when {
-                searchContext.contains("جوش") || searchContext.contains("چرب") || searchContext.contains("آکنه") ->
-                    "تنظیم ترشح چربی طبیعی، پاکسازی عمقی منافذ و کاهش التهابات پوستی بدون ایجاد حس خشکی"
-                searchContext.contains("لک") || searchContext.contains("روشن") || searchContext.contains("تیرگی") ->
-                    "یکنواخت‌سازی تناژ رنگ چهره، رفع تیرگی و کدری و افزایش شفافیت و درخشندگی طبیعی بافت پوست"
-                searchContext.contains("خشک") || searchContext.contains("حساس") ->
-                    "تسکین التهابات، رفع احساس کشیدگی، بازسازی سد دفاعی و آبرسانی عمیق لایه‌های اپیدرم"
-                else ->
-                    "حفظ لطافت پایدار، رطوبت‌رسانی عمقی و مراقبت زیستی از سلامت پوست در برابر عوامل آسیب‌رسان محیطی"
-            }
+        val application = when (archetype) {
+            ProductArchetype.HAIR_SHAMPOO -> "شستشوی ملایم تارهای مو، کنترل ترشح سبوم کف سر و ایجاد طراوت طبیعی بدون خشک کردن ساقه مو"
+            ProductArchetype.HAIR_MASK -> "تغذیه عمقی، آبرسانی و ترمیم فیبر و کوتیکول ساقه موهای خشک، رنگ‌شده، دکلره یا کراتینه‌شده"
+            ProductArchetype.HAIR_SERUM_BIPHASIC -> "محافظت کامل از ساقه مو در برابر حرارت سشوار و اتو، رفع الکتریسیته ساکن و تسهیل شانه زدن"
+            ProductArchetype.INTIMATE_HYGIENE -> "حفظ تعادل سد دفاعی و فلور میکروبی طبیعی، تنظیم pH فیزیولوژیک و رفع بوی نامطبوع و خشکی"
+            ProductArchetype.BODY_LOTION -> "رطوبت‌رسانی عمقی ۲۴ ساعته، رفع خشکی و کشیدگی پوست بدن پس از حمام و ایجاد لطافت ابریشمی"
+            ProductArchetype.HAND_AND_NAIL -> "نرمی و ترمیم خشکی و ترک پوست دست، افزایش استحکام ناخن‌ها و محافظت در برابر آسیب‌های محیطی"
+            ProductArchetype.SKIN_SUNSCREEN -> "محافظت کامل پوست صورت و گردن در برابر آفتاب‌سوختگی، لک‌های ناشی از آفتاب و پیری زودرس"
+            ProductArchetype.SKIN_MOISTURIZER -> "آبرسانی عمیق لایه‌های زیرین پوست، تقویت سد دفاعی اپیدرم و ممانعت از دهیدراته شدن بافت چهره"
+            ProductArchetype.SKIN_SERUM -> "نفوذ سریع عناصر فعال و کنسانتره به عمق پوست جهت تغذیه، روشن‌کنندگی و بازسازی بافت"
+            ProductArchetype.SKIN_CLEANSER_TONER -> "پاکسازی نهایی سبوم و باقیمانده آلودگی‌ها از منافذ، تنظیم ترشح چربی و آماده‌سازی پوست برای جذب کرم"
+            ProductArchetype.DETERGENT_DESCALER -> "پاکسازی سریع و حل کامل رسوبات کهنه آهکی آب، جرم سخت شیرآلات بهداشتی، کاشی، سرامیک و کتری بدون تخریب لعاب استاندارد"
+            ProductArchetype.DETERGENT_DEGREASER -> "تجزیه فوری لایه‌های چربی پخته‌شده، دوده و جرم سطوح چدنی گاز، هود و دیواره‌های فر بدون نیاز به سایش شدید"
+            ProductArchetype.DETERGENT_DISHWASHER -> "چربی‌زدایی سریع از ظروف بلور و چینی، حذف لکه‌های سخت غذا و جلوگیری از ایجاد خط و خش و کدر شدن بلورجات"
+            ProductArchetype.DETERGENT_GLASS -> "پاکسازی فوری گرد و غبار و چربی از روی سطوح شیشه‌ای و آینه بدون ایجاد رگه، لکه و بازتاب تار"
+            ProductArchetype.DETERGENT_SURFACE -> "گندزدایی و پاکسازی آلودگی‌های میکروبی از کفپوش، سنگ، سرامیک و سطوح حمام و آشپزخانه"
+            ProductArchetype.ORAL_CARE -> "پاکسازی پلاک‌های میکروبی دندان، محافظت از مینا در برابر پوسیدگی و ایجاد تنفس باطراوت"
+            ProductArchetype.DEODORANT -> "مهار تعریق مازاد، جلوگیری از رشد باکتری‌های مولد بوی ناخوشایند بدون مسدودسازی غیرطبیعی منافذ"
+            ProductArchetype.GENERAL_STANDARD -> "مراقبت استاندارد، حفظ بهداشت و ارتقای کیفیت روزمره زندگی با فرمولاسیون آزمایشگاهی معتبر"
+        }
+
+        val targetSurfaceOrTissue = when (archetype) {
+            ProductArchetype.HAIR_SHAMPOO -> "کف سر و ریشه تا ساقه موهای خیس در حمام"
+            ProductArchetype.HAIR_MASK -> "ساقه و نوک موهای نم‌دار شسته شده (اکیداً روی ریشه و کف سر مالیده نشود)"
+            ProductArchetype.HAIR_SERUM_BIPHASIC -> "ساقه موهای نم‌دار یا خشک قبل از سشوار و حرارت (بدون نیاز به آبکشی)"
+            ProductArchetype.INTIMATE_HYGIENE -> "ناحیه تناسلی و مخاط خارجی بانوان (فقط استعمال خارجی موضعی)"
+            ProductArchetype.BODY_LOTION -> "پوست تمام نواحی بدن پس از استحمام یا رفع خشکی روزانه"
+            ProductArchetype.HAND_AND_NAIL -> "پوست دست، انگشتان و کوتیکول ناخن‌ها"
+            ProductArchetype.SKIN_SUNSCREEN -> "پوست صورت، گردن و دست‌ها در معرض تابش نور خورشید"
+            ProductArchetype.SKIN_MOISTURIZER -> "پوست تمیز صورت و گردن در روتین صبح و شب"
+            ProductArchetype.SKIN_SERUM -> "پوست تمیز صورت پیش از کرم مرطوب‌کننده"
+            ProductArchetype.SKIN_CLEANSER_TONER -> "پوست صورت و گردن برای پاکسازی عمقی منافذ و تنظیم pH"
+            ProductArchetype.DETERGENT_DESCALER -> "شیرآلات بهداشتی، کاشی، سرامیک، رسوب‌زدایی کتری، چای‌ساز، سینک ظرفشویی و سرویس بهداشتی"
+            ProductArchetype.DETERGENT_DEGREASER -> "صفحه اجاق گاز، چدن هود، داخل فر، مایکروویو و کاشی آشپزخانه"
+            ProductArchetype.DETERGENT_DISHWASHER -> "انواع ظروف بلور، آرکوپال، استیل و محفظه داخلی ماشین ظرفشویی"
+            ProductArchetype.DETERGENT_GLASS -> "شیشه‌ها، آینه‌ها، سطوح صیقلی و پنجره‌ها"
+            ProductArchetype.DETERGENT_SURFACE -> "سطوح سخت خانگی، کفپوش، سنگ، پارکت و سرویس‌های بهداشتی"
+            ProductArchetype.ORAL_CARE -> "دندان‌ها و لثه (حفظ مینای دندان و بهداشت دهان)"
+            ProductArchetype.DEODORANT -> "پوست تمیز و خشک زیر بغل"
+            ProductArchetype.GENERAL_STANDARD -> "پوست و بافت هدف بر پایه استاندارد محصول"
+        }
+
+        val usageInstructions = when (archetype) {
+            ProductArchetype.HAIR_SHAMPOO -> "مقدار کافی را روی موهای خیس ماساژ دهید تا کف ملایم تشکیل شود، ۲ دقیقه مکث کرده و سپس با آب ولرم آبکشی نمایید."
+            ProductArchetype.HAIR_MASK -> "پس از شستشو با شامپو، آب اضافی مو را گرفته و ماسک را منحصراً روی ساقه و نوک مو ماساژ دهید. ۳ الی ۵ دقیقه صبر کرده و سپس کاملاً آبکشی کنید."
+            ProductArchetype.HAIR_SERUM_BIPHASIC -> "قبل از مصرف بطری را به خوبی تکان دهید تا دو فاز ترکیب شوند. سپس از فاصله ۲۰ سانتی‌متری روی ساقه مو اسپری کنید (بدون نیاز به آبکشی)."
+            ProductArchetype.INTIMATE_HYGIENE -> "مقدار کمی از ژل را با دست تمیز روی موضع خارجی بمالید، به آرامی شستشو داده و بلافاصله با آب ولرم آبکشی و کاملاً خشک نمایید."
+            ProductArchetype.BODY_LOTION -> "پس از استحمام یا خشک کردن پوست، مقدار مناسب را با حرکات دورانی روی پوست بدن ماساژ دهید تا سریعاً جذب شود."
+            ProductArchetype.HAND_AND_NAIL -> "روزی دو تا سه بار مقدار کافی را روی دست‌ها و اطراف ناخن‌ها ماساژ دهید تا احساس لطافت و نرمی ایجاد گردد."
+            ProductArchetype.SKIN_SUNSCREEN -> "۱۵ الی ۲۰ دقیقه قبل از قرارگیری در معرض آفتاب به اندازه دو بند انگشت روی پوست صورت پخش کنید و هر ۲ ساعت تمدید فرمایید."
+            ProductArchetype.SKIN_MOISTURIZER -> "صبح و شب پس از شستشوی کامل، مقداری از کرم را روی پوست صورت و گردن مالیده و به سمت بالا ماساژ دهید."
+            ProductArchetype.SKIN_SERUM -> "چند قطره از سرم را روی پوست تمیز ریخته و با نوک انگشتان ضربه بزنید تا به عمق لایه‌های اپیدرم نفوذ کند."
+            ProductArchetype.SKIN_CLEANSER_TONER -> "پد پنبه‌ای را به تونر آغشته کرده و به آرامی روی پوست صورت و گردن بکشید تا باقیمانده آلودگی‌ها پاک شوند."
+            ProductArchetype.DETERGENT_DESCALER -> "محلول را مستقیماً روی رسوبات ریخته، پس از ۲ الی ۵ دقیقه با اسفنج نرم تمیز کرده و بلافاصله با آب فراوان شستشو دهید."
+            ProductArchetype.DETERGENT_DEGREASER -> "محلول را روی لکه‌های چربی اسپری کرده، ۱ الی ۳ دقیقه صبر کنید و سپس با دستمال مرطوب پاک نمایید."
+            ProductArchetype.DETERGENT_DISHWASHER -> "یک عدد قرص یا مقدار مشخص شوینده را در محفظه مخصوص ماشین ظرفشویی قرار داده و برنامه استاندارد را اجرا کنید."
+            ProductArchetype.DETERGENT_GLASS -> "از فاصله ۲۵ سانتی‌متری روی سطح شیشه اسپری نموده و با دستمال میکروفایبر بدون پرز خشک و براق کنید."
+            ProductArchetype.DETERGENT_SURFACE -> "محلول را به نسبت معین رقیق نموده یا مستقیماً روی سطح ریخته، دستمال کشیده و بگذارید خشک شود."
+            ProductArchetype.ORAL_CARE -> "به اندازه یک نخود روی مسواک قرار داده و به مدت ۲ دقیقه با حرکات ملایم دندان‌ها را مسواک بزنید."
+            ProductArchetype.DEODORANT -> "روی پوست تمیز و خشک زیر بغل به آرامی بمالید و اجازه دهید چند ثانیه خشک شود."
+            ProductArchetype.GENERAL_STANDARD -> "مطابق دستورالعمل برچسب کالا مصرف گردد."
+        }
+
+        val safetyWarning = when (archetype) {
+            ProductArchetype.HAIR_SHAMPOO -> "در صورت تماس با چشم فوراً با آب سرد فراوان شستشو دهید. دور از تابش مستقیم آفتاب نگهداری شود."
+            ProductArchetype.HAIR_MASK -> "از تماس ماسک با ریشه مو و پوست سر خودداری فرمایید تا از چرب شدن زودرس کف سر جلوگیری شود."
+            ProductArchetype.HAIR_SERUM_BIPHASIC -> "فقط برای استعمال خارجی. از استنشاق مستقیم اسپری و تماس با چشم خودداری گردد."
+            ProductArchetype.INTIMATE_HYGIENE -> "فقط برای استعمال موضعی خارجی؛ از ورود به مجاری داخلی اکیداً خودداری شود. دور از دسترس اطفال."
+            ProductArchetype.BODY_LOTION -> "فقط برای استعمال خارجی. در صورت بروز هرگونه حساسیت نادر مصرف را متوقف کنید."
+            ProductArchetype.HAND_AND_NAIL -> "فقط برای استعمال خارجی. دور از تابش مستقیم خورشید و گرما."
+            ProductArchetype.SKIN_SUNSCREEN -> "از تماس با بافت مخاطی چشم پرهیز کنید. از قرار گرفتن طولانی در ساعات اوج تابش آفتاب بپرهیزید."
+            ProductArchetype.SKIN_MOISTURIZER -> "فقط برای استعمال خارجی روی پوست سالم و بدون زخم باز. دور از دسترس کودکان."
+            ProductArchetype.SKIN_SERUM -> "فقط برای استعمال خارجی. از تماس با ناحیه مخاطی داخل چشم خودداری شود."
+            ProductArchetype.SKIN_CLEANSER_TONER -> "از تماس با چشم خودداری شود. در صورت تماس تصادفی، با آب تمیز بشویید."
+            ProductArchetype.DETERGENT_DESCALER -> "⚠️ الزام استفاده از دستکش و تهویه مناسب. اکیداً از مخلوط کردن با وایتکس یا سفیدکننده خودداری کنید. دور از دسترس کودکان."
+            ProductArchetype.DETERGENT_DEGREASER -> "هنگام کار با پاک‌کننده چربی از دستکش استفاده کنید و از استنشاق بخارات در فضای بسته پرهیز فرمایید."
+            ProductArchetype.DETERGENT_DISHWASHER -> "دور از دسترس کودکان و در محیط خشک نگهداری شود. از جویدن یا بلعیدن قرص اکیداً پرهیز شود."
+            ProductArchetype.DETERGENT_GLASS -> "از پاشیدن مستقیم به سمت چشم و شعله آتش پرهیز نمایید. در محیط با تهویه مناسب استفاده کنید."
+            ProductArchetype.DETERGENT_SURFACE -> "استفاده از دستکش توصیه می‌شود. دور از دسترس اطفال و مواد غذایی نگهداری شود."
+            ProductArchetype.ORAL_CARE -> "برای کودکان زیر ۶ سال به میزان اندک استفاده شود و از بلعیدن خمیر دندان جلوگیری گردد."
+            ProductArchetype.DEODORANT -> "روی پوست ملتهب یا دارای زخم باز استفاده نشود. دور از حرارت مستقیم نگهداری شود."
+            ProductArchetype.GENERAL_STANDARD -> "فقط برای استعمال استاندارد. دور از تابش خورشید و دسترس اطفال نگهداری شود."
         }
 
         return ProductPreAnalysis(
@@ -335,10 +422,14 @@ object ContentModuleProcessor {
             primaryApplication = application,
             isOfficialAgencyBrand = isAgency,
             agencyStatement = agencyStatement,
-            isDetergentOrCleaner = isDetergentOrCleaner,
+            isDetergentOrCleaner = isDetergent,
             isHairCare = isHairCare,
             isSkinCare = isSkinCare,
-            isPersonalHygiene = isPersonalHygiene
+            isPersonalHygiene = isPersonalHygiene,
+            archetype = archetype,
+            targetSurfaceOrTissue = targetSurfaceOrTissue,
+            usageInstructions = usageInstructions,
+            safetyWarning = safetyWarning
         )
     }
 
@@ -357,26 +448,26 @@ object ContentModuleProcessor {
             PersianNormalizer.normalize("${item.title} اصل | گارانتی اصالت گلی کالا").take(60)
         }
 
-        // Short Description (متن کوتاه جذاب، دقیق و ۱۰۰٪ منطبق با ماهیت کالا بدون ادعای خلاف)
+        // Short Description (متن کوتاه جذاب، دقیق و ۱۰۰٪ منطبق با ماهیت کالا بدون قالب آماده)
         val shortDesc = when {
             analysis.isDetergentOrCleaner -> {
                 PersianNormalizer.normalize(
-                    "${analysis.productType} از برند معتبر ${analysis.detectedBrand}، ساخت ${analysis.originCountry}. عرضه مستقیم در گلی کالا (واردکننده رسمی و مرجع اصالت کالا) با ضمانت اصالت ۱۰۰٪ فیزیکی. دارای فرمولاسیون پرقدرت جهت ${analysis.primaryApplication} با اثرگذاری فوری و بدون آسیب به سطوح استاندارد. رعایت نکات ایمنی و استفاده از دستکش الزامی است."
+                    "${analysis.productType} از برند معتبر ${analysis.detectedBrand}، ساخت ${analysis.originCountry}. عرضه مستقیم در گلی کالا (واردکننده رسمی و مرجع اصالت کالا) با ضمانت اصالت ۱۰۰٪ فیزیکی. دارای فرمولاسیون پرقدرت جهت ${analysis.primaryApplication} روی ${analysis.targetSurfaceOrTissue} با اثرگذاری فوری و بدون آسیب به سطوح استاندارد. رعایت نکات ایمنی و استفاده از دستکش الزامی است."
                 )
             }
             analysis.isOfficialAgencyBrand -> {
                 PersianNormalizer.normalize(
-                    "${analysis.productType} از برند معتبر ${analysis.detectedBrand}، ساخت ${analysis.originCountry}. گلی کالا نماینده رسمی و انحصاری محصولات برندهای آمالفی، آگرادو و سایرو در ایران می‌باشد. فرمولاسیون فاقد نمک خشن و سولفات جهت ${analysis.primaryApplication} با جذب سریع و ماندگاری بالا."
+                    "${analysis.productType} از برند معتبر ${analysis.detectedBrand}، ساخت ${analysis.originCountry}. گلی کالا نماینده رسمی و انحصاری محصولات برندهای آمالفی، آگرادو و سایرو در ایران می‌باشد. فرمولاسیون تخصصی و استاندارد جهت ${analysis.primaryApplication} بر روی ${analysis.targetSurfaceOrTissue} با جذب سریع و ماندگاری بالا."
                 )
             }
             else -> {
                 PersianNormalizer.normalize(
-                    "${analysis.productType} از برند ${analysis.detectedBrand} ساخت ${analysis.originCountry}. عرضه در گلی کالا (واردکننده رسمی و مرجع اصالت کالا) با ضمانت اصالت ۱۰۰٪ فیزیکی، مناسب جهت ${analysis.primaryApplication} بر پایه استانداردهای تاییدشده."
+                    "${analysis.productType} از برند معتبر ${analysis.detectedBrand}، ساخت ${analysis.originCountry}. عرضه در گلی کالا (واردکننده رسمی و مرجع اصالت کالا) با ضمانت اصالت ۱۰۰٪ فیزیکی، مناسب جهت ${analysis.primaryApplication} بر روی ${analysis.targetSurfaceOrTissue}."
                 )
             }
         }
 
-        // Specifications Table (جدول مشخصات و مقایسه فنی کالا)
+        // Specifications Table (جدول مشخصات و مقایسه فنی کالا - استخراج بدون تناقض)
         val specsTable = mutableListOf<Pair<String, String>>()
         specsTable.add(Pair("نام و استاندارد کالا", normalizedTitle))
         specsTable.add(Pair("برند اصلی سازنده", analysis.detectedBrand))
@@ -386,20 +477,11 @@ object ContentModuleProcessor {
         } else {
             specsTable.add(Pair("عرضه کننده و مرجع خرید", "گلی کالا (واردکننده رسمی و مرجع اصالت کالا)"))
         }
-        specsTable.add(Pair("نوع محصول و کاربرد", analysis.productType))
-
-        if (analysis.isDetergentOrCleaner) {
-            specsTable.add(Pair("سطوح مناسب مصرف", "شیرآلات بهداشتی، کاشی، سرامیک، رسوب‌زدایی کتری، چای‌ساز، سینک ظرفشویی و سرویس بهداشتی"))
-            specsTable.add(Pair("روش مصرف و پاکسازی", "محلول را روی رسوبات ریخته، پس از ۲ الی ۵ دقیقه با اسفنج نرم تمیز کرده و کاملاً با آب فراوان شستشو دهید"))
-            specsTable.add(Pair("نکات ایمنی و بهداشتی", "الزام استفاده از دستکش و تهویه مناسب، اکیداً دور از دسترس اطفال، عدم اختلاط با وایتکس یا سفیدکننده"))
-            specsTable.add(Pair("فرمولاسیون و استاندارد", "فرمولاسیون تخصصی رسوب‌زدا و حل‌کننده اکسیدهای معدنی بدون خوردگی استیل ضدزنگ و لعاب استاندارد"))
-            specsTable.add(Pair("اصالت و گارانتی خرید", "تضمین ۱۰۰٪ اصالت فیزیکی، دارای بارکد رسمی بین‌المللی با ۷ روز گارانتی بازگشت در گلی کالا"))
-        } else {
-            specsTable.add(Pair("هدف و اثربخشی", analysis.primaryApplication))
-            specsTable.add(Pair("ترکیبات فعال و کلیدی", "عصاره‌های خالص گیاهی، هیالورونیک اسید، غنی از ویتامین‌ها و فاقد ترکیبات سنگین مضر"))
-            specsTable.add(Pair("استاندارد ایمنی و بهداشتی", "فاقد پارابن، هایپوآلرژنیک، مطابق با استانداردهای اتحادیه اروپا"))
-            specsTable.add(Pair("اصالت و گارانتی خرید", "تضمین ۱۰۰٪ اصالت فیزیکی، دارای بارکد رسمی بین‌المللی با ۷ روز گارانتی بازگشت"))
-        }
+        specsTable.add(Pair("نوع محصول و فرمولاسیون", analysis.productType))
+        specsTable.add(Pair("بافت هدف و سطوح مصرف", analysis.targetSurfaceOrTissue))
+        specsTable.add(Pair("روش و الگوی مصرف", analysis.usageInstructions))
+        specsTable.add(Pair("نکات ایمنی و بهداشتی", analysis.safetyWarning))
+        specsTable.add(Pair("اصالت و گارانتی خرید", "تضمین ۱۰۰٪ اصالت فیزیکی، دارای بارکد رسمی بین‌المللی با ۷ روز گارانتی بازگشت در گلی کالا"))
 
         val comparisonPoints = if (analysis.isDetergentOrCleaner) {
             listOf(
@@ -410,7 +492,7 @@ object ContentModuleProcessor {
         } else {
             listOf(
                 Pair("سرعت اثربخشی", "بهبود رطوبت، بافت و لطافت پایدار از همان هفته‌های اولیه مصرف منظم"),
-                Pair("فرمولاسیون ایمن", "سبک، زودجذب و فاقد چربی مازاد یا ایجاد حس سنگینی روی پوست و مو"),
+                Pair("فرمولاسیون ایمن", "سبک، زودجذب و فاقد چربی مازاد یا ایجاد حس سنگینی"),
                 Pair("پایداری نتایج", "تقویت و بازسازی سد طبیعی بدون نیاز به وابستگی دارویی یا ادعاهای غیرواقعی")
             )
         }
@@ -451,6 +533,16 @@ object ContentModuleProcessor {
                 analysis.detectedBrand.contains("سایرو") -> "sairo"
                 else -> "brands"
             }
+            val catUrl = when {
+                analysis.isHairCare -> "https://golikala.com/product-category/hair-care/"
+                analysis.isPersonalHygiene -> "https://golikala.com/product-category/body-hygiene/"
+                else -> "https://golikala.com/product-category/skincare/"
+            }
+            val catAnchor = when {
+                analysis.isHairCare -> "خرید انواع شامپو و محصولات مراقبت مو بدون سولفات در گلی کالا"
+                analysis.isPersonalHygiene -> "خرید انواع لوسیون بدن و محصولات بهداشت فردی در گلی کالا"
+                else -> "کرم‌ها، سرم‌ها و محصولات تخصصی مراقبت پوست در گلی کالا"
+            }
             listOf(
                 InternalLinkAnchor(
                     anchorText = "مشاهده تمام محصولات اصل برند ${analysis.detectedBrand}",
@@ -459,8 +551,8 @@ object ContentModuleProcessor {
                     relevanceScore = 98
                 ),
                 InternalLinkAnchor(
-                    anchorText = if (analysis.isHairCare) "خرید انواع شامپو و محصولات مراقبت مو بدون سولفات در گلی کالا" else "کرم‌ها، سرم‌ها و محصولات تخصصی مراقبت پوست در گلی کالا",
-                    targetUrl = if (analysis.isHairCare) "https://golikala.com/product-category/hair-care/" else "https://golikala.com/product-category/skincare/",
+                    anchorText = catAnchor,
+                    targetUrl = catUrl,
                     contentType = "دسته‌بندی پرفروش",
                     relevanceScore = 96
                 ),
@@ -486,24 +578,61 @@ object ContentModuleProcessor {
                 "قرص ماشین ظرفشویی کوانتوم فینیش اصل",
                 "ژل سفیدکننده غلیظ ضدعفونی سطوح دامستوس"
             )
-        } else {
+        } else if (analysis.isHairCare) {
             listOf(
                 "شامپو کراتینه و تقویت‌کننده آگرادو اصل اسپانیا",
                 "ماسک مو ترمیم‌کننده بدون سولفات آمالفی اسپانیا",
+                "اسپری دوفاز محافظ حرارتی مو آمالفی",
+                "شامپو موهای رنگ‌شده و آسیب‌دیده آگرادو"
+            )
+        } else {
+            listOf(
                 "لوسیون بدن آبرسان و نرم‌کننده سایرو",
+                "ژل بهداشتی بانوان آمالفی اسپانیا با pH تنظیم‌شده",
+                "کرم ضد آفتاب با محافظت حداکثری",
                 "سرم هیالورونیک اسید آبرسان عمیق پوست"
             )
         }
 
-        val introHook = when {
-            analysis.isDetergentOrCleaner -> {
+        val introHook = when (analysis.archetype) {
+            ProductArchetype.DETERGENT_DESCALER -> {
                 "رسوبات کهنه آهکی آب روی شیرآلات و جرم کاشی و سرامیک، علاوه بر کدر کردن محیط، به مرور زمان باعث خوردگی و تخریب سطوح می‌شوند. $normalizedTitle از برند اصیل و شناخته‌شده ${analysis.detectedBrand} (ساخت ${analysis.originCountry})، راهکار قطعی و قدرتمند برای بازگرداندن شفافیت و تمیزی بهداشتی است. فروشگاه گلی کالا (واردکننده رسمی و مرجع اصالت کالا) این محصول اورجینال را با تضمین ۱۰۰٪ اصالت فیزیکی عرضه می‌نماید."
             }
-            analysis.isOfficialAgencyBrand -> {
-                "آیا به دنبال محصولی اصل و استاندارد برای مراقبت حرفه‌ای روزانه هستید؟ $normalizedTitle از برند اصیل ${analysis.detectedBrand} (ساخت ${analysis.originCountry}) انتخابی مطمئن است. گلی کالا نماینده رسمی و انحصاری محصولات برندهای آمالفی، آگرادو و سایرو در ایران می‌باشد و این محصول را با تضمین اصالت ۱۰۰٪ عرضه می‌نماید."
+            ProductArchetype.DETERGENT_DEGREASER -> {
+                "چربی‌های سوخته و پخته‌شده روی اجاق گاز و هود به سختی با شوینده‌های معمولی پاک می‌شوند. $normalizedTitle از برند معتبر ${analysis.detectedBrand} (ساخت ${analysis.originCountry}) فرمولاسیونی قدرتمند برای تجزیه فوری چربی‌ها بدون آسیب به استیل و چدن دارد. این کالا در فروشگاه گلی کالا (واردکننده رسمی و مرجع اصالت کالا) عرضه می‌گردد."
+            }
+            ProductArchetype.HAIR_SHAMPOO -> {
+                if (analysis.isOfficialAgencyBrand) {
+                    "شستشوی منظم موها بدون آسیب به چربی‌های محافظ طبیعی کف سر، یکی از مهم‌ترین اصول در مراقبت از مو است. $normalizedTitle از برند اصیل ${analysis.detectedBrand} (ساخت ${analysis.originCountry}) با فرمولاسیون استاندارد و ملایم، انتخابی ایده‌آل برای بهداشت مو و پوست سر می‌باشد. گلی کالا نماینده رسمی و انحصاری محصولات برندهای آمالفی، آگرادو و سایرو در ایران می‌باشد و این محصول را با تضمین اصالت ۱۰۰٪ فیزیکی عرضه می‌نماید."
+                } else {
+                    "شستشوی ملایم موها و تنظیم چربی کف سر، نیازمند انتخابی هوشمندانه با فرمولاسیون آزمایشگاهی معتبر است. $normalizedTitle از برند معتبر ${analysis.detectedBrand} (ساخت ${analysis.originCountry}) برای حفظ درخشش و سلامت تارهای مو در فروشگاه گلی کالا (واردکننده رسمی و مرجع اصالت کالا) عرضه می‌شود."
+                }
+            }
+            ProductArchetype.HAIR_MASK -> {
+                if (analysis.isOfficialAgencyBrand) {
+                    "موهای آسیب‌دیده، رنگ‌شده، دکلره یا خشک نیازمند احیا و ترمیم عمقی کوتیکول در حمام هستند. $normalizedTitle از برند تخصصی ${analysis.detectedBrand} (ساخت ${analysis.originCountry}) با ترکیبات فاقد نمک خشن، فیبر مو را بازسازی می‌نماید. گلی کالا نماینده رسمی و انحصاری محصولات برندهای آمالفی، آگرادو و سایرو در ایران می‌باشد."
+                } else {
+                    "موهای خشک و آسیب‌دیده برای بازیابی لطافت نیاز به تغذیه متمرکز ساقه مو دارند. $normalizedTitle از برند ${analysis.detectedBrand} (ساخت ${analysis.originCountry}) با نفوذ عمیق به ساقه مو، از موخوره و زبری پیشگیری می‌کند. این محصول با گارانتی اصالت در گلی کالا (واردکننده رسمی و مرجع اصالت کالا) در دسترس است."
+                }
+            }
+            ProductArchetype.HAIR_SERUM_BIPHASIC -> {
+                "حفاظت از ساقه موها در برابر حرارت سشوار، اتو مو و پرتوهای محیطی مانع از شکستگی و وز شدن مو می‌گردد. $normalizedTitle از برند معتبر ${analysis.detectedBrand} (ساخت ${analysis.originCountry})، موها را بدون ایجاد چربی مازاد لطیف و خوش‌حالت می‌سازد. گلی کالا اصالت فیزیکی این محصول را ۱۰۰٪ ضمانت می‌نماید."
+            }
+            ProductArchetype.INTIMATE_HYGIENE -> {
+                "حفظ بهداشت فردی و سلامت بافت حساس بانوان نیازمند شوینده‌ای بسیار ملایم با pH فیزیولوژیک سازگار است. $normalizedTitle از برند ${analysis.detectedBrand} (ساخت ${analysis.originCountry}) با مهار باکتری‌های نامطلوب و جلوگیری از سوزش و خشکی، سلامت روزانه را تامین می‌کند. فروشگاه گلی کالا (واردکننده رسمی و مرجع اصالت کالا) این محصول را با ضمانت اصالت عرضه می‌نماید."
+            }
+            ProductArchetype.BODY_LOTION -> {
+                "خشکی و کشیدگی پوست بدن پس از استحمام می‌تواند باعث ایجاد خارش و زبری شود. $normalizedTitle از برند اصیل ${analysis.detectedBrand} (ساخت ${analysis.originCountry}) با بافت سبک و جذب سریع، رطوبت عمقی ۲۴ ساعته را به ارمغان می‌آورد. عرضه شده در گلی کالا با تضمین اصالت فیزیکی."
+            }
+            ProductArchetype.SKIN_SUNSCREEN -> {
+                "محافظت روزانه از پوست در برابر پرتوهای ماوراء بنفش خورشید، اصلی‌ترین راهکار پیشگیری از لک و پیری زودرس چهره است. $normalizedTitle از برند ${analysis.detectedBrand} (ساخت ${analysis.originCountry}) با فیلترهای وسیع‌الطیف UVA و UVB محافظتی مطمئن فراهم می‌آورد. موجود در فروشگاه گلی کالا (واردکننده رسمی و مرجع اصالت کالا)."
             }
             else -> {
-                "رسیدگی اصولی به سلامت و زیبایی روزانه نیازمند انتخاب محصولات مطمئن با فرمولاسیون آزمایشگاهی استاندارد است. $normalizedTitle از برند ${analysis.detectedBrand} (ساخت ${analysis.originCountry}) با ترکیبات استاندارد در فروشگاه گلی کالا (واردکننده رسمی و مرجع اصالت کالا) در دسترس شماست."
+                if (analysis.isOfficialAgencyBrand) {
+                    "آیا به دنبال محصولی اصل و استاندارد برای مراقبت حرفه‌ای روزانه هستید؟ $normalizedTitle از برند اصیل ${analysis.detectedBrand} (ساخت ${analysis.originCountry}) انتخابی مطمئن است. گلی کالا نماینده رسمی و انحصاری محصولات برندهای آمالفی، آگرادو و سایرو در ایران می‌باشد و این محصول را با تضمین اصالت ۱۰۰٪ عرضه می‌نماید."
+                } else {
+                    "رسیدگی اصولی به سلامت و بهداشت روزانه نیازمند انتخاب محصولات مطمئن با فرمولاسیون آزمایشگاهی استاندارد است. $normalizedTitle از برند ${analysis.detectedBrand} (ساخت ${analysis.originCountry}) با ترکیبات استاندارد در فروشگاه گلی کالا (واردکننده رسمی و مرجع اصالت کالا) در دسترس شماست."
+                }
             }
         }
 
@@ -513,46 +642,129 @@ object ContentModuleProcessor {
             "هم‌اکنون می‌توانید $normalizedTitle را با تضمین اصالت ۱۰۰٪ فیزیکی، تاریخ انقضای معتبر و ارسال اکسپرس از فروشگاه اینترنتی گلی کالا (golikala.com) سفارش دهید. سلامت و درخشش طبیعی را به محصولات استاندارد بسپارید."
         }
 
-        val fullDesc = if (analysis.isDetergentOrCleaner) {
-            PersianNormalizer.normalize(
-                """
-                $introHook
-                
-                بررسی قدرت پاک‌کنندگی و عملکرد تخصصی:
-                این رسوب‌زدا و جرم‌گیر توسط لابراتوارهای تخصصی ${analysis.detectedBrand} در ${analysis.originCountry} طراحی شده تا به شکلی مؤثر به ${analysis.primaryApplication} کمک کند.
-                
-                روش استفاده اصولی و ایمن:
-                ۱. مقدار کافی از محلول را مستقیماً روی رسوبات یا جرم سطح موردنظر بریزید.
-                ۲. اجازه دهید محلول بین ۲ تا ۵ دقیقه روی رسوبات باقی بماند تا واکنش شیمیایی کامل شود.
-                ۳. با یک اسفنج نرم یا دستمال سطح را پاک کرده و فوراً با آب سرد فراوان آبکشی نمایید.
-                ۴. برای رسوب‌زدایی کتری و چای‌ساز: مقداری از مایع را داخل مخزن ریخته و پس از اتمام جوشش، چندین نوبت با آب تمیز آبکشی کنید.
-                
-                نکات حیاتی ایمنی و احتیاطی:
-                • الزاماً هنگام کار با این محصول از دستکش محافظ استفاده نمایید.
-                • از تهویه مناسب محیط مطمئن شوید و پنجره یا هواکش را باز نگه دارید.
-                • اکیداً و تحت هیچ شرایطی این شوینده را با وایتکس، مایع سفیدکننده یا سایر مواد شیمیایی مخلوط نکنید!
-                • دور از دسترس کودکان و تابش مستقیم آفتاب نگهداری شود.
-                
-                $conclusionCta
-                """.trimIndent()
-            )
-        } else {
-            PersianNormalizer.normalize(
-                """
-                $introHook
-                
-                بررسی تخصصی و ویژگی‌های محصول:
-                این محصول توسط لابراتوارهای تخصصی برند معتبر ${analysis.detectedBrand} در ${analysis.originCountry} طراحی شده است تا به شکلی علمی به ${analysis.primaryApplication} کمک کند.
-                
-                مزایای منحصربه‌فرد و ترکیبات تاییدشده:
-                • فرمولاسیون استاندارد و سازگار با انواع بافت زیستی پوست و مو
-                • فاقد ترکیبات سنگین شیمیایی، پارابن و الکل آسیب‌رسان
-                • جذب فوری و ماندگاری اثر بدون احساس چربی مازاد
-                • تاییدشده توسط تست‌های درماتولوژی در اتحادیه اروپا
-                
-                $conclusionCta
-                """.trimIndent()
-            )
+        val fullDesc = when (analysis.archetype) {
+            ProductArchetype.DETERGENT_DESCALER -> {
+                PersianNormalizer.normalize(
+                    """
+                    $introHook
+                    
+                    بررسی قدرت پاک‌کنندگی و عملکرد تخصصی رسوب‌زدایی:
+                    این رسوب‌زدا و جرم‌گیر توسط لابراتوارهای تخصصی ${analysis.detectedBrand} در ${analysis.originCountry} طراحی شده تا به شکلی مؤثر به ${analysis.primaryApplication} کمک کند. فرمولاسیون اسیدی استاندارد آن، پیوند مولکولی املاح معدنی رسوب‌کرده را در کمترین زمان ممکن شکسته و بدون نیاز به فشار یا سایش شدید، سطوح را همانند روز اول درخشان و صیقلی می‌سازد.
+                    
+                    روش استفاده اصولی و ایمن:
+                    ۱. مقدار کافی از محلول را مستقیماً روی رسوبات یا جرم سطح موردنظر بریزید.
+                    ۲. اجازه دهید محلول بین ۲ تا ۵ دقیقه روی رسوبات باقی بماند تا واکنش شیمیایی کامل شود.
+                    ۳. با یک اسفنج نرم یا دستمال سطح را پاک کرده و فوراً با آب سرد فراوان آبکشی نمایید.
+                    ۴. برای رسوب‌زدایی کتری و چای‌ساز: مقداری از مایع را داخل مخزن ریخته و پس از اتمام جوشش، چندین نوبت با آب تمیز آبکشی کنید.
+                    
+                    نکات حیاتی ایمنی و احتیاطی:
+                    • الزاماً هنگام کار با این محصول از دستکش محافظ استفاده نمایید.
+                    • از تهویه مناسب محیط مطمئن شوید و پنجره یا هواکش را باز نگه دارید.
+                    • اکیداً و تحت هیچ شرایطی این شوینده را با وایتکس، مایع سفیدکننده یا سایر مواد شیمیایی مخلوط نکنید!
+                    • دور از دسترس کودکان و تابش مستقیم آفتاب نگهداری شود.
+                    
+                    $conclusionCta
+                    """.trimIndent()
+                )
+            }
+            ProductArchetype.HAIR_SHAMPOO -> {
+                PersianNormalizer.normalize(
+                    """
+                    $introHook
+                    
+                    بررسی تخصصی عملکرد شویندگی و سلامت پوست سر:
+                    این شامپو توسط لابراتوارهای معتبر ${analysis.detectedBrand} در ${analysis.originCountry} به صورت ویژه جهت ${analysis.primaryApplication} فرموله شده است. وجود شوینده‌های استاندارد بدون تحریک پوست سر، باعث کنترل چربی طبیعی و زدودن آلودگی‌های محیطی از تارهای مو می‌شود بدون اینکه رطوبت فیبر مو از بین برود.
+                    
+                    الگوی شستشوی اصولی در حمام:
+                    ۱. موها را کاملاً با آب ولرم خیس کنید (از آب بسیار داغ بپرهیزید).
+                    ۲. مقدار مناسبی از شامپو را در کف دست ریخته و روی کف سر ماساژ دهید تا کف ملایم ایجاد شود.
+                    ۳. با بند انگشتان (نه ناخن) پوست سر را به مدت ۲ دقیقه به آرامی ماساژ داده و سپس آبکشی نمایید.
+                    
+                    ویژگی‌ها و استانداردهای بهداشتی:
+                    • حفظ تعادل سبوم پوست سر و ممانعت از پوسته شدن
+                    • آبکشی آسان بدون بر جای گذاشتن رسوب روی تارهای مو
+                    • دارای بارکد رسمی و ضمانت ۱۰۰٪ اصالت فیزیکی در گلی کالا
+                    
+                    $conclusionCta
+                    """.trimIndent()
+                )
+            }
+            ProductArchetype.HAIR_MASK -> {
+                PersianNormalizer.normalize(
+                    """
+                    $introHook
+                    
+                    بررسی فرمولاسیون تغذیه‌کننده و بازسازی ساقه مو:
+                    این ماسک موی تخصصی توسط متخصصان ${analysis.detectedBrand} در ${analysis.originCountry} با هدف ${analysis.primaryApplication} طراحی گردیده است. با نفوذ عناصر مغذی به کوتیکول مو، موهای آسیب‌دیده بر اثر رنگ، دکلره یا حرارت احیا شده و خاصیت ارتجاعی طبیعی خود را بازمی‌یابند.
+                    
+                    روش صحیح استفاده از ماسک مو در حمام:
+                    ۱. پس از شستشوی موها با شامپو، آب اضافی تارهای مو را با دست به آرامی بگیرید.
+                    ۲. مقدار کافی از ماسک را منحصراً روی ساقه و نوک موهای نم‌دار بمالید (اکیداً با کف سر و ریشه مو تماس نداشته باشد).
+                    ۳. اجازه دهید مواد مغذی بین ۳ تا ۵ دقیقه روی مو باقی بمانند تا اثرگذاری کامل شود.
+                    ۴. با آب ولرم ساقه موها را کاملاً آبکشی نمایید.
+                    
+                    مزایای رقابتی ماسک مو:
+                    • رفع کامل وز و موخوره ساقه مو بدون چرب کردن ریشه
+                    • تثبیت رطوبت عمقی و بازسازی بافت کراتین
+                    • ضمانت ۱۰۰٪ اصالت فیزیکی و آزمایشگاهی در گلی کالا
+                    
+                    $conclusionCta
+                    """.trimIndent()
+                )
+            }
+            ProductArchetype.INTIMATE_HYGIENE -> {
+                PersianNormalizer.normalize(
+                    """
+                    $introHook
+                    
+                    اهمیت تعادل pH فیزیولوژیک و مراقبت ملایم:
+                    ناحیه تناسلی بانوان دارای اکوسیستم میکروبی حساسی است که شوینده‌های قلیایی یا صابون‌های معمولی آن را برهم می‌زنند. این ژل بهداشتی از کمپانی ${analysis.detectedBrand} در ${analysis.originCountry}، با هدف ${analysis.primaryApplication} طراحی شده و با تثبیت pH در محدوده اسیدی طبیعی، مانع از خشکی، سوزش و بوی نامطبوع می‌گردد.
+                    
+                    روش مصرف بهداشتی:
+                    ۱. مقدار اندکی از ژل را با دست تمیز روی موضع خارجی ماساژ دهید.
+                    ۲. با آب ولرم به آرامی آبکشی کرده و سپس موضع را با حوله اختصاصی کاملاً خشک فرمایید.
+                    
+                    نکات بهداشتی و ایمنی:
+                    • این محصول منحصراً برای استعمال خارجی موضعی طراحی شده است.
+                    • فاقد ترکیبات صابونی خشن، الکل و اسانس‌های تحریک‌کننده.
+                    
+                    $conclusionCta
+                    """.trimIndent()
+                )
+            }
+            ProductArchetype.SKIN_SUNSCREEN -> {
+                PersianNormalizer.normalize(
+                    """
+                    $introHook
+                    
+                    بررسی فیلترهای محافظتی و عملکرد ضد آفتاب:
+                    کرم ضد آفتاب ${analysis.detectedBrand} ساخت ${analysis.originCountry} با تکیه بر فیلترهای پیشرفته فیزیکی و شیمیایی، با هدف ${analysis.primaryApplication} تولید شده است. این محصول با ایجاد لایه‌ای یکنواخت، مانع از نفوذ پرتوهای مخرب فرابنفش به لایه‌های زنده پوست شده و طراوت بافت چهره را حفظ می‌کند.
+                    
+                    راهنمای مصرف و تمدید:
+                    ۱. به میزان دو بند انگشت از کرم را ۱۵ دقیقه پیش از قرارگیری در آفتاب روی صورت و گردن پخش نمایید.
+                    ۲. هر ۲ ساعت یکبار، به ویژه پس از شستشو یا تعریق، کرم را مجدداً تمدید فرمایید.
+                    
+                    $conclusionCta
+                    """.trimIndent()
+                )
+            }
+            else -> {
+                PersianNormalizer.normalize(
+                    """
+                    $introHook
+                    
+                    بررسی تخصصی و ویژگی‌های محصول:
+                    این محصول توسط لابراتوارهای تخصصی برند معتبر ${analysis.detectedBrand} در ${analysis.originCountry} طراحی شده است تا به شکلی علمی به ${analysis.primaryApplication} کمک کند.
+                    
+                    روش استفاده و استانداردهای کیفی:
+                    • الگوی مصرف: ${analysis.usageInstructions}
+                    • نکات ایمنی: ${analysis.safetyWarning}
+                    • اصالت: دارای بارکد رسمی بین‌المللی و تضمین ۱۰۰٪ اصالت فیزیکی در گلی کالا
+                    
+                    $conclusionCta
+                    """.trimIndent()
+                )
+            }
         }
 
         val rankMathMeta = PersianNormalizer.normalize(
@@ -566,8 +778,78 @@ object ContentModuleProcessor {
             }
         ).take(155)
 
-        val faqs = if (analysis.isDetergentOrCleaner) {
-            listOf(
+        val faqs = when (analysis.archetype) {
+            ProductArchetype.HAIR_SHAMPOO -> listOf(
+                Pair(
+                    "آیا این شامپو برای استفاده روزانه مناسب است و باعث خشکی ساقه مو نمی‌شود؟",
+                    "بله؛ فرمولاسیون ملایم و استاندارد ${analysis.detectedBrand} با حفظ رطوبت طبیعی کف سر طراحی شده و از خشکی بیش از حد تارهای مو جلوگیری می‌کند."
+                ),
+                Pair(
+                    "روش اصولی شستشوی موها با این شامپو چیست؟",
+                    analysis.usageInstructions
+                ),
+                Pair(
+                    "آیا اصالت کالای ${analysis.detectedBrand} در گلی کالا تضمین شده است؟",
+                    if (analysis.isOfficialAgencyBrand) "بله، گلی کالا نماینده رسمی و انحصاری محصولات برندهای آمالفی، آگرادو و سایرو در ایران می‌باشد و تمامی محصولات مستقیماً با ضمانت اصالت فیزیکی ارائه می‌شوند." else "بله، تمامی محصولات موجود در گلی کالا دارای بارکد بین‌المللی معتبر و ۷ روز ضمانت بازگشت کالا هستند."
+                )
+            )
+            ProductArchetype.HAIR_MASK -> listOf(
+                Pair(
+                    "آیا می‌توان ماسک مو را به ریشه یا کف سر زد؟",
+                    "خیر؛ ماسک مو صرفاً جهت تغذیه و ترمیم ساقه و نوک مو طراحی شده و نباید با پوست سر تماس پیدا کند تا از چرب شدن زودرس ریشه مو جلوگیری شود."
+                ),
+                Pair(
+                    "مدت زمان ماندگاری ماسک مو روی ساقه مو چقدر است؟",
+                    "کافی است پس از شستشوی موها، ۳ الی ۵ دقیقه روی ساقه و نوک مو بماند و سپس کاملاً با آب ولرم آبکشی شود."
+                ),
+                Pair(
+                    "آیا این ماسک برای موهای کراتینه‌شده و رنگ‌شده مناسب است؟",
+                    "بله، فرمولاسیون مغذی و بدون نمک خشن این ماسک مو به تثبیت کراتین و احیای فیبر آسیب‌دیده کمک می‌نماید."
+                )
+            )
+            ProductArchetype.HAIR_SERUM_BIPHASIC -> listOf(
+                Pair(
+                    "چرا باید قبل از مصرف، اسپری دوفاز را به خوبی تکان داد؟",
+                    "این محصول از دو فاز مغذی و محافظتی تشکیل شده است؛ تکان دادن بطری باعث ترکیب همگن این دو فاز و اثربخشی یکنواخت روی ساقه مو می‌شود."
+                ),
+                Pair(
+                    "آیا استفاده از اسپری دوفاز نیاز به آبکشی دارد؟",
+                    "خیر؛ این سرم مو بدون نیاز به آبکشی است و باید روی ساقه موهای نم‌دار پیش از سشوار یا اتو مو اسپری گردد."
+                ),
+                Pair(
+                    "آیا باعث چرب شدن یا احساس سنگینی روی مو می‌شود؟",
+                    "خیر، فرمولاسیون بسیار سبک و زودجذب آن تنها وز و الکتریسیته ساکن را مهار کرده و موها را ابریشمی می‌سازد."
+                )
+            )
+            ProductArchetype.INTIMATE_HYGIENE -> listOf(
+                Pair(
+                    "چرا نباید از صابون معمولی برای شستشوی بهداشتی بانوان استفاده کرد؟",
+                    "صابون‌های معمولی قلیایی هستند و سد اسیدی و فلور محافظتی طبیعی را تخریب می‌کنند، اما این ژل بهداشتی pH فیزیولوژیک را در تعادل طبیعی نگه می‌دارد."
+                ),
+                Pair(
+                    "آیا می‌توان از این ژل بهداشتی به صورت روزانه استفاده نمود؟",
+                    "بله، فرمولاسیون ملایم و هایپوآلرژنیک این محصول برای مصرف بهداشتی روزانه مناسب بوده و از خشکی و احساس سوزش پیشگیری می‌کند."
+                ),
+                Pair(
+                    "آیا این محصول برای استعمال داخلی کاربرد دارد؟",
+                    "خیر؛ ژل بهداشتی بانوان منحصراً برای استعمال خارجی و موضعی فرموله شده است."
+                )
+            )
+            ProductArchetype.SKIN_SUNSCREEN -> listOf(
+                Pair(
+                    "چند دقیقه قبل از قرار گرفتن در معرض آفتاب باید کرم را استفاده کرد؟",
+                    "توصیه می‌شود ۱۵ الی ۲۰ دقیقه پیش از خروج از منزل استفاده شود تا لایه محافظتی فیلترهای ضد آفتاب روی پوست تثبیت گردد."
+                ),
+                Pair(
+                    "آیا تمدید ضد آفتاب در طول روز الزامی است؟",
+                    "بله؛ برای حفظ بالاترین سطح حفاظت در برابر اشعه‌های UVA و UVB، تمدید هر ۲ ساعت یکبار توصیه می‌شود."
+                ),
+                Pair(
+                    "آیا این ضد آفتاب باعث ایجاد جوش یا حس سنگینی می‌شود؟",
+                    "خیر؛ بافت سبک و فاقد چربی مازاد به سرعت جذب شده و مانع از مسدود شدن منافذ پوست می‌گردد."
+                )
+            )
+            ProductArchetype.DETERGENT_DESCALER -> listOf(
                 Pair(
                     "آیا استفاده از این رسوب‌زدا به لعاب کاشی، سرامیک یا شیرآلات آسیب می‌زند؟",
                     "خیر؛ در صورت رعایت زمان استاندارد (۲ الی ۵ دقیقه) و آبکشی کامل با آب فراوان، فرمولاسیون تخصصی آن بدون آسیب به استیل ضدزنگ و لعاب سرامیک عمل می‌کند."
@@ -581,8 +863,21 @@ object ContentModuleProcessor {
                     "بله، گلی کالا واردکننده رسمی و مرجع اصالت کالا است و تمامی کالاها همراه با بارکد بین‌المللی اصلی و ۷ روز ضمانت بازگشت عرضه می‌گردند."
                 )
             )
-        } else {
-            listOf(
+            ProductArchetype.DETERGENT_DEGREASER -> listOf(
+                Pair(
+                    "آیا این پاک‌کننده چربی برای توری هود و داخل فر مناسب است؟",
+                    "بله؛ این اسپری به طور ویژه برای حل کردن چربی‌های پخته‌شده و دوده روی چدن گاز، فیلتر هود و دیواره فر فرموله شده است."
+                ),
+                Pair(
+                    "مدت زمان اثرگذاری روی چربی‌های کهنه چقدر است؟",
+                    "کافی است محلول را اسپری نموده و بین ۱ تا ۳ دقیقه صبر کنید، سپس با یک دستمال نم‌دار چربی‌های تجزیه‌شده را پاک نمایید."
+                ),
+                Pair(
+                    "آیا استفاده از دستکش الزامی است؟",
+                    "بله؛ به دلیل قدرت پاک‌کنندگی بالا، استفاده از دستکش و تهویه مناسب آشپزخانه توصیه می‌شود."
+                )
+            )
+            else -> listOf(
                 Pair(
                     "آیا اصالت کالا و بارکد بین‌المللی این محصول تضمین شده است؟",
                     if (analysis.isOfficialAgencyBrand) {
@@ -593,36 +888,103 @@ object ContentModuleProcessor {
                 ),
                 Pair(
                     "بهترین شیوه مصرف برای دستیابی به حداکثر اثربخشی چیست؟",
-                    "پیشنهاد می‌شود طبق دستورالعمل استاندارد، پس از پاکسازی اولیه، مقدار مناسب را روی مو یا پوست نمدار استفاده نموده و به آرامی ماساژ دهید تا جذب کامل صورت پذیرد."
+                    analysis.usageInstructions
                 ),
                 Pair(
-                    "آیا این کالا فاقد سولفات خشن و پارابن می‌باشد؟",
-                    "بله، محصولات وارداتی گلی کالا با سخت‌گیرانه‌ترین استانداردهای بهداشتی اتحادیه اروپا فرموله شده و فاقد نمک‌های آسیب‌رسان و ترکیبات حساسیت‌زا می‌باشند."
+                    "آیا این محصول دارای استانداردهای رسمی بهداشتی اروپا می‌باشد؟",
+                    "بله، محصولات وارداتی گلی کالا با سخت‌گیرانه‌ترین استانداردهای بهداشتی اتحادیه اروپا فرموله شده و دارای استعلام رسمی هستند."
                 )
             )
         }
 
-        val featuresList = if (analysis.isDetergentOrCleaner) {
-            listOf(
-                "فرمولاسیون فوق‌العاده قوی رسوب‌زدا و حل‌کننده رسوبات آهکی و جرم سخت",
-                "درخشان‌کننده سطوح استیل، شیرآلات، کاشی، سرامیک و سینک",
-                "بدون آسیب به لعاب استاندارد سطوح در صورت رعایت مدت‌زمان مصرف",
+        val featuresList = when (analysis.archetype) {
+            ProductArchetype.HAIR_SHAMPOO -> listOf(
+                "فرمولاسیون تخصصی شستشوی ملایم تارهای مو و کنترل چربی مازاد پوست سر",
+                "فاقد نمک‌های خشن و ترکیبات سولفاتی تهاجمی",
+                "ایجاد کف سبک و کنترل‌شده با آبکشی آسان بدون بجای ماندن رسوب",
                 "دارای بارکد بین‌المللی و ضمانت اصالت ۱۰۰٪ فیزیکی در گلی کالا"
             )
-        } else {
-            listOf(
-                "فرمولاسیون هایپوآلرژنیک و استاندارد اروپایی",
-                "فاقد پارابن، سولفات خشن و الکل مضر",
-                "حفظ رطوبت و طراوت طبیعی تا ۲۴ ساعت",
-                "دارای بارکد بین‌المللی و ضمانت اصالت فیزیکی"
+            ProductArchetype.HAIR_MASK -> listOf(
+                "تغذیه و بازسازی عمقی کوتیکول و فیبر ساقه موهای آسیب‌دیده",
+                "رفع خشکی، زبری و شکنندگی نوک مو بدون چرب کردن ریشه و کف سر",
+                "مناسب برای موهای رنگ‌شده، کراتینه‌شده و دکلره با اثر ماندگار",
+                "دارای بارکد بین‌المللی و ضمانت اصالت ۱۰۰٪ فیزیکی در گلی کالا"
+            )
+            ProductArchetype.HAIR_SERUM_BIPHASIC -> listOf(
+                "محافظت قوی از ساقه مو در برابر حرارت سشوار، اتو مو و پرتوهای محیطی",
+                "رفع وز، الکتریسیته ساکن و تسهیل فوری شانه زدن",
+                "فرمولاسیون بسیار سبک و زودجذب بدون ایجاد حس سنگینی روی تارهای مو",
+                "دارای بارکد بین‌المللی و ضمانت اصالت ۱۰۰٪ فیزیکی در گلی کالا"
+            )
+            ProductArchetype.INTIMATE_HYGIENE -> listOf(
+                "تنظیم دقیق pH فیزیولوژیک ناحیه با ترکیبات بسیار ملایم آزمایشگاهی",
+                "حفظ تعادل سد دفاعی و فلور میکروبی طبیعی و جلوگیری از احساس سوزش و خشکی",
+                "فاقد ترکیبات صابونی خشن، الکل و اسانس‌های آلرژی‌زا",
+                "دارای بارکد بین‌المللی و تضمین ۱۰۰٪ اصالت فیزیکی و بهداشتی در گلی کالا"
+            )
+            ProductArchetype.BODY_LOTION -> listOf(
+                "آبرسانی و تغذیه عمقی ۲۴ ساعته پوست سراسر بدن",
+                "رفع سریع خشکی و کشیدگی پوست پس از استحمام با لطافت ابریشمی",
+                "بافت زودجذب بدون بر جای گذاشتن چربی یا حس چسبندگی",
+                "دارای بارکد بین‌المللی و ضمانت اصالت ۱۰۰٪ فیزیکی در گلی کالا"
+            )
+            ProductArchetype.SKIN_SUNSCREEN -> listOf(
+                "محافظت حداکثری و وسیع‌الطیف در برابر پرتوهای ماوراء بنفش UVA و UVB",
+                "فرمولاسیون سبک و فاقد چربی مازاد با جذب سریع و بدون رد سفیدی",
+                "مقاوم در برابر تعریق و مناسب برای استفاده روزانه",
+                "دارای بارکد بین‌المللی و ضمانت اصالت ۱۰۰٪ فیزیکی در گلی کالا"
+            )
+            ProductArchetype.SKIN_MOISTURIZER -> listOf(
+                "رطوبت‌رسانی عمقی به لایه‌های اپیدرم و تقویت سد دفاعی پوست",
+                "رفع حس کشیدگی و کدری پوست با بافت مخملی و سبک",
+                "مناسب روتین روز و شب با ماندگاری رطوبت تا ۲۴ ساعت",
+                "دارای بارکد بین‌المللی و ضمانت اصالت ۱۰۰٪ فیزیکی در گلی کالا"
+            )
+            ProductArchetype.SKIN_SERUM -> listOf(
+                "حاوی ترکیبات کنسانتره و فعال با قدرت نفوذ بسیار بالا به عمق بافت پوست",
+                "تغذیه، روشن‌کنندگی و بازسازی بافت چهره بدون ایجاد حس چربی",
+                "مکمل ایده‌آل روتین پوستی پیش از مصرف کرم مرطوب‌کننده",
+                "دارای بارکد بین‌المللی و ضمانت اصالت ۱۰۰٪ فیزیکی در گلی کالا"
+            )
+            ProductArchetype.SKIN_CLEANSER_TONER -> listOf(
+                "پاکسازی عمقی منافذ از باقیمانده آلودگی‌ها، ذرات گرد و غبار و چربی مازاد",
+                "تنظیم و متعادل‌سازی pH طبیعی پوست بدون ایجاد حس خشکی",
+                "افزایش طراوت و آمادگی کامل بافت پوست جهت جذب کرم‌ها و سرم‌ها",
+                "دارای بارکد بین‌المللی و ضمانت اصالت ۱۰۰٪ فیزیکی در گلی کالا"
+            )
+            ProductArchetype.DETERGENT_DESCALER -> listOf(
+                "فرمولاسیون فوق‌العاده قوی رسوب‌زدا و حل‌کننده رسوبات آهکی و جرم سخت",
+                "درخشان‌کننده سطوح استیل، شیرآلات بهداشتی، کاشی، سرامیک و سینک",
+                "فاقد اثر خورندگی روی استیل استاندارد در صورت رعایت زمان مصرف",
+                "دارای بارکد بین‌المللی و ضمانت اصالت ۱۰۰٪ فیزیکی در گلی کالا"
+            )
+            ProductArchetype.DETERGENT_DEGREASER -> listOf(
+                "تجزیه و پاکسازی فوری چربی‌های سوخته و کهنه روی گاز، هود و فر",
+                "قدرت نفوذ بالا بدون نیاز به سایش شدید مکانیکی",
+                "ایجاد پاکیزگی بهداشتی و درخشش چشمگیر در محیط آشپزخانه",
+                "دارای بارکد بین‌المللی و ضمانت اصالت ۱۰۰٪ فیزیکی در گلی کالا"
+            )
+            ProductArchetype.DETERGENT_DISHWASHER -> listOf(
+                "چربی‌زدایی پرقدرت و پاکسازی لکه‌های خشکیده غذا از انواع ظروف",
+                "جلادهنده بلورجات و ممانعت از ایجاد خط و خش و ماتی شیشه",
+                "حفاظت از قطعات داخلی ماشین ظرفشویی در برابر رسوبات آب",
+                "دارای بارکد بین‌المللی و ضمانت اصالت ۱۰۰٪ فیزیکی در گلی کالا"
+            )
+            ProductArchetype.DETERGENT_GLASS -> listOf(
+                "فرمولاسیون تخصصی پاکسازی سریع لکه‌ها و چربی از شیشه و آینه",
+                "خاصیت ضد بخار و بدون بر جای گذاشتن رگه و خطوط تار",
+                "درخشش شفاف با خشک شدن سریع",
+                "دارای بارکد بین‌المللی و ضمانت اصالت ۱۰۰٪ فیزیکی در گلی کالا"
+            )
+            else -> listOf(
+                "فرمولاسیون استاندارد و آزمایشگاهی مطابق استانداردهای معتبر",
+                "فاقد ترکیبات آسیب‌رسان و ترکیبات حساسیت‌زا",
+                "بهره‌گیری از بالاترین کیفیت مواد اولیه در کشور سازنده",
+                "دارای بارکد بین‌المللی و ضمانت اصالت ۱۰۰٪ فیزیکی در گلی کالا"
             )
         }
 
-        val safetyWarning = if (analysis.isDetergentOrCleaner) {
-            "⚠️ نکات مهم ایمنی: هنگام استفاده الزاماً از دستکش محافظ استفاده کرده و از تهویه کافی محیط اطمینان حاصل فرمایید. اکیداً از مخلوط کردن این شوینده با وایتکس یا هرگونه سفیدکننده شیمیایی خودداری کنید. دور از دسترس کودکان نگهداری شود."
-        } else {
-            "فقط برای استعمال خارجی. در جای خشک و خنک و دور از تابش مستقیم خورشید نگهداری شود."
-        }
+        val safetyWarning = analysis.safetyWarning
 
         val structuredHtml = buildStructuredProductHtml(
             title = normalizedTitle,
@@ -709,22 +1071,56 @@ object ContentModuleProcessor {
         }
         sb.append("  </ul>\n\n")
 
-        // Tailored callout box strictly respecting product nature
-        if (analysis.isDetergentOrCleaner) {
-            sb.append("  <div class=\"gliseo-callout-box\" style=\"background: #fffbeb; border: 1px dashed #f59e0b; padding: 14px; border-radius: 8px; margin-bottom: 24px;\">\n")
-            sb.append("    <h3 style=\"color: #b45309; font-size: 14px; margin-top: 0;\">⚠️ نکته مهم ایمنی و حفاظت از سطوح:</h3>\n")
-            sb.append("    <p style=\"font-size: 13px; line-height: 1.7; color: #92400e; margin: 0;\">برای حفظ درخشش دائمی شیرآلات و لعاب کاشی، هرگز اجازه ندهید رسوب‌زدا بیش از زمان معین (حداکثر ۲ الی ۵ دقیقه) روی سطح بماند و بلافاصله با آب فراوان آبکشی نمایید. استفاده از دستکش و تهویه مناسب الزامی است.</p>\n")
-            sb.append("  </div>\n\n")
-        } else if (analysis.isHairCare) {
-            sb.append("  <div class=\"gliseo-callout-box\" style=\"background: #eff6ff; border: 1px dashed #3b82f6; padding: 14px; border-radius: 8px; margin-bottom: 24px;\">\n")
-            sb.append("    <h3 style=\"color: #1d4ed8; font-size: 14px; margin-top: 0;\">✦ نکته تخصصی کارشناس مراقبت مو:</h3>\n")
-            sb.append("    <p style=\"font-size: 13px; line-height: 1.7; color: #1e3a8a; margin: 0;\">برای اثربخشی حداکثری محصولات ${analysis.detectedBrand}، ماسک و سرم مو را روی ساقه موهای نم‌دار استفاده نموده و اجازه دهید ترکیبات فاقد سولفات به خوبی جذب تارهای مو شوند.</p>\n")
-            sb.append("  </div>\n\n")
-        } else {
-            sb.append("  <div class=\"gliseo-callout-box\" style=\"background: #eff6ff; border: 1px dashed #3b82f6; padding: 14px; border-radius: 8px; margin-bottom: 24px;\">\n")
-            sb.append("    <h3 style=\"color: #1d4ed8; font-size: 14px; margin-top: 0;\">✦ نکته تخصصی کارشناس سلامت و اصالت کالا:</h3>\n")
-            sb.append("    <p style=\"font-size: 13px; line-height: 1.7; color: #1e3a8a; margin: 0;\">برای حصول بهترین نتیجه از محصولات استاندارد ${analysis.detectedBrand}، محصول را دور از تابش مستقیم آفتاب نگهداری نموده و از پلمب بودن بارکد کالا اطمینان حاصل فرمایید.</p>\n")
-            sb.append("  </div>\n\n")
+        // Tailored callout box strictly respecting product archetype
+        when {
+            analysis.isDetergentOrCleaner -> {
+                sb.append("  <div class=\"gliseo-callout-box\" style=\"background: #fffbeb; border: 1px dashed #f59e0b; padding: 14px; border-radius: 8px; margin-bottom: 24px;\">\n")
+                sb.append("    <h3 style=\"color: #b45309; font-size: 14px; margin-top: 0;\">⚠️ نکته مهم ایمنی و حفاظت از سطوح:</h3>\n")
+                sb.append("    <p style=\"font-size: 13px; line-height: 1.7; color: #92400e; margin: 0;\">برای حفظ درخشش دائمی شیرآلات و لعاب کاشی، هرگز اجازه ندهید رسوب‌زدا بیش از زمان معین (حداکثر ۲ الی ۵ دقیقه) روی سطح بماند و بلافاصله با آب فراوان آبکشی نمایید. استفاده از دستکش و تهویه مناسب الزامی است.</p>\n")
+                sb.append("  </div>\n\n")
+            }
+            analysis.archetype == ProductArchetype.HAIR_SHAMPOO -> {
+                sb.append("  <div class=\"gliseo-callout-box\" style=\"background: #eff6ff; border: 1px dashed #3b82f6; padding: 14px; border-radius: 8px; margin-bottom: 24px;\">\n")
+                sb.append("    <h3 style=\"color: #1d4ed8; font-size: 14px; margin-top: 0;\">✦ نکته تخصصی کارشناس شستشوی مو:</h3>\n")
+                sb.append("    <p style=\"font-size: 13px; line-height: 1.7; color: #1e3a8a; margin: 0;\">برای حفظ چربی‌های محافظ طبیعی و جلوگیری از خشکی پوست سر، موها را با آب ولرم شستشو دهید و کف سر را با نوک نرم انگشتان (نه ناخن) ماساژ دهید.</p>\n")
+                sb.append("  </div>\n\n")
+            }
+            analysis.archetype == ProductArchetype.HAIR_MASK -> {
+                sb.append("  <div class=\"gliseo-callout-box\" style=\"background: #eff6ff; border: 1px dashed #3b82f6; padding: 14px; border-radius: 8px; margin-bottom: 24px;\">\n")
+                sb.append("    <h3 style=\"color: #1d4ed8; font-size: 14px; margin-top: 0;\">✦ نکته تخصصی کارشناس احیای مو:</h3>\n")
+                sb.append("    <p style=\"font-size: 13px; line-height: 1.7; color: #1e3a8a; margin: 0;\">ماسک مو را منحصراً روی ساقه و نوک موهای نم‌دار استفاده کنید و از تماس آن با ریشه و پوست سر بپرهیزید تا از چرب شدن زودرس ریشه مو جلوگیری شود.</p>\n")
+                sb.append("  </div>\n\n")
+            }
+            analysis.archetype == ProductArchetype.HAIR_SERUM_BIPHASIC -> {
+                sb.append("  <div class=\"gliseo-callout-box\" style=\"background: #eff6ff; border: 1px dashed #3b82f6; padding: 14px; border-radius: 8px; margin-bottom: 24px;\">\n")
+                sb.append("    <h3 style=\"color: #1d4ed8; font-size: 14px; margin-top: 0;\">✦ نکته تخصصی استایل و محافظت حرارتی:</h3>\n")
+                sb.append("    <p style=\"font-size: 13px; line-height: 1.7; color: #1e3a8a; margin: 0;\">قبل از مصرف بطری اسپری دوفاز را خوب تکان دهید تا دو فاز ترکیب شوند، سپس از فاصله ۲۰ سانتی‌متری روی ساقه موهای نم‌دار پیش از سشوار یا اتو مو اسپری نمایید.</p>\n")
+                sb.append("  </div>\n\n")
+            }
+            analysis.archetype == ProductArchetype.INTIMATE_HYGIENE -> {
+                sb.append("  <div class=\"gliseo-callout-box\" style=\"background: #fdf2f8; border: 1px dashed #ec4899; padding: 14px; border-radius: 8px; margin-bottom: 24px;\">\n")
+                sb.append("    <h3 style=\"color: #be185d; font-size: 14px; margin-top: 0;\">✦ نکته تخصصی بهداشت بانوان:</h3>\n")
+                sb.append("    <p style=\"font-size: 13px; line-height: 1.7; color: #9d174d; margin: 0;\">این ژل صرفاً برای استعمال موضعی خارجی فرموله شده است؛ پس از شستشوی ملایم، موضع را با آب ولرم آبکشی و با حوله نخی کاملاً خشک فرمایید.</p>\n")
+                sb.append("  </div>\n\n")
+            }
+            analysis.archetype == ProductArchetype.SKIN_SUNSCREEN -> {
+                sb.append("  <div class=\"gliseo-callout-box\" style=\"background: #fffbeb; border: 1px dashed #f59e0b; padding: 14px; border-radius: 8px; margin-bottom: 24px;\">\n")
+                sb.append("    <h3 style=\"color: #b45309; font-size: 14px; margin-top: 0;\">✦ نکته تخصصی محافظت در برابر پرتوهای آفتاب:</h3>\n")
+                sb.append("    <p style=\"font-size: 13px; line-height: 1.7; color: #92400e; margin: 0;\">ضد آفتاب را به میزان دو بند انگشت روی پوست صورت پخش کنید و برای حفظ بالاترین سطح ایمنی در برابر پرتوهای مضر UV، هر ۲ ساعت یکبار آن را تمدید نمایید.</p>\n")
+                sb.append("  </div>\n\n")
+            }
+            analysis.isSkinCare -> {
+                sb.append("  <div class=\"gliseo-callout-box\" style=\"background: #eff6ff; border: 1px dashed #3b82f6; padding: 14px; border-radius: 8px; margin-bottom: 24px;\">\n")
+                sb.append("    <h3 style=\"color: #1d4ed8; font-size: 14px; margin-top: 0;\">✦ نکته تخصصی روتین سلامت پوست:</h3>\n")
+                sb.append("    <p style=\"font-size: 13px; line-height: 1.7; color: #1e3a8a; margin: 0;\">برای حداکثر اثربخشی، محصول را همواره روی پوست تمیز استفاده نموده و با حرکات دورانی ملایم به سمت بالا ماساژ دهید تا جذب عمقی لایه‌های اپیدرم شود.</p>\n")
+                sb.append("  </div>\n\n")
+            }
+            else -> {
+                sb.append("  <div class=\"gliseo-callout-box\" style=\"background: #eff6ff; border: 1px dashed #3b82f6; padding: 14px; border-radius: 8px; margin-bottom: 24px;\">\n")
+                sb.append("    <h3 style=\"color: #1d4ed8; font-size: 14px; margin-top: 0;\">✦ نکته تخصصی کارشناس سلامت و اصالت کالا:</h3>\n")
+                sb.append("    <p style=\"font-size: 13px; line-height: 1.7; color: #1e3a8a; margin: 0;\">برای حصول بهترین نتیجه از محصولات استاندارد ${analysis.detectedBrand}، محصول را دور از تابش مستقیم آفتاب نگهداری نموده و از پلمب بودن بارکد کالا اطمینان حاصل فرمایید.</p>\n")
+                sb.append("  </div>\n\n")
+            }
         }
 
         if (faqs.isNotEmpty()) {

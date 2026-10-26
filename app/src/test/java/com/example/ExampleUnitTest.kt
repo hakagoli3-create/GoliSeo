@@ -207,6 +207,97 @@ class ExampleUnitTest {
     val hairLinksHtml = ContentModuleProcessor.buildRealGolikalaInternalLinksHtml("ماسک مو کراتینه آمالفی اسپانیا")
     assertTrue(hairLinksHtml.contains("hair-care") || hairLinksHtml.contains("amalfi"))
   }
+
+  @Test
+  fun testTemplateMatchingBanArchetypeDifferentiation() {
+    val shampooItem = SiteItem(
+      id = 201,
+      title = "شامپو بدون سولفات کراتینه آگرادو (Agrado) اصل اسپانیا",
+      content = "شامپو موهای کراتینه‌شده و آسیب‌دیده با فرمول ملایم اروپایی",
+      slug = "agrado-keratin-shampoo",
+      categories = listOf("مراقبت مو", "شامپو"),
+      type = SiteItemType.PRODUCT
+    )
+
+    val hairMaskItem = SiteItem(
+      id = 202,
+      title = "ماسک مو ترمیم‌کننده عمقی آمالفی (Amalfi) اصل اسپانیا",
+      content = "ماسک مو احیاکننده و نرم‌کننده ساقه موهای رنگ‌شده و دکلره",
+      slug = "amalfi-restoring-hair-mask",
+      categories = listOf("مراقبت مو", "ماسک مو"),
+      type = SiteItemType.PRODUCT
+    )
+
+    val sunscreenItem = SiteItem(
+      id = 203,
+      title = "کرم ضد آفتاب و ضد لک فاقد چربی لافارر SPF 50",
+      content = "کرم ضد آفتاب با محافظت حداکثری از پوست در برابر اشعه‌های خورشید",
+      slug = "lafarrerr-sunscreen-spf50",
+      categories = listOf("مراقبت پوست", "ضد آفتاب"),
+      type = SiteItemType.PRODUCT
+    )
+
+    val intimateGelItem = SiteItem(
+      id = 204,
+      title = "ژل بهداشتی بانوان هیدرودرم با تنظیم pH فیزیولوژیک",
+      content = "شوینده بسیار ملایم بهداشتی با خاصیت ضد التهاب و رفع بوی نامطبوع",
+      slug = "hydroderm-intimate-gel",
+      categories = listOf("بهداشت فردی", "ژل بهداشتی"),
+      type = SiteItemType.PRODUCT
+    )
+
+    val shampooPkg = ContentModuleProcessor.generateProductPackage(shampooItem, BrandKnowledgeBase())
+    val maskPkg = ContentModuleProcessor.generateProductPackage(hairMaskItem, BrandKnowledgeBase())
+    val sunscreenPkg = ContentModuleProcessor.generateProductPackage(sunscreenItem, BrandKnowledgeBase())
+    val intimatePkg = ContentModuleProcessor.generateProductPackage(intimateGelItem, BrandKnowledgeBase())
+
+    // 1. Shampoo Verification (Strictly Scalp & Hair Washing)
+    assertTrue("Shampoo must mention hair washing or scalp", shampooPkg.shortDescription.contains("مو") || shampooPkg.shortDescription.contains("سر"))
+    assertFalse("Shampoo short desc must NOT copy hair mask text", shampooPkg.shortDescription.contains("ماسک مو"))
+    assertFalse("Shampoo must not suggest leave-in bath mask", shampooPkg.fullDescription.contains("ماسک را منحصراً") || shampooPkg.fullDescription.contains("ماسک موی تخصصی"))
+    assertTrue("Shampoo callout box must be hair wash specific", shampooPkg.structuredHtmlContent.contains("شستشوی مو"))
+
+    // 2. Hair Mask Verification (Strictly Mid-lengths to Ends, NOT Scalp Washing)
+    assertTrue("Mask must mention lengths or repair", maskPkg.shortDescription.contains("ساقه") || maskPkg.shortDescription.contains("نوک مو") || maskPkg.shortDescription.contains("کوتیکول"))
+    assertTrue("Mask must specify leave-in time 3 to 5 minutes", maskPkg.fullDescription.contains("۵ دقیقه") || maskPkg.fullDescription.contains("۳ تا ۵"))
+    assertTrue("Mask callout must warn against applying on scalp", maskPkg.structuredHtmlContent.contains("ریشه و پوست سر") || maskPkg.structuredHtmlContent.contains("احیای مو"))
+
+    // 3. Sunscreen Verification (Strictly UV Protection, SPF, 2-hour reapplication)
+    assertTrue("Sunscreen must mention UVA/UVB or sun", sunscreenPkg.shortDescription.contains("آفتاب") || sunscreenPkg.shortDescription.contains("UVA"))
+    assertTrue("Sunscreen full desc must mention reapplication", sunscreenPkg.fullDescription.contains("تمدید") || sunscreenPkg.fullDescription.contains("ساعت"))
+    assertFalse("Sunscreen must not have detergent or hair keywords", sunscreenPkg.shortDescription.contains("رسوب") || sunscreenPkg.shortDescription.contains("شامپو"))
+
+    // 4. Intimate Hygiene Verification (Strictly physiological pH & external use)
+    assertTrue("Intimate gel must mention pH", intimatePkg.shortDescription.contains("pH") || intimatePkg.fullDescription.contains("pH"))
+    assertTrue("Intimate gel must specify external use", intimatePkg.safetyWarning.contains("خارجی") || intimatePkg.fullDescription.contains("خارجی"))
+    assertFalse("Intimate gel must not mention hair care or descaler", intimatePkg.shortDescription.contains("رسوب") || intimatePkg.shortDescription.contains("ساقه مو"))
+
+    // 5. Fixed Identity Policy for "Golikala"
+    // Never brand manufacturer
+    assertFalse("Golikala cannot be brand of shampoo", shampooPkg.detectedBrand.startsWith("گلی کالا"))
+    assertFalse("Golikala cannot be brand of sunscreen", sunscreenPkg.detectedBrand.startsWith("گلی کالا"))
+    // Official Agency for Amalfi & Agrado
+    assertTrue("Agrado must be official agency", shampooPkg.isOfficialAgencyBrand)
+    assertTrue("Amalfi must be official agency", maskPkg.isOfficialAgencyBrand)
+    assertTrue("Agency statement must be explicit", shampooPkg.agencyStatement.contains("نماینده رسمی و انحصاری"))
+    // Official importer for Lafarrerr
+    assertFalse("Lafarrerr is not agency brand", sunscreenPkg.isOfficialAgencyBrand)
+    assertTrue("Must be official importer", sunscreenPkg.agencyStatement.contains("واردکننده رسمی و مرجع اصالت کالا"))
+
+    // 6. Complete Non-Contradictory Technical Table (All 9 keys present)
+    for (pkg in listOf(shampooPkg, maskPkg, sunscreenPkg, intimatePkg)) {
+      val specs = pkg.specificationsTable.toMap()
+      assertTrue(specs.containsKey("نام و استاندارد کالا"))
+      assertTrue(specs.containsKey("برند اصلی سازنده"))
+      assertTrue(specs.containsKey("کشور مبدا و تولید"))
+      assertTrue(specs.containsKey("عرضه کننده و مرجع خرید"))
+      assertTrue(specs.containsKey("نوع محصول و فرمولاسیون"))
+      assertTrue(specs.containsKey("بافت هدف و سطوح مصرف"))
+      assertTrue(specs.containsKey("روش و الگوی مصرف"))
+      assertTrue(specs.containsKey("نکات ایمنی و بهداشتی"))
+      assertTrue(specs.containsKey("اصالت و گارانتی خرید"))
+    }
+  }
 }
 
 
