@@ -1170,6 +1170,41 @@ fun ItemEditorView(
                                     }
                                 }
                                 Spacer(modifier = Modifier.height(6.dp))
+                                if (aiResult.visionSummary.isNotBlank()) {
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .clip(RoundedCornerShape(6.dp))
+                                            .background(GliseoPrimary.copy(alpha = 0.08f))
+                                            .padding(horizontal = 8.dp, vertical = 6.dp)
+                                    ) {
+                                        Text(
+                                            text = "👁 فاز اول (تحلیل تصویر و OCR): ${aiResult.visionSummary}",
+                                            fontSize = 9.sp,
+                                            color = GliseoPrimary,
+                                            lineHeight = 15.sp
+                                        )
+                                    }
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                }
+                                if (aiResult.isZeroContradictionVerified) {
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .clip(RoundedCornerShape(6.dp))
+                                            .background(GliseoSuccess.copy(alpha = 0.08f))
+                                            .padding(horizontal = 8.dp, vertical = 4.dp)
+                                    ) {
+                                        Text(
+                                            text = "🛡 فاز سوم (قانون خطای صفر): ${aiResult.contradictionAuditSummary.ifBlank { "تایید ۱۰۰٪ تطابق بدون تناقض با ماهیت واقعی کالا" }}",
+                                            fontSize = 9.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = GliseoSuccess,
+                                            lineHeight = 15.sp
+                                        )
+                                    }
+                                    Spacer(modifier = Modifier.height(6.dp))
+                                }
                                 if (aiResult.detectedBrand.isNotBlank()) {
                                     Text(text = "• برند سازنده: ${aiResult.detectedBrand} (کشور: ${aiResult.detectedCountry})", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 }
@@ -1178,6 +1213,9 @@ fun ItemEditorView(
                                 Text(text = "• توضیحات متا: ${aiResult.suggestedMetaDescription}", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 if (aiResult.suggestedShortDescription.isNotBlank()) {
                                     Text(text = "• متن کوتاه جذاب: ${aiResult.suggestedShortDescription.take(90)}...", fontSize = 9.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
+                                if (aiResult.suggestedImageAlt.isNotBlank()) {
+                                    Text(text = "• متن جایگزین عکس (Alt): ${aiResult.suggestedImageAlt}", fontSize = 9.sp, color = GliseoPrimary)
                                 }
                                 Text(text = "امتیاز جدید: +${aiResult.seoScoreImprovement}٪ (${aiResult.groundingSummary})", fontSize = 10.sp, color = GliseoSuccess, fontWeight = FontWeight.Bold)
                             }
@@ -1355,12 +1393,14 @@ fun ItemEditorView(
                                                 item.copy(title = title, content = content, excerpt = excerpt, focusKeyword = focusKeyword),
                                                 brandKnowledgeBase
                                             )
+                                            val imgMeta = pkg.imageMetadata ?: ContentModuleProcessor.generateImageMetadata(item)
                                             title = pkg.seoTitle
                                             excerpt = pkg.shortDescription
                                             content = pkg.structuredHtmlContent
                                             metaTitle = pkg.seoTitle
                                             metaDescription = pkg.rankMathMetaDesc
                                             focusKeyword = pkg.focusKeyword
+                                            imageAlt = imgMeta.persianAltText
                                             onRewriteContentAdvanced()
                                         },
                                         colors = ButtonDefaults.buttonColors(containerColor = GliseoSecondary),

@@ -299,6 +299,31 @@ class GliseoRepository(private val context: Context) {
                 featuredImageUrl = "https://golikala.com/wp-content/uploads/porcoz-descaler-turkey.webp",
                 seoScore = 85
             ),
+            SiteItem(
+                id = 110,
+                title = "شامپو آبرسان لورال Loreal Elseve بنفش هیالورونیک اسید اصل فرانسه",
+                content = "شامپو آبرسان و حجم‌دهنده ۷۲ ساعته لورال السیو بنفش حاوی اسید هیالورونیک خالص ساخت کمپانی لورآل پاریس فرانسه. گلی کالا به عنوان واردکننده رسمی و مرجع اصالت کالا این محصول را با تضمین ۱۰۰٪ اصالت فیزیکی عرضه می‌نماید. پاکسازی ملایم چربی کف سر و تارهای مو همراه با آبرسانی عمیق فیبر موهای دهیدراته و خشک بدون ایجاد احساس سنگینی.",
+                excerpt = "آبرسانی ۷۲ ساعته تارهای مو و کنترل چربی کف سر با شامپو السیو بنفش لورال فرانسه، تضمین ۱۰۰٪ اصالت کالا در گلی کالا.",
+                slug = "loreal-elseve-hyaluron-plump-shampoo-france",
+                categories = listOf("مراقبت از مو", "شامپو", "محصولات لورال"),
+                tags = listOf("لورال", "شامپو لورال", "السیو بنفش", "هیالورونیک اسید", "فرانسه"),
+                regularPrice = "۳۸۰٬۰۰۰ تومان",
+                salePrice = "۳۲۰٬۰۰۰ تومان",
+                stockStatus = "instock",
+                sku = "GLS-LOR-110",
+                type = SiteItemType.PRODUCT,
+                focusKeyword = "شامپو لورال السیو بنفش اصل فرانسه",
+                secondaryKeywords = listOf("شامپو هیالورونیک اسید لورال", "خرید شامپو لورال اصل گلی کالا"),
+                metaTitle = "شامپو لورال Elseve بنفش اصل فرانسه | گلی کالا",
+                metaDescription = "خرید اینترنتی شامپو لورال السیو بنفش هیالورونیک اسید اصل فرانسه با ضمانت اصالت ۱۰۰٪ فیزیکی در گلی کالا. مشخصات فنی، روش مصرف و ارسال فوری.",
+                canonicalUrl = "https://golikala.com/product/loreal-elseve-hyaluron-plump-shampoo-france",
+                schemaType = "Product",
+                schemaJson = """{"@context":"https://schema.org","@type":"Product","name":"شامپو لورال Elseve بنفش اصل فرانسه"}""",
+                imageAlt = "بطری بنفش شامپو آبرسان لورال السیو حاوی هیالورونیک اسید اصل فرانسه",
+                imageTitle = "شامپو لورال السیو بنفش در گلی کالا",
+                featuredImageUrl = "https://golikala.com/wp-content/uploads/loreal-elseve-hyaluron-purple-shampoo.webp",
+                seoScore = 84
+            ),
 
             // --- WordPress Posts & Articles ---
             SiteItem(
@@ -2074,6 +2099,7 @@ class GliseoRepository(private val context: Context) {
         val item = _items.value.find { it.id == itemId } ?: return@withContext
         val kb = _brandKnowledgeBase.value
         val pkg = ContentModuleProcessor.generateProductPackage(item, kb)
+        val imgMeta = pkg.imageMetadata ?: ContentModuleProcessor.generateImageMetadata(item)
         val changes = mapOf(
             "title" to pkg.seoTitle,
             "excerpt" to pkg.shortDescription,
@@ -2081,13 +2107,15 @@ class GliseoRepository(private val context: Context) {
             "metaTitle" to pkg.seoTitle,
             "metaDescription" to pkg.rankMathMetaDesc,
             "focusKeyword" to pkg.focusKeyword,
+            "imageAlt" to imgMeta.persianAltText,
+            "imageTitle" to "${item.title} در گلی کالا",
             "seoScore" to 96
         )
         applyItemUpdate(
             targetId = itemId,
             proposedChanges = changes,
-            actionName = "بازنویسی پیشرفته سئو و هویت نمایندگی گلی کالا",
-            reason = "تحلیل پیش از نگارش، H1 استاندارد، جدول مشخصات، درج هویت نمایندگی رسمی آمالفی، آگرادو و سایرو و لینک‌های داخلی golikala.com"
+            actionName = "بازنویسی پیشرفته سئو (پروتکل ۳ مرحله‌ای و قانون خطای صفر)",
+            reason = "تحلیل OCR و تصویر، عنوان H1، متن کوتاه تخصصی، جدول ۹ ردیفه فنی، متادیتای عکس و اعتبارسنجی خطای صفر"
         )
     }
 }

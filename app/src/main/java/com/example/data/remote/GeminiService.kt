@@ -39,7 +39,12 @@ data class SeoAiResult(
     val detectedApplication: String = "",
     val isOfficialAgencyBrand: Boolean = false,
     val agencyStatement: String = "",
-    val internalLinks: List<InternalLinkAnchor> = emptyList()
+    val internalLinks: List<InternalLinkAnchor> = emptyList(),
+    val suggestedImageTitle: String = "",
+    val suggestedImageFileName: String = "",
+    val visionSummary: String = "",
+    val isZeroContradictionVerified: Boolean = true,
+    val contradictionAuditSummary: String = ""
 )
 
 class GeminiSeoService {
@@ -130,38 +135,33 @@ class GeminiSeoService {
         return """
             شما متخصص ارشد سئو (SEO)، کپی‌رایتر حرفه‌ای و استراتژیست محتوا برای فروشگاه اینترنتی «گلی کالا» (golikala.com) هستید.
             
-            قوانین جامع، سخت‌گیرانه و هوشمند برای تولید محتوا و سئو در تمام محصولات سایت (گلی کالا) - الزامی و تخطی‌ناپذیر:
+            دستورالعمل جامع و پروتکل اجرایی هوش مصنوعی برای ماژول «تولید محتوا و سئو» در اپلیکیشن «گلی‌سئو» (گلی کالا) - قطعی و الزامی:
             
-            ۱. ممنوعیت مطلق حدس و گمان یا استفاده از قالب‌های آماده (Template Matching Ban):
-            - سیستم به هیچ وجه اجازه ندارد از متن‌های پیش‌فرضِ ثابت یا قالب‌های آماده (مثل کپی کردن متن ماسک مو برای شامپو یا جرم‌گیر، یا متن عمومی برای ضد آفتاب یا ژل بانوان) استفاده کند.
-            - محتوای تولیدشده باید منحصراً و ۱۰۰ درصد مرتبط با «ماهیت واقعی و کاربریِ دقیقِ» همان محصولی باشد که در حال پردازش است.
+            ۱. فاز اول: تحلیل چندمرحله‌ای و شناسایی دقیق محصول (Vision & Text Analysis)
+            - گام اول (بررسی تصویر): سیستم موظف است تصویر محصول در برگه (URL، Alt و متادیتا) را به طور کامل تحلیل و OCR/بینایی‌سنجی کند تا برند، مدل، نوع کالا (شامپو، جرم‌گیر، کرم و...) و مشخصات روی بسته‌بندی را استخراج کند.
+            - گام دوم (بررسی عنوان): عنوان موجود در برگه محصول (مثلاً: شامپو لورال Loreal Elseve بنفش هیالورونیک اسید...) به دقت خوانده شود.
+            - گام سوم (تحقیقات تطبیقی و وب/دیتابیس): ترکیب تصویر و عنوان بررسی شود تا دقیقاً معلوم شود این محصول چیست، ساخت کدام کشور و شرکت است و چه کاربری‌ای دارد. هیچ‌گونه حدس و گمان یا استفاده از قالب‌های پیش‌فرض و ثابت مجاز نیست (Template Matching Ban).
             
-            ۲. زنجیره پردازش و تحلیل دقیق ۴ مرحله‌ای (Analysis Pipeline):
-            پیش از تولید هرگونه محتوا (عنوان، چکیده/متن کوتاه، توضیحات کامل، بخش‌های رنک‌مث/Rank Math، متادیتاها و بخش‌های مرتبط با تصویر)، موظفید این ۴ مرحله را به ترتیب طی کنید:
-            - الف) استخراج و تحلیل دقیق عنوان موجود در سایت و تصویر محصول (URL، Alt و متادیتا). اگر اطلاعات عنوان ناکافی بود از طریق موتور جستجو تحقیق کنید که کالا دقیقاً چیست، متعلق به کدام شرکت و ساخت کدام کشور است.
-            - ب) تشخیص دقیق نوع کالا، کاربرد واقعی، بافت یا سطوح هدف، برند اصلی سازنده و کشور مبدأ.
-            - ج) انطباق کاملِ کلمات کلیدی، متن کوتاه و توضیحات با ماهیتِ کشف‌شده:
-              * اگر کالا شامپو است: کل متن منحصراً درباره شستشوی تارهای مو و پاکسازی ملایم چربی کف سر و ریشه باشد.
-              * اگر کالا ماسک مو است: کل متن درباره تغذیه و ترمیم ساقه و نوک مو در حمام باشد و اکیداً به کف سر و شستشوی ریشه اشاره نشود.
-              * اگر کالا اسپری دوفاز است: درباره محافظت حرارتی سشوار و رفع وز ساقه بدون آبکشی باشد.
-              * اگر کالا شوینده یا رسوب‌زدا یا جرم‌گیر است (پورچز، سیف، دامستوس و...): تمام متن درباره سطوح سخت (شیرآلات، کاشی، کتری، سینک)، رسوب‌زدایی، الزام دستکش، تهویه و هشدار حیاتی عدم اختلاط با وایتکس باشد (⛔ اکیداً هیچ کلمه مرتبط با مو، پوست سر یا زیبایی به کار نرود).
-              * اگر کالا ژل بهداشتی بانوان است: درباره تنظیم pH فیزیولوژیک و مصرف موضعی خارجی باشد.
-              * اگر کالا ضد آفتاب است: درباره فیلترهای UVA و UVB و تمدید دو ساعته باشد.
-            - د) پر کردن جدول مشخصات فنی و بخش‌های سئو دقیقاً بر اساس اطلاعات واقعیِ همان کالا، بدون کوچک‌ترین تناقض.
+            ۲. فاز دوم: تولید محتوای سئو شده در رتبه ۱ گوگل (SEO Content Generation)
+            پس از شناسایی ۱۰۰٪ واقعی ماهیت کالا، تمامی بخش‌های زیر باید به صورت کاملاً هماهنگ، تخصصی و تخصیصی برای همان محصول بازنویسی و کامل شوند:
+            - عنوان سئو (H1): بهینه‌شده، جذاب و کاملاً منطبق با ماهیت واقعی کالا (زیر ۶۰ کاراکتر).
+            - چکیده / توضیح کوتاه (Short Description): خلاصه و مفید، منحصراً درباره ویژگی‌های همان کالا (مثلاً اگر شامپو است، فقط درباره موی چرب و پاکسازی پوست سر؛ و به هیچ وجه متن ماسک مو یا محصول دیگر درج نشود).
+            - توضیحات کامل (Content): ساختاریافته شامل مقدمه تخصصی، جدول مشخصات فنی دقیق (نام کالا، برند واقعی، کشور سازنده واقعی، و درج «گلی کالا» صرفاً به عنوان واردکننده رسمی یا نماینده رسمی)، ویژگی‌های برجسته و پرسش‌های متداول (FAQ).
+            - بخش‌های مرتبط با تصویر (Alt Text & Image Meta): بازنویسی متن‌های جایگزین (Alt) و تگ‌های عکس به گونه‌ای که کاملاً با کلیدواژه‌های سئوی همان محصول همخوانی داشته باشد.
+            - بخش‌های Rank Math / متادیتاها: تولید کانون کلیدواژه، متا تایتل و متا دسکریپشن سئوپسند.
             
-            ۳. سیاست ثابتِ معرفی «گلی کالا»:
+            ۳. فاز سوم: قانون خطای صفر (Zero-Tolerance Contradiction Guard)
+            - اگر کوچک‌ترین تناقضی بین نوع محصول در تصویر و متن تولیدی وجود داشته باشد (مثلاً به شامپو بگوید ماسک مو، یا به رسوب‌زدا و جرم‌گیر بگوید مراقبت مو)، سیستم باید از ثبت آن جلوگیری کرده و خودکار متن را منطبق با ماهیت واقعی کالا اصلاح نماید.
+            
+            ۴. سیاست ثابتِ معرفی «گلی کالا»:
             - «گلی کالا» به هیچ عنوان نباید به عنوان برند سازنده یا تولیدکننده کالا درج شود.
             - «گلی کالا» در تمامی محتواها و جدول‌ها به عنوان:
               * برای برندهای آمالفی (Amalfi)، آگرادو (Agrado) و سایرو (Sairo) ساخت اسپانیا: «گلی کالا (نماینده رسمی و انحصاری محصولات آمالفی، آگرادو و سایرو در ایران)»
               * برای سایر محصولات و برندها: «گلی کالا (واردکننده رسمی و مرجع اصالت کالا)»
             
-            ۴. یکپارچگی تمامی بخش‌ها (عنوان، چکیده، توضیحات، رنک‌مث و تصاویر):
-            - تمامی بخش‌های خروجی (H1، متن کوتاه، بدنه مقاله، جدول مشخصات، پرسش‌های متداول FAQ و تگ‌های تصویر) باید در بالاترین سطح هوشیاری، هماهنگ با یکدیگر و کاملاً تخصصی و سئوپسند تولید شوند تا هیچ‌گونه تناقضی میان عنوان و متن وجود نداشته باشد.
-            
-            ۵. رعایت اصول سئو و لینک‌سازی داخلی واقعی به وبسایت golikala.com:
-            - ایجاد تگ H1 استاندارد بر اساس عنوان دقیق محصول.
-            - جدول‌بندی منظم و جذاب بصری شامل: نام و استاندارد کالا، برند اصلی سازنده، کشور مبدا و تولید، عرضه کننده و مرجع خرید، نوع محصول و فرمولاسیون، بافت هدف و سطوح مصرف، روش و الگوی مصرف، نکات ایمنی و بهداشتی، اصالت و گارانتی خرید.
-            - درج لینک‌های داخلی کاملاً مرتبط با همان دسته‌بندی در انتهای متن (home-cleaning برای شوینده، hair-care برای مو، skincare برای پوست، body-hygiene برای بهداشت بدن).
+            ۵. جدول مشخصات فنی دقیق و لینک‌سازی داخلی واقعی به وبسایت golikala.com:
+            - جدول ۹ ردیفه شامل: نام و استاندارد کالا، برند اصلی سازنده، کشور مبدا و تولید، عرضه کننده و مرجع خرید، نوع محصول و فرمولاسیون، بافت هدف و سطوح مصرف، روش و الگوی مصرف، نکات ایمنی و بهداشتی، اصالت و گارانتی خرید.
+            - درج لینک‌های داخلی کاملاً مرتبط با همان دسته‌بندی در انتهای متن.
             
             اطلاعات آیتم در حال بررسی و تحلیل:
             نوع: ${item.type.persianLabel}
@@ -186,8 +186,8 @@ class GeminiSeoService {
             
             خروجی را الزاماً و منحصراً در قالب فرمت JSON زیر بازگردانید:
             {
-               "detectedBrand": "نام برند سازنده واقعی (مثلاً پورچز یا آمالفی - هرگز گلی کالا نباشد)",
-               "originCountry": "کشور سازنده واقعی (مثلاً ترکیه یا اسپانیا)",
+               "detectedBrand": "نام برند سازنده واقعی (مثلاً لورآل، پورچز یا آمالفی - هرگز گلی کالا نباشد)",
+               "originCountry": "کشور سازنده واقعی (مثلاً فرانسه، ترکیه یا اسپانیا)",
                "productType": "نوع دقیق محصول بر پایه ماهیت کالا",
                "application": "کاربرد دقیق و واقعی",
                "suggestedTitle": "عنوان سئو شده H1 (زیر ۶۰ کاراکتر)",
@@ -197,8 +197,8 @@ class GeminiSeoService {
                "suggestedFocusKeyword": "کلمه کلیدی کانونی برتر",
                "suggestedSchemaJson": "کد JSON-LD معتبر اسکیما",
                "suggestedImageAlt": "متن جایگزین استاندارد تصویر منطبق با نام کالا و برند",
-               "seoScoreImprovement": 95,
-               "groundingSummary": "تحلیل پیش از نگارش عنوان و تصویر، استخراج برند و مشخصات فنی بر پایه زنجیره ۴ مرحله‌ای",
+               "seoScoreImprovement": 96,
+               "groundingSummary": "تحلیل ۳ مرحله‌ای تصویر و عنوان، استخراج برند و مشخصات فنی بر پایه پروتکل اجرایی گلی‌سئو",
                "internalLinks": [
                    {"anchorText": "...", "targetUrl": "https://golikala.com/...", "contentType": "..."}
                ]
@@ -243,24 +243,53 @@ class GeminiSeoService {
                 ContentModuleProcessor.generateProductPackage(originalItem).structuredHtmlContent
             }
 
+            val preAnalysis = ContentModuleProcessor.analyzeProductBeforeWriting(originalItem)
+            val imgMeta = ContentModuleProcessor.generateImageMetadata(originalItem)
+            val vision = preAnalysis.visionAnalysis ?: ContentModuleProcessor.analyzeProductVisionAndText(originalItem)
+
+            val rawPackage = com.example.data.model.ProductOptimizationPackage(
+                seoTitle = PersianNormalizer.normalize(obj.optString("suggestedTitle", originalItem.title)),
+                shortDescription = PersianNormalizer.normalize(obj.optString("suggestedShortDescription", "")),
+                fullDescription = finalStructuredContent,
+                rankMathMetaDesc = PersianNormalizer.normalize(obj.optString("suggestedMetaDescription", "خرید آنلاین با گارانتی اصالت در گلی کالا")),
+                focusKeyword = PersianNormalizer.normalize(obj.optString("suggestedFocusKeyword", originalItem.focusKeyword.ifEmpty { "خرید آنلاین" })),
+                features = emptyList(),
+                verifiedSource = "بررسی تطبیقی و استخراج کاتالوگ بین‌المللی",
+                faqs = emptyList(),
+                safetyWarning = preAnalysis.safetyWarning,
+                detectedBrand = detectedBrand,
+                originCountry = obj.optString("originCountry", preAnalysis.originCountry),
+                productType = obj.optString("productType", preAnalysis.productType),
+                isOfficialAgencyBrand = isAgency,
+                agencyStatement = if (isAgency) "گلی کالا نماینده رسمی و انحصاری محصولات برندهای آمالفی، آگرادو و سایرو در ایران می‌باشد." else "گلی کالا (واردکننده رسمی و مرجع اصالت کالا)"
+            )
+
+            val sanitizedPkg = com.example.data.model.ZeroContradictionGuard.auditAndSanitize(preAnalysis, rawPackage, originalItem)
+            val audit = sanitizedPkg.contradictionAudit ?: com.example.data.model.ZeroContradictionGuard.audit(preAnalysis, sanitizedPkg)
+
             SeoAiResult(
-                suggestedTitle = PersianNormalizer.normalize(obj.optString("suggestedTitle", originalItem.title)),
-                suggestedMetaDescription = PersianNormalizer.normalize(obj.optString("suggestedMetaDescription", "خرید آنلاین با گارانتی اصالت در گلی کالا")),
-                suggestedFocusKeyword = PersianNormalizer.normalize(obj.optString("suggestedFocusKeyword", originalItem.focusKeyword.ifEmpty { "خرید آنلاین" })),
+                suggestedTitle = sanitizedPkg.seoTitle,
+                suggestedMetaDescription = sanitizedPkg.rankMathMetaDesc,
+                suggestedFocusKeyword = sanitizedPkg.focusKeyword,
                 suggestedSchemaJson = obj.optString("suggestedSchemaJson", generateStandardSchema(originalItem)),
-                suggestedImageAlt = PersianNormalizer.normalize(obj.optString("suggestedImageAlt", "تصویر باکیفیت از ${originalItem.title} در گلی کالا")),
-                seoScoreImprovement = obj.optInt("seoScoreImprovement", 95),
+                suggestedImageAlt = PersianNormalizer.normalize(obj.optString("suggestedImageAlt", imgMeta.persianAltText)),
+                seoScoreImprovement = obj.optInt("seoScoreImprovement", 96),
                 groundingSummary = obj.optString("groundingSummary", "تحلیل پیش از نگارش عنوان و متادیتای بصری تصویر با Google Search Grounding"),
                 tokenCost = 880,
-                suggestedShortDescription = PersianNormalizer.normalize(obj.optString("suggestedShortDescription", "")),
-                suggestedStructuredContent = finalStructuredContent,
-                detectedBrand = detectedBrand,
-                detectedCountry = obj.optString("originCountry", "اروپا / استانداردهای بین‌المللی"),
-                detectedProductType = obj.optString("productType", "محصول تخصصی با ضمانت اصالت فیزیکی"),
-                detectedApplication = obj.optString("application", "کاربرد استاندارد و تخصصی کالا"),
-                isOfficialAgencyBrand = isAgency,
-                agencyStatement = if (isAgency) "گلی کالا نماینده رسمی و انحصاری محصولات برندهای آمالفی، آگرادو و سایرو در ایران می‌باشد." else "گلی کالا (واردکننده رسمی و مرجع اصالت کالا)",
-                internalLinks = if (linksList.isNotEmpty()) linksList else ContentModuleProcessor.generateProductPackage(originalItem).internalLinks
+                suggestedShortDescription = sanitizedPkg.shortDescription,
+                suggestedStructuredContent = sanitizedPkg.structuredHtmlContent.ifBlank { finalStructuredContent },
+                detectedBrand = sanitizedPkg.detectedBrand,
+                detectedCountry = sanitizedPkg.originCountry,
+                detectedProductType = sanitizedPkg.productType,
+                detectedApplication = obj.optString("application", preAnalysis.primaryApplication),
+                isOfficialAgencyBrand = sanitizedPkg.isOfficialAgencyBrand,
+                agencyStatement = sanitizedPkg.agencyStatement,
+                internalLinks = if (linksList.isNotEmpty()) linksList else ContentModuleProcessor.generateProductPackage(originalItem).internalLinks,
+                suggestedImageTitle = "${originalItem.title} در گلی کالا",
+                suggestedImageFileName = imgMeta.suggestedFileName,
+                visionSummary = vision.visionSummary,
+                isZeroContradictionVerified = audit.isZeroContradictionVerified,
+                contradictionAuditSummary = audit.auditSummary
             )
         } catch (e: Exception) {
             generateIntelligentFallback(originalItem, BrandProfile())
@@ -269,24 +298,34 @@ class GeminiSeoService {
 
     fun generateIntelligentFallback(item: SiteItem, brand: BrandProfile): SeoAiResult {
         val pkg = ContentModuleProcessor.generateProductPackage(item)
+        val imgMeta = pkg.imageMetadata ?: ContentModuleProcessor.generateImageMetadata(item)
+        val vision = pkg.visionAnalysis ?: ContentModuleProcessor.analyzeProductVisionAndText(item)
+        val preAnalysis = ContentModuleProcessor.analyzeProductBeforeWriting(item)
+        val audit = pkg.contradictionAudit ?: com.example.data.model.ZeroContradictionGuard.audit(preAnalysis, pkg)
 
         return SeoAiResult(
             suggestedTitle = pkg.seoTitle,
             suggestedMetaDescription = pkg.rankMathMetaDesc,
             suggestedFocusKeyword = pkg.focusKeyword,
             suggestedSchemaJson = generateStandardSchema(item),
-            suggestedImageAlt = "نمای اصلی و جزئیات باکیفیت از ${item.title} در فروشگاه گلی کالا",
-            seoScoreImprovement = 95,
-            groundingSummary = "تحلیل هوشمند رقبای گوگل، ساختار جدول‌بندی و احراز هویت نماینده رسمی گلی کالا",
+            suggestedImageAlt = imgMeta.persianAltText,
+            seoScoreImprovement = 96,
+            groundingSummary = "تحلیل ۳ مرحله‌ای تصویر و عنوان، استخراج برند (${pkg.detectedBrand})، جدول مشخصات و اعتبارسنجی خطای صفر",
             tokenCost = 750,
             suggestedShortDescription = pkg.shortDescription,
             suggestedStructuredContent = pkg.structuredHtmlContent,
             detectedBrand = pkg.detectedBrand,
             detectedCountry = pkg.originCountry,
             detectedProductType = pkg.productType,
+            detectedApplication = preAnalysis.primaryApplication,
             isOfficialAgencyBrand = pkg.isOfficialAgencyBrand,
             agencyStatement = pkg.agencyStatement,
-            internalLinks = pkg.internalLinks
+            internalLinks = pkg.internalLinks,
+            suggestedImageTitle = "${item.title} در گلی کالا",
+            suggestedImageFileName = imgMeta.suggestedFileName,
+            visionSummary = vision.visionSummary,
+            isZeroContradictionVerified = audit.isZeroContradictionVerified,
+            contradictionAuditSummary = audit.auditSummary
         )
     }
 

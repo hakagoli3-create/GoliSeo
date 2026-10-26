@@ -5,8 +5,10 @@ import com.example.data.model.ContentModuleProcessor
 import com.example.data.model.ContentValidator
 import com.example.data.model.JalaliCalendarHelper
 import com.example.data.model.PersianNormalizer
+import com.example.data.model.ProductArchetype
 import com.example.data.model.SiteItem
 import com.example.data.model.SiteItemType
+import com.example.data.model.ZeroContradictionGuard
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -297,6 +299,98 @@ class ExampleUnitTest {
       assertTrue(specs.containsKey("نکات ایمنی و بهداشتی"))
       assertTrue(specs.containsKey("اصالت و گارانتی خرید"))
     }
+  }
+
+  @Test
+  fun testVisionAndOcrAnalysisPipeline() {
+    val lorealItem = SiteItem(
+      id = 110,
+      title = "شامپو آبرسان لورال Loreal Elseve بنفش هیالورونیک اسید اصل فرانسه",
+      content = "شامپو هیالورونیک اسید السیو بنفش لورال فرانسه",
+      slug = "loreal-elseve-hyaluron-purple-shampoo",
+      imageAlt = "بطری بنفش شامپو آبرسان لورال السیو حاوی هیالورونیک اسید اصل فرانسه",
+      type = SiteItemType.PRODUCT
+    )
+
+    val vision = ContentModuleProcessor.analyzeProductVisionAndText(lorealItem)
+    assertTrue("Form factor must detect purple shampoo bottle", vision.packagingFormFactor.contains("بنفش") && vision.packagingFormFactor.contains("شامپو"))
+    assertTrue("OCR labels must include Loreal and Elseve", vision.ocrDetectedLabels.any { it.contains("L'Oréal") || it.contains("Elseve") })
+    assertTrue("Dominant colors must detect purple", vision.visualDominantColors.contains("بنفش"))
+    assertTrue("Category cues must confirm scalp/hair wash", vision.visualCategoryCues.contains("شامپو") || vision.visualCategoryCues.contains("کف سر"))
+    assertEquals(99, vision.confidenceScore)
+
+    val porcozItem = SiteItem(
+      id = 109,
+      title = "رسوب‌زدا و جرم‌گیر شیرآلات و سطوح پورچز (Porçöz) اصل ترکیه",
+      content = "محلول رسوب‌زدا و جرم‌گیر پرقدرت پورچز ساخت کمپانی لونت کیمیا ترکیه",
+      slug = "porcoz-descaler-turkey",
+      imageAlt = "بطری قرمز رسوب‌زدا و جرم‌گیر پورچز اصل ساخت ترکیه",
+      type = SiteItemType.PRODUCT
+    )
+
+    val porcozVision = ContentModuleProcessor.analyzeProductVisionAndText(porcozItem)
+    assertTrue("Porcoz form factor must detect red bottle and safety cap", porcozVision.packagingFormFactor.contains("قرمز") && porcozVision.packagingFormFactor.contains("ایمنی"))
+    assertTrue("Porcoz OCR must include Levent Kimya / Porcoz", porcozVision.ocrDetectedLabels.any { it.contains("Porçöz") || it.contains("Levent Kimya") })
+  }
+
+  @Test
+  fun testLorealElsevePurpleShampooZeroContradiction() {
+    val lorealItem = SiteItem(
+      id = 110,
+      title = "شامپو آبرسان لورال Loreal Elseve بنفش هیالورونیک اسید اصل فرانسه",
+      content = "شامپو آبرسان ۷۲ ساعته لورال پاریس فرانسه",
+      slug = "loreal-elseve-hyaluron-purple-shampoo",
+      imageAlt = "بطری بنفش شامپو آبرسان لورال السیو حاوی هیالورونیک اسید اصل فرانسه",
+      type = SiteItemType.PRODUCT
+    )
+
+    val preAnalysis = ContentModuleProcessor.analyzeProductBeforeWriting(lorealItem)
+    assertEquals(ProductArchetype.HAIR_SHAMPOO, preAnalysis.archetype)
+    assertTrue(preAnalysis.detectedBrand.contains("لورآل") || preAnalysis.detectedBrand.contains("L'Oréal"))
+    assertTrue(preAnalysis.originCountry.contains("فرانسه"))
+    assertFalse("Golikala cannot be the brand", preAnalysis.detectedBrand.contains("گلی کالا"))
+    assertTrue("Golikala is official importer", preAnalysis.agencyStatement.contains("واردکننده رسمی و مرجع اصالت کالا"))
+
+    val pkg = ContentModuleProcessor.generateProductPackage(lorealItem)
+    // Short desc must be exclusively about hair wash and scalp
+    assertTrue(pkg.shortDescription.contains("شامپو") || pkg.shortDescription.contains("تارهای مو"))
+    assertFalse("Must NOT contain mask keywords in shampoo short desc", pkg.shortDescription.contains("ماسک مو"))
+    // Image metadata must sync
+    assertTrue(pkg.imageMetadata?.persianAltText?.contains("شامپو") == true)
+    assertTrue(pkg.imageMetadata?.persianAltText?.contains("لورآل") == true || pkg.imageMetadata?.persianAltText?.contains("لورال") == true)
+    // Zero Contradiction Guard
+    assertTrue("Must pass zero contradiction verification", pkg.contradictionAudit?.isZeroContradictionVerified == true)
+    assertFalse("No self-correction needed for valid shampoo", pkg.contradictionAudit?.selfCorrectionApplied == true)
+  }
+
+  @Test
+  fun testZeroContradictionGuardCatchesAndSelfCorrects() {
+    val lorealItem = SiteItem(
+      id = 110,
+      title = "شامپو آبرسان لورال Loreal Elseve بنفش هیالورونیک اسید اصل فرانسه",
+      content = "شامپو آبرسان",
+      slug = "loreal-elseve-hyaluron-purple-shampoo",
+      type = SiteItemType.PRODUCT
+    )
+
+    val preAnalysis = ContentModuleProcessor.analyzeProductBeforeWriting(lorealItem)
+
+    // Intentionally inject cross-category contradiction (calling shampoo a hair mask and instructing 3-5 min bath wait)
+    val contaminatedPackage = ContentModuleProcessor.generateProductPackage(lorealItem).copy(
+      shortDescription = "ماسک موی تخصصی و کراتینه لورال جهت احیای ساقه و نوک مو در حمام بدون برخورد با کف سر.",
+      fullDescription = "این ماسک را منحصراً روی ساقه مو بمالید و ۳ الی ۵ دقیقه مکث کنید."
+    )
+
+    val audit = ZeroContradictionGuard.audit(preAnalysis, contaminatedPackage)
+    assertTrue("Audit must flag contradictions", audit.identifiedContradictions.isNotEmpty())
+    assertTrue("Must flag mask keyword in shampoo", audit.identifiedContradictions.any { it.contains("ماسک") })
+
+    // Self-correct via auditAndSanitize
+    val sanitized = ZeroContradictionGuard.auditAndSanitize(preAnalysis, contaminatedPackage, lorealItem)
+    assertTrue(sanitized.contradictionAudit?.isZeroContradictionVerified == true)
+    assertTrue(sanitized.contradictionAudit?.selfCorrectionApplied == true)
+    assertFalse("Sanitized package must not contain mask words in shampoo short desc", sanitized.shortDescription.contains("ماسک مو"))
+    assertTrue("Sanitized package must restore hair shampoo nature", sanitized.shortDescription.contains("شامپو"))
   }
 }
 
