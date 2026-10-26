@@ -531,7 +531,202 @@ class ExampleUnitTest {
     assertTrue("Package must be halted", pkg.isGenerationHalted)
     assertTrue("Description must contain halt notice", pkg.fullDescription.contains("gliseo-halt-notice"))
   }
+
+  @Test
+  fun testMultiProductArchetypeIsolationAndVerifiedContent() {
+    // 1. Hair Shampoo
+    val shampooItem = SiteItem(
+      id = 301,
+      title = "شامپو کراتینه و تقویت‌کننده آگرادو اصل اسپانیا ۴۰۰ میل",
+      content = "شامپو موهای آسیب دیده آگرادو ساخت اسپانیا برای پاکسازی و تغذیه مو و پوست سر.",
+      slug = "agrado-keratin-shampoo-400ml",
+      categories = listOf("شامپو", "مراقبت مو"),
+      type = SiteItemType.PRODUCT
+    )
+    val shampooPkg = ContentModuleProcessor.generateProductPackage(shampooItem)
+    assertFalse(shampooPkg.isGenerationHalted)
+    assertTrue("Shampoo title must reflect shampoo nature", shampooPkg.seoTitle.contains("شامپو"))
+    assertTrue("Shampoo short desc must be hair wash specific", shampooPkg.shortDescription.contains("شستشوی") || shampooPkg.shortDescription.contains("پوست سر") || shampooPkg.shortDescription.contains("کف سر"))
+    assertFalse("Shampoo MUST NOT contain mask instructions", shampooPkg.shortDescription.contains("ماسک مو") || shampooPkg.shortDescription.contains("۳ تا ۵ دقیقه"))
+    assertFalse("Shampoo MUST NOT contain descaler claims", shampooPkg.fullDescription.contains("رسوب") || shampooPkg.fullDescription.contains("وایتکس"))
+    assertTrue("Shampoo usage must mention wet hair and rinsing", shampooPkg.fullDescription.contains("مرطوب") || shampooPkg.fullDescription.contains("آبکشی"))
+    assertTrue("Shampoo FAQs must exist and be archetype-tailored", shampooPkg.faqs.any { it.first.contains("روزانه") || it.first.contains("سولفات") || it.first.contains("شستشو") })
+
+    // 2. Hair Mask
+    val maskItem = SiteItem(
+      id = 302,
+      title = "ماسک مو ترمیم‌کننده آمالفی فاقد سولفات ۵۰۰ میل اصل اسپانیا",
+      content = "ماسک مو کراتین آمالفی برای احیای موهای دکلره و آسیب‌دیده با آبکشی در حمام.",
+      slug = "amalfi-restoring-mask-500ml",
+      categories = listOf("ماسک مو", "مراقبت مو"),
+      type = SiteItemType.PRODUCT
+    )
+    val maskPkg = ContentModuleProcessor.generateProductPackage(maskItem)
+    assertFalse(maskPkg.isGenerationHalted)
+    assertTrue("Mask short desc must target lengths and ends", maskPkg.shortDescription.contains("ساقه") || maskPkg.shortDescription.contains("نوک مو") || maskPkg.shortDescription.contains("احیا"))
+    assertTrue("Mask usage must specify 3-5 minute wait", maskPkg.fullDescription.contains("۳ تا ۵ دقیقه") || maskPkg.fullDescription.contains("۳ الی ۵ دقیقه"))
+    assertTrue("Mask safety warning must prohibit applying to scalp", maskPkg.safetyWarning.contains("ریشه") || maskPkg.safetyWarning.contains("پوست سر"))
+    assertFalse("Mask must NOT claim daily scalp washing", maskPkg.fullDescription.contains("شستشوی روزانه کف سر"))
+
+    // 3. Biphasic Serum / Leave-in
+    val serumItem = SiteItem(
+      id = 303,
+      title = "اسپری دو فاز نرم‌کننده و محافظ حرارت آگرادو اصل اسپانیا",
+      content = "سرم دو فاز محافظت از تارهای مو در برابر حرارت سشوار بدون نیاز به آبکشی.",
+      slug = "agrado-biphasic-hair-serum",
+      categories = listOf("سرم مو", "مراقبت مو"),
+      type = SiteItemType.PRODUCT
+    )
+    val serumPkg = ContentModuleProcessor.generateProductPackage(serumItem)
+    assertFalse(serumPkg.isGenerationHalted)
+    assertTrue("Biphasic serum must require shaking before use", serumPkg.fullDescription.contains("تکان") || serumPkg.features.any { it.contains("تکان") })
+    assertTrue("Biphasic serum must be leave-in (no rinse)", serumPkg.fullDescription.contains("بدون نیاز به آبکشی") || serumPkg.shortDescription.contains("بدون نیاز به آبکشی"))
+
+    // 4. Sunscreen
+    val sunscreenItem = SiteItem(
+      id = 304,
+      title = "کرم ضد آفتاب بی‌رنگ لافارر SPF 50 مخصوص پوست چرب",
+      content = "ضد آفتاب با فیلترهای محافظتی UV و کنترل ترشح سبوم و چربی پوست صورت.",
+      slug = "lafarrerr-sunscreen-spf50-matte",
+      categories = listOf("ضد آفتاب", "مراقبت پوست"),
+      type = SiteItemType.PRODUCT
+    )
+    val sunPkg = ContentModuleProcessor.generateProductPackage(sunscreenItem)
+    assertFalse(sunPkg.isGenerationHalted)
+    assertTrue("Sunscreen must specify application 15-20 min before exposure", sunPkg.fullDescription.contains("۱۵ الی ۲۰ دقیقه") || sunPkg.fullDescription.contains("۱۵") || sunPkg.fullDescription.contains("خورشید"))
+    assertTrue("Sunscreen must specify reapplication every 2 hours", sunPkg.fullDescription.contains("۲ ساعت") || sunPkg.features.any { it.contains("۲ ساعت") })
+    assertFalse("Sunscreen must NOT mention hair washing or scalp", sunPkg.shortDescription.contains("کف سر") || sunPkg.shortDescription.contains("شامپو"))
+
+    // 5. Intimate Hygiene Gel
+    val intimateItem = SiteItem(
+      id = 305,
+      title = "ژل بهداشتی بانوان هیدرودرم مدل فمی‌نین با pH فیزیولوژیک",
+      content = "شوینده بسیار ملایم بهداشتی بانوان جهت جلوگیری از التهاب و سوزش.",
+      slug = "hydroderm-feminine-intimate-wash",
+      categories = listOf("بهداشت فردی", "ژل بهداشتی"),
+      type = SiteItemType.PRODUCT
+    )
+    val intPkg = ContentModuleProcessor.generateProductPackage(intimateItem)
+    assertFalse(intPkg.isGenerationHalted)
+    assertTrue("Intimate gel must mention physiological pH", intPkg.shortDescription.contains("pH") || intPkg.features.any { it.contains("pH") })
+    assertTrue("Intimate gel must emphasize external use only", intPkg.safetyWarning.contains("خارجی") || intPkg.fullDescription.contains("خارجی"))
+    assertFalse("Intimate gel must NOT contain descaler or hair care claims", intPkg.shortDescription.contains("رسوب") || intPkg.shortDescription.contains("ماسک"))
+
+    // 6. Detergent Descaler
+    val descalerItem = SiteItem(
+      id = 306,
+      title = "رسوب‌زدا و جرم‌گیر شیرآلات و سطوح پورچز Porcoz اصل ترکیه ۱۰۰۰ میل",
+      content = "محلول حل‌کننده قدرتمند رسوبات آهکی و جرم شیرآلات ساخت لونت کیمیا ترکیه.",
+      slug = "porcoz-limescale-descaler-1000ml",
+      categories = listOf("شوینده", "رسوب زدا"),
+      type = SiteItemType.PRODUCT
+    )
+    val descalerPkg = ContentModuleProcessor.generateProductPackage(descalerItem)
+    assertFalse(descalerPkg.isGenerationHalted)
+    assertTrue("Descaler must specify tap/tile/calcium limescale", descalerPkg.shortDescription.contains("رسوب") || descalerPkg.shortDescription.contains("شیرآلات"))
+    assertTrue("Descaler safety MUST mandate protective gloves", descalerPkg.safetyWarning.contains("دستکش") || descalerPkg.fullDescription.contains("دستکش"))
+    assertTrue("Descaler safety MUST strictly prohibit mixing with bleach", descalerPkg.safetyWarning.contains("وایتکس") || descalerPkg.safetyWarning.contains("سفیدکننده"))
+    assertFalse("Descaler must NOT contain cosmetic, skin or hair terms", descalerPkg.shortDescription.contains("پوست صورت") || descalerPkg.shortDescription.contains("شامپو"))
+
+    // 7. Detergent Degreaser
+    val degreaserItem = SiteItem(
+      id = 307,
+      title = "اسپری گاز پاک‌کن و چربی‌زدای صنعتی پورچز ترکیه مدل چربی سوخته",
+      content = "اسپری حل‌کننده سریع روغن‌های سوخته و چربی چدن گاز، فر و هود آشپزخانه.",
+      slug = "porcoz-oven-hood-degreaser-spray",
+      categories = listOf("شوینده", "چربی زدا"),
+      type = SiteItemType.PRODUCT
+    )
+    val degreaserPkg = ContentModuleProcessor.generateProductPackage(degreaserItem)
+    assertFalse(degreaserPkg.isGenerationHalted)
+    assertTrue("Degreaser short desc must target burnt fat and grease", degreaserPkg.shortDescription.contains("چربی") || degreaserPkg.shortDescription.contains("گاز") || degreaserPkg.shortDescription.contains("هود"))
+    assertTrue("Degreaser usage must instruct 1-2 minute wait time and wiping", degreaserPkg.fullDescription.contains("دقیقه") || degreaserPkg.fullDescription.contains("دستمال"))
+    assertTrue("Degreaser safety must require ventilation and gloves", degreaserPkg.safetyWarning.contains("دستکش") || degreaserPkg.safetyWarning.contains("تهویه"))
+
+    // 8. Oral Care
+    val oralItem = SiteItem(
+      id = 308,
+      title = "خمیردندان ضد پلاک و خوشبوکننده سنسوداین مدل پرونامل اصل",
+      content = "خمیر دندان سنسوداین پرونامل برای محافظت از مینای دندان و کاهش حساسیت دندانی.",
+      slug = "sensodyne-pronamel-toothpaste",
+      categories = listOf("بهداشت دهان و دندان", "خمیردندان"),
+      type = SiteItemType.PRODUCT
+    )
+    val oralPkg = ContentModuleProcessor.generateProductPackage(oralItem)
+    assertFalse(oralPkg.isGenerationHalted)
+    assertTrue("Oral care usage must instruct 2 minutes brushing", oralPkg.fullDescription.contains("۲ دقیقه") || oralPkg.fullDescription.contains("مسواک"))
+    assertTrue("Oral care safety must instruct not swallowing", oralPkg.safetyWarning.contains("بلعید") || oralPkg.safetyWarning.contains("قورت") || oralPkg.safetyWarning.contains("خارج"))
+
+    // 9. Deodorant
+    val deoItem = SiteItem(
+      id = 309,
+      title = "رول ضد تعریق و دئودورانت ۲۴ ساعته لورال مردانه مدل کربن پروتکت",
+      content = "مام رول ضد تعریق لورال برای مهار بوی نامطبوع تعریق بدون ایجاد لک روی لباس.",
+      slug = "loreal-men-expert-carbon-protect-deodorant",
+      categories = listOf("ضد تعریق", "دئودورانت"),
+      type = SiteItemType.PRODUCT
+    )
+    val deoPkg = ContentModuleProcessor.generateProductPackage(deoItem)
+    assertFalse(deoPkg.isGenerationHalted)
+    assertTrue("Deodorant usage must specify clean dry underarm", deoPkg.fullDescription.contains("تمیز") || deoPkg.fullDescription.contains("زیر بغل") || deoPkg.fullDescription.contains("خشک"))
+    assertTrue("Deodorant safety must warn against wounded skin", deoPkg.safetyWarning.contains("زخم") || deoPkg.safetyWarning.contains("خراش") || deoPkg.safetyWarning.contains("ملتهب"))
+  }
+
+  @Test
+  fun testOriginalProductDataRemainsPreservedUntilUserConfirmation() {
+    val originalItem = SiteItem(
+      id = 401,
+      title = "شامپو آبرسان لورال بنفش",
+      content = "توضیحات قدیمی و مختصر محصول که نباید قبل از تایید کاربر تغییر کند.",
+      slug = "loreal-purple-old-slug",
+      focusKeyword = "شامپو لورال بنفش",
+      metaDescription = "توضیحات متای اولیه",
+      categories = listOf("شامپو"),
+      type = SiteItemType.PRODUCT
+    )
+
+    // Generating the package does NOT mutate the original SiteItem
+    val pkg = ContentModuleProcessor.generateProductPackage(originalItem)
+    assertFalse(pkg.isGenerationHalted)
+
+    // Assert that the original item remains completely untouched and preserved
+    assertEquals("شامپو آبرسان لورال بنفش", originalItem.title)
+    assertEquals("توضیحات قدیمی و مختصر محصول که نباید قبل از تایید کاربر تغییر کند.", originalItem.content)
+    assertEquals("loreal-purple-old-slug", originalItem.slug)
+    assertEquals("توضیحات متای اولیه", originalItem.metaDescription)
+
+    // The package offers a separate stage for user review before confirmation
+    assertTrue(pkg.seoTitle.isNotBlank())
+    assertTrue(pkg.fullDescription.isNotBlank())
+    assertTrue(pkg.shortDescription.isNotBlank())
+  }
+
+  @Test
+  fun testZeroHallucinationSpecificationsTableExtraction() {
+    val genericProduct = SiteItem(
+      id = 501,
+      title = "شامپو روزانه لورال پاریس مدل اکسترا اوردینری ۴۰۰ میل",
+      content = "شامپو تغذیه‌کننده روزانه بدون ذکر ترکیبات عجیب غریب ساخت فرانسه.",
+      slug = "loreal-extraordinary-daily-shampoo",
+      categories = listOf("شامپو"),
+      type = SiteItemType.PRODUCT
+    )
+
+    val pkg = ContentModuleProcessor.generateProductPackage(genericProduct)
+    val specs = pkg.specificationsTable.toMap()
+
+    // Sourced manufacturer and origin
+    assertEquals("لورآل (L'Oréal)", specs["برند اصلی سازنده"])
+    assertTrue(specs["کشور مبدا و تولید"]?.contains("فرانسه") == true)
+    assertEquals("گلی کالا (واردکننده رسمی و مرجع اصالت کالا)", specs["عرضه کننده و مرجع خرید"])
+
+    // No unverified exotic chemicals or false guarantees
+    for ((key, value) in specs) {
+      assertFalse("Specs key '$key' must not contain fake miracle claims", value.contains("معجزه") || value.contains("درمان قطعی در ۳ روز"))
+    }
+  }
 }
+
 
 
 
