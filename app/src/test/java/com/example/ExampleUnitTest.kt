@@ -392,6 +392,73 @@ class ExampleUnitTest {
     assertFalse("Sanitized package must not contain mask words in shampoo short desc", sanitized.shortDescription.contains("ماسک مو"))
     assertTrue("Sanitized package must restore hair shampoo nature", sanitized.shortDescription.contains("شامپو"))
   }
+
+  @Test
+  fun testTitlePriorityPreventsMaskClassificationForShampooWithCrossSellContent() {
+    val shampooWithMaskMention = SiteItem(
+      id = 150,
+      title = "شامپو ضد شوره و تقویت‌کننده هد اند شولدرز Head & Shoulders اصل",
+      content = "این محصول را در کنار ماسک مو استفاده نمایید تا بهترین نتیجه حاصل شود. استفاده همزمان با ماسک مو توصیه می‌شود.",
+      slug = "head-shoulders-anti-dandruff-shampoo",
+      categories = listOf("شامپو", "مراقبت مو"),
+      type = SiteItemType.PRODUCT
+    )
+
+    val preAnalysis = ContentModuleProcessor.analyzeProductBeforeWriting(shampooWithMaskMention)
+    assertEquals(ProductArchetype.HAIR_SHAMPOO, preAnalysis.archetype)
+    assertTrue("Brand must be Head & Shoulders", preAnalysis.detectedBrand.contains("Head & Shoulders") || preAnalysis.detectedBrand.contains("هد اند شولدرز"))
+    assertTrue("Must be hair care", preAnalysis.isHairCare)
+    assertFalse("Must not be detergent", preAnalysis.isDetergentOrCleaner)
+
+    val pkg = ContentModuleProcessor.generateProductPackage(shampooWithMaskMention)
+    assertFalse("Short description must not contain mask instruction", pkg.shortDescription.contains("ماسک مو"))
+    assertTrue("Package must reflect shampoo nature", pkg.shortDescription.contains("شامپو") || pkg.shortDescription.contains("شستشوی"))
+    assertFalse("Related products must not contain Porcoz", pkg.relatedProductsOrArticles.any { it.contains("پورچز") || it.contains("رسوب") })
+  }
+
+  @Test
+  fun testNonElseveProductDoesNotLeakElseveOrHyaluronicAcid() {
+    val panteneItem = SiteItem(
+      id = 151,
+      title = "شامپو مغذی و ضد ریزش پنتن Pantene مدل بیوتین و بامبو",
+      content = "شامپو پنتن برای تقویت ریشه و استحکام تارهای ضعیف مو.",
+      slug = "pantene-biotin-bamboo-shampoo",
+      categories = listOf("شامپو"),
+      type = SiteItemType.PRODUCT
+    )
+
+    val preAnalysis = ContentModuleProcessor.analyzeProductBeforeWriting(panteneItem)
+    val vision = preAnalysis.visionAnalysis ?: ContentModuleProcessor.analyzeProductVisionAndText(panteneItem)
+    assertFalse("Must NOT leak Elseve into Pantene", vision.visionSummary.contains("Elseve") || vision.visionSummary.contains("السیو"))
+    assertFalse("Must NOT leak purple color cue into general shampoo", vision.visualDominantColors.contains("بنفش"))
+
+    val pkg = ContentModuleProcessor.generateProductPackage(panteneItem)
+    assertTrue("Must identify Pantene brand", pkg.detectedBrand.contains("Pantene") || pkg.detectedBrand.contains("پنتن"))
+    assertFalse("Must NOT hallucinate Loreal in Pantene package", pkg.seoTitle.contains("لورآل") || pkg.seoTitle.contains("Elseve"))
+  }
+
+  @Test
+  fun testDetergentDegreaserArchetypeAndBrandIsolation() {
+    val cifItem = SiteItem(
+      id = 152,
+      title = "اسپری پاک‌کننده چربی‌زدا و ضد لک قوی سیف Cif مخصوص گاز و هود",
+      content = "فرمولاسیون پاکسازی چربی‌های سوخته سطوح آشپزخانه، اجاق گاز و هود.",
+      slug = "cif-kitchen-degreaser-spray",
+      categories = listOf("شوینده", "چربی زدا"),
+      type = SiteItemType.PRODUCT
+    )
+
+    val preAnalysis = ContentModuleProcessor.analyzeProductBeforeWriting(cifItem)
+    assertEquals(ProductArchetype.DETERGENT_DEGREASER, preAnalysis.archetype)
+    assertTrue("Brand must be Cif", preAnalysis.detectedBrand.contains("Cif") || preAnalysis.detectedBrand.contains("سیف"))
+    assertTrue("Must flag as detergent", preAnalysis.isDetergentOrCleaner)
+    assertFalse("Must NOT flag as hair care", preAnalysis.isHairCare)
+
+    val pkg = ContentModuleProcessor.generateProductPackage(cifItem)
+    assertTrue("Short description must target grease/surfaces", pkg.shortDescription.contains("چربی") || pkg.shortDescription.contains("سطوح"))
+    assertFalse("Must NOT contain hair instructions", pkg.shortDescription.contains("موی") || pkg.shortDescription.contains("تارهای مو") || pkg.shortDescription.contains("ماسک") || pkg.shortDescription.contains("شامپو") || pkg.shortDescription.contains("حمام"))
+    assertTrue("Safety warning must exist for degreaser", pkg.safetyWarning.isNotBlank())
+  }
 }
 
 

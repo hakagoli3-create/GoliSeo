@@ -1292,13 +1292,19 @@ class GliseoRepository(private val context: Context) {
     }
 
     suspend fun applyProductStudioPackage(productId: Long, pkg: ProductOptimizationPackage) = withContext(Dispatchers.IO) {
-        val changes = mapOf(
+        val finalContent = pkg.structuredHtmlContent.ifBlank { pkg.fullDescription }
+        val changes = mutableMapOf<String, Any?>(
             "title" to pkg.seoTitle,
             "excerpt" to pkg.shortDescription,
-            "content" to pkg.fullDescription,
+            "content" to finalContent,
             "metaDescription" to pkg.rankMathMetaDesc,
             "focusKeyword" to pkg.focusKeyword
         )
+        pkg.imageMetadata?.let { imgMeta ->
+            if (imgMeta.persianAltText.isNotBlank()) {
+                changes["imageAlt"] = imgMeta.persianAltText
+            }
+        }
         applyItemUpdate(
             targetId = productId,
             proposedChanges = changes,

@@ -195,12 +195,15 @@ object ContentModuleProcessor {
      * رعایت قاعده بنیادین: «گلی کالا» نام فروشگاه آنلاین و نماینده رسمی است، هرگز برند سازنده نیست.
      */
     fun analyzeProductBeforeWriting(item: SiteItem): ProductPreAnalysis {
-        val searchContext = (item.title + " " + item.content + " " + item.excerpt + " " +
-                item.imageAlt + " " + item.imageTitle + " " + item.imageCaption + " " +
-                item.featuredImageUrl + " " + item.slug + " " +
-                item.categories.joinToString(" ") + " " + item.tags.joinToString(" ")).lowercase()
+        val titleContext = (item.title + " " + item.imageAlt + " " + item.imageTitle + " " + item.slug).lowercase()
+        val metaContext = (item.categories.joinToString(" ") + " " + item.tags.joinToString(" ")).lowercase()
+        val bodyContext = (item.content + " " + item.excerpt).lowercase()
+        val searchContext = "$titleContext $metaContext $bodyContext"
 
         // Brand detection
+        val isAmalfi = searchContext.contains("آمالفی") || searchContext.contains("amalfi")
+        val isAgrado = searchContext.contains("آگرادو") || searchContext.contains("agrado")
+        val isSairo = searchContext.contains("سایرو") || searchContext.contains("sairo") || searchContext.contains("syro")
         val isPorcoz = searchContext.contains("پورچز") || searchContext.contains("پور چز") || searchContext.contains("porcoz") || searchContext.contains("porçöz")
         val isCif = searchContext.contains("سیف") || searchContext.contains("cif")
         val isDomestos = searchContext.contains("دامستوس") || searchContext.contains("domestos")
@@ -208,9 +211,6 @@ object ContentModuleProcessor {
         val isFairy = searchContext.contains("فیری") || searchContext.contains("fairy")
         val isPril = searchContext.contains("پریل") || searchContext.contains("pril")
         val isPersil = searchContext.contains("پرسیل") || searchContext.contains("persil")
-        val isAmalfi = searchContext.contains("آمالفی") || searchContext.contains("amalfi")
-        val isAgrado = searchContext.contains("آگرادو") || searchContext.contains("agrado")
-        val isSairo = searchContext.contains("سایرو") || searchContext.contains("sairo") || searchContext.contains("syro")
         val isLafarrerr = searchContext.contains("لافارر") || searchContext.contains("la farrerr")
         val isCinere = searchContext.contains("سینره") || searchContext.contains("cinere")
         val isHydroderm = searchContext.contains("هیدرودرم") || searchContext.contains("hydroderm")
@@ -218,8 +218,21 @@ object ContentModuleProcessor {
         val isLoreal = searchContext.contains("لورآل") || searchContext.contains("لورال") || searchContext.contains("loreal") || searchContext.contains("l'oreal")
         val isGarnier = searchContext.contains("گارنیه") || searchContext.contains("گارنیر") || searchContext.contains("garnier")
         val isNeutrogena = searchContext.contains("نوتروژینا") || searchContext.contains("neutrogena")
+        val isPantene = searchContext.contains("پنتن") || searchContext.contains("pantene")
+        val isHeadShoulders = searchContext.contains("هد اند شولدرز") || searchContext.contains("head & shoulders") || searchContext.contains("head and shoulders")
+        val isDove = searchContext.contains("داو") || searchContext.contains("dove")
+        val isSchwarzkopf = searchContext.contains("شوارتسکف") || searchContext.contains("schwarzkopf") || searchContext.contains("گلیس") || searchContext.contains("gliss")
+        val isSyoss = searchContext.contains("سایوس") || searchContext.contains("syoss")
+        val isBioderma = searchContext.contains("بایودرما") || searchContext.contains("bioderma")
+        val isCerave = searchContext.contains("سراوی") || searchContext.contains("cerave")
+        val isColgate = searchContext.contains("کلگیت") || searchContext.contains("کولگیت") || searchContext.contains("colgate")
+        val isSensodyne = searchContext.contains("سنسوداین") || searchContext.contains("sensodyne")
+        val isDettol = searchContext.contains("دتول") || searchContext.contains("dettol")
 
         val detectedBrand = when {
+            isAmalfi -> "آمالفی (Amalfi)"
+            isAgrado -> "آگرادو (Agrado)"
+            isSairo -> "سایرو (Sairo)"
             isPorcoz -> "پورچز (Porçöz)"
             isCif -> "سیف (Cif)"
             isDomestos -> "دامستوس (Domestos)"
@@ -227,9 +240,6 @@ object ContentModuleProcessor {
             isFairy -> "فیری (Fairy)"
             isPril -> "پریل (Pril)"
             isPersil -> "پرسیل (Persil)"
-            isAmalfi -> "آمالفی (Amalfi)"
-            isAgrado -> "آگرادو (Agrado)"
-            isSairo -> "سایرو (Sairo)"
             isLafarrerr -> "لافارر (La Farrerr)"
             isCinere -> "سینره (Cinere)"
             isHydroderm -> "هیدرودرم (Hydroderm)"
@@ -237,22 +247,42 @@ object ContentModuleProcessor {
             isLoreal -> "لورآل (L'Oréal)"
             isGarnier -> "گارنیه (Garnier)"
             isNeutrogena -> "نوتروژینا (Neutrogena)"
-            else -> "برندهای معتبر اروپایی و بین‌المللی"
+            isPantene -> "پنتن (Pantene)"
+            isHeadShoulders -> "هد اند شولدرز (Head & Shoulders)"
+            isDove -> "داو (Dove)"
+            isSchwarzkopf -> "شوارتسکف (Schwarzkopf)"
+            isSyoss -> "سایوس (Syoss)"
+            isBioderma -> "بایودرما (Bioderma)"
+            isCerave -> "سراوی (CeraVe)"
+            isColgate -> "کلگیت (Colgate)"
+            isSensodyne -> "سنسوداین (Sensodyne)"
+            isDettol -> "دتول (Dettol)"
+            else -> {
+                val catBrand = item.categories.firstOrNull { it.contains("برند") || it.contains("محصولات") }
+                    ?.replace("برند", "")?.replace("محصولات", "")?.trim()
+                if (!catBrand.isNullOrBlank() && !catBrand.contains("گلی کالا") && !catBrand.contains("ووکامرس")) {
+                    catBrand
+                } else {
+                    "برندهای معتبر اروپایی و بین‌المللی"
+                }
+            }
         }
 
         val originCountry = when {
-            isPorcoz -> "ترکیه (کمپانی Levent Kimya)"
-            isCif || isDomestos -> "انگلستان / هلند (یونیلیور اروپا)"
-            isFinish -> "آلمان (کمپانی رکیت بنکیزر)"
-            isFairy -> "انگلستان (پروکتر اند گمبل P&G)"
-            isPril || isPersil -> "آلمان (کمپانی هنکل Henkel)"
             isAmalfi || isAgrado || isSairo -> "اسپانیا (اتحادیه اروپا)"
+            isPorcoz -> "ترکیه (کمپانی Levent Kimya)"
+            isCif || isDomestos || isDove -> "انگلستان / هلند (یونیلیور اروپا)"
+            isFinish || isDettol -> "انگلستان / آلمان (کمپانی رکیت بنکیزر)"
+            isFairy || isPantene || isHeadShoulders -> "انگلستان / فرانسه (پروکتر اند گمبل P&G)"
+            isPril || isPersil || isSchwarzkopf || isSyoss -> "آلمان (کمپانی هنکل Henkel)"
             isLafarrerr -> "ایران - فرمولاسیون آزمایشگاه‌های فرانسه"
             isCinere -> "ایران - شرکت دانش‌بنیان طبیعت زنده"
             isHydroderm -> "ایران - لابراتوار پارس حیان"
             isNivea -> "آلمان (بایرسدورف Beiersdorf)"
-            isLoreal || isGarnier -> "فرانسه (کمپانی لورآل)"
-            isNeutrogena -> "فرانسه / آمریکا (جانسون اند جانسون)"
+            isLoreal || isGarnier || isBioderma -> "فرانسه (اتحادیه اروپا)"
+            isCerave || isNeutrogena -> "فرانسه / آمریکا"
+            isSensodyne -> "انگلستان (کمپانی هالیون Haleon)"
+            isColgate -> "آمریکا / اتحادیه اروپا"
             else -> "اتحادیه اروپا / استانداردهای بین‌المللی"
         }
 
@@ -263,8 +293,7 @@ object ContentModuleProcessor {
             "گلی کالا واردکننده رسمی و مرجع اصالت کالا با تضمین ۱۰۰٪ اصالت فیزیکی و آزمایشگاهی می‌باشد."
         }
 
-        // Product category & archetype detection
-        val isDetergentOrCleaner = isPorcoz || isCif || isDomestos || isFinish || isFairy || isPril || isPersil ||
+        val isDetergentOrCleaner = isPorcoz || isCif || isDomestos || isFinish || isFairy || isPril || isPersil || isDettol ||
                 searchContext.contains("جرمگیر") || searchContext.contains("جرم گیر") ||
                 searchContext.contains("رسوب") || searchContext.contains("رسوب‌زدا") || searchContext.contains("رسوب زدا") ||
                 searchContext.contains("رسوبزدا") || searchContext.contains("شوینده سطوح") ||
@@ -277,49 +306,82 @@ object ContentModuleProcessor {
                 searchContext.contains("لوله باز") || searchContext.contains("کاشی و سرامیک") ||
                 searchContext.contains("descaler") || searchContext.contains("cleaner") || searchContext.contains("limescale")
 
+        // Hierarchical Archetype Detection: Title is the primary source of truth!
         val archetype: ProductArchetype = when {
-            // Household Cleaners & Detergents
-            isPorcoz || searchContext.contains("رسوب") || searchContext.contains("جرمگیر") || searchContext.contains("جرم گیر") || searchContext.contains("descaler") || searchContext.contains("limescale") ->
+            // 1. Cleaners & Detergents in Title
+            titleContext.contains("رسوب‌زدا") || titleContext.contains("رسوب زدا") || titleContext.contains("رسوبزدا") ||
+                titleContext.contains("جرمگیر") || titleContext.contains("جرم گیر") || titleContext.contains("descaler") || titleContext.contains("limescale") ->
                 ProductArchetype.DETERGENT_DESCALER
-            searchContext.contains("چربی زدا") || searchContext.contains("چربی‌زدا") || searchContext.contains("degreaser") || searchContext.contains("هود") || searchContext.contains("گاز") ->
+            titleContext.contains("چربی زدا") || titleContext.contains("چربی‌زدا") || titleContext.contains("degreaser") ||
+                titleContext.contains("هود") || titleContext.contains("اجاق") || titleContext.contains("داخل فر") ||
+                titleContext.contains(" فر ") || titleContext.contains("گاز و هود") || titleContext.contains("اجاق گاز") ->
                 ProductArchetype.DETERGENT_DEGREASER
-            searchContext.contains("ظرفشویی") || searchContext.contains("dishwasher") || isFinish || isFairy ->
+            titleContext.contains("ظرفشویی") || titleContext.contains("dishwasher") || titleContext.contains("قرص ماشین") ->
                 ProductArchetype.DETERGENT_DISHWASHER
-            searchContext.contains("شیشه شور") || searchContext.contains("شیشه‌شور") || searchContext.contains("شیشه پاک") || searchContext.contains("شیشه‌پاک") ->
+            titleContext.contains("شیشه شور") || titleContext.contains("شیشه‌شور") || titleContext.contains("شیشه پاک") || titleContext.contains("شیشه‌پاک") ->
+                ProductArchetype.DETERGENT_GLASS
+
+            // 2. Hair Care in Title (Strict Title Priority: Shampoo vs Mask vs Serum)
+            (titleContext.contains("ماسک مو") || (titleContext.contains("ماسک") && (titleContext.contains("مو") || titleContext.contains("hair")))) && !titleContext.contains("شامپو") ->
+                ProductArchetype.HAIR_MASK
+            titleContext.contains("دوفاز") || titleContext.contains("دو فاز") || titleContext.contains("اسپری مو") || (titleContext.contains("سرم") && titleContext.contains("مو")) ->
+                ProductArchetype.HAIR_SERUM_BIPHASIC
+            titleContext.contains("شامپو") || titleContext.contains("shampoo") ->
+                ProductArchetype.HAIR_SHAMPOO
+
+            // 3. Personal Hygiene in Title
+            titleContext.contains("ژل بهداشتی") || titleContext.contains("بهداشتی بانوان") || titleContext.contains("intimate") || titleContext.contains("femme") ->
+                ProductArchetype.INTIMATE_HYGIENE
+            titleContext.contains("لوسیون بدن") || titleContext.contains("بادی لوسیون") || titleContext.contains("بادی واش") || titleContext.contains("شامپو بدن") || titleContext.contains("body lotion") ->
+                ProductArchetype.BODY_LOTION
+            titleContext.contains("دست و ناخن") || titleContext.contains("کرم دست") || titleContext.contains("کوتیکول") || titleContext.contains("hand cream") ->
+                ProductArchetype.HAND_AND_NAIL
+            titleContext.contains("مام") || titleContext.contains("دئودورانت") || titleContext.contains("رول آن") || titleContext.contains("رولان") || titleContext.contains("deodorant") ->
+                ProductArchetype.DEODORANT
+            titleContext.contains("خمیر دندان") || titleContext.contains("خمیردندان") || titleContext.contains("دهان شویه") || titleContext.contains("toothpaste") ->
+                ProductArchetype.ORAL_CARE
+
+            // 4. Skin Care in Title
+            titleContext.contains("ضد آفتاب") || titleContext.contains("ضدآفتاب") || titleContext.contains("sunscreen") || titleContext.contains("spf") ->
+                ProductArchetype.SKIN_SUNSCREEN
+            titleContext.contains("سرم") && (titleContext.contains("پوست") || titleContext.contains("صورت") || titleContext.contains("ضد چروک") || titleContext.contains("روشن کننده")) ->
+                ProductArchetype.SKIN_SERUM
+            titleContext.contains("تونر") || titleContext.contains("میسلار") || titleContext.contains("ژل شستشوی صورت") || titleContext.contains("فوم شستشو") || titleContext.contains("cleanser") || titleContext.contains("toner") ->
+                ProductArchetype.SKIN_CLEANSER_TONER
+            titleContext.contains("آبرسان") || titleContext.contains("مرطوب") || titleContext.contains("کرم صورت") || titleContext.contains("دور چشم") ->
+                ProductArchetype.SKIN_MOISTURIZER
+
+            // 5. Fallback: Search context if title was ambiguous
+            searchContext.contains("رسوب") || searchContext.contains("جرمگیر") || searchContext.contains("جرم گیر") || isPorcoz ->
+                ProductArchetype.DETERGENT_DESCALER
+            searchContext.contains("چربی زدا") || searchContext.contains("چربی‌زدا") ->
+                ProductArchetype.DETERGENT_DEGREASER
+            searchContext.contains("ظرفشویی") || isFinish ->
+                ProductArchetype.DETERGENT_DISHWASHER
+            searchContext.contains("شیشه شور") || searchContext.contains("شیشه پاک") ->
                 ProductArchetype.DETERGENT_GLASS
             isDetergentOrCleaner ->
                 ProductArchetype.DETERGENT_SURFACE
-
-            // Hair Care (Strict Separation: Shampoo vs Mask vs Biphasic Serum)
-            searchContext.contains("ماسک مو") || searchContext.contains("hair mask") ->
-                ProductArchetype.HAIR_MASK
-            searchContext.contains("دوفاز") || searchContext.contains("دو فاز") || searchContext.contains("سرم مو") || searchContext.contains("اسپری مو") ->
-                ProductArchetype.HAIR_SERUM_BIPHASIC
             searchContext.contains("شامپو") || searchContext.contains("shampoo") ->
                 ProductArchetype.HAIR_SHAMPOO
-
-            // Personal Hygiene
-            searchContext.contains("ژل بهداشتی") || searchContext.contains("بهداشتی بانوان") || searchContext.contains("intimate") || searchContext.contains("femme") ->
+            searchContext.contains("ماسک مو") || searchContext.contains("hair mask") ->
+                ProductArchetype.HAIR_MASK
+            searchContext.contains("دوفاز") || searchContext.contains("دو فاز") || searchContext.contains("سرم مو") ->
+                ProductArchetype.HAIR_SERUM_BIPHASIC
+            searchContext.contains("ژل بهداشتی") || searchContext.contains("intimate") ->
                 ProductArchetype.INTIMATE_HYGIENE
-            searchContext.contains("لوسیون بدن") || searchContext.contains("لوسیون") || searchContext.contains("شامپو بدن") || searchContext.contains("بادی واش") || searchContext.contains("body lotion") ->
+            searchContext.contains("لوسیون بدن") ->
                 ProductArchetype.BODY_LOTION
-            searchContext.contains("دست و ناخن") || searchContext.contains("کرم دست") || searchContext.contains("کوتیکول") || searchContext.contains("hand cream") ->
+            searchContext.contains("دست و ناخن") || searchContext.contains("کرم دست") ->
                 ProductArchetype.HAND_AND_NAIL
-            searchContext.contains("مام") || searchContext.contains("دئودورانت") || searchContext.contains("رول آن") || searchContext.contains("رولان") || searchContext.contains("deodorant") ->
-                ProductArchetype.DEODORANT
-            searchContext.contains("خمیر دندان") || searchContext.contains("خمیردندان") || searchContext.contains("دهان شویه") || searchContext.contains("toothpaste") ->
-                ProductArchetype.ORAL_CARE
-
-            // Skin Care
-            searchContext.contains("ضد آفتاب") || searchContext.contains("ضدآفتاب") || searchContext.contains("sunscreen") || searchContext.contains("spf") ->
+            searchContext.contains("ضد آفتاب") || searchContext.contains("sunscreen") ->
                 ProductArchetype.SKIN_SUNSCREEN
             searchContext.contains("سرم") ->
                 ProductArchetype.SKIN_SERUM
-            searchContext.contains("تونر") || searchContext.contains("میسلار") || searchContext.contains("ژل شستشوی صورت") || searchContext.contains("فوم") || searchContext.contains("cleanser") || searchContext.contains("toner") ->
+            searchContext.contains("تونر") ->
                 ProductArchetype.SKIN_CLEANSER_TONER
-            searchContext.contains("آبرسان") || searchContext.contains("مرطوب") || searchContext.contains("دور چشم") || searchContext.contains("کرم") ->
+            searchContext.contains("آبرسان") || searchContext.contains("مرطوب") ->
                 ProductArchetype.SKIN_MOISTURIZER
-
             else -> ProductArchetype.GENERAL_STANDARD
         }
 
@@ -595,26 +657,60 @@ object ContentModuleProcessor {
         }
 
         val relatedList = if (analysis.isDetergentOrCleaner) {
-            listOf(
-                "جرم‌گیر و رسوب‌زدای شیرآلات پورچز اصل ترکیه",
-                "اسپری تمیزکننده چندمنظوره سطوح سیف",
-                "قرص ماشین ظرفشویی کوانتوم فینیش اصل",
-                "ژل سفیدکننده غلیظ ضدعفونی سطوح دامستوس"
-            )
+            if (analysis.detectedBrand.contains("پورچز") || analysis.detectedBrand.contains("Porçöz")) {
+                listOf(
+                    "جرم‌گیر و رسوب‌زدای شیرآلات پورچز اصل ترکیه",
+                    "اسپری چربی‌زدای فوق‌العاده قوی گاز و هود پورچز",
+                    "ژل پاک‌کننده رسوبات ماشین لباسشویی پورچز",
+                    "محلول لوله‌بازکن و ضدعفونی‌کننده پورچز"
+                )
+            } else {
+                listOf(
+                    "رسوب‌زدا و جرم‌گیر شیرآلات اصل ${analysis.detectedBrand}",
+                    "اسپری تمیزکننده چندمنظوره سطوح اصل ${analysis.detectedBrand}",
+                    "قرص و شوینده پرقدرت ماشین ظرفشویی اصل",
+                    "شوینده و ضدعفونی‌کننده بهداشتی سطوح ${analysis.originCountry}"
+                )
+            }
         } else if (analysis.isHairCare) {
-            listOf(
-                "شامپو کراتینه و تقویت‌کننده آگرادو اصل اسپانیا",
-                "ماسک مو ترمیم‌کننده بدون سولفات آمالفی اسپانیا",
-                "اسپری دوفاز محافظ حرارتی مو آمالفی",
-                "شامپو موهای رنگ‌شده و آسیب‌دیده آگرادو"
-            )
+            if (analysis.detectedBrand.contains("لورآل") || analysis.detectedBrand.contains("L'Oréal")) {
+                listOf(
+                    "شامپو آبرسان هیالورونیک اسید السیو لورآل اصل فرانسه",
+                    "سرم مو آبرسان و حجم‌دهنده هیالورونیک لورآل السیو",
+                    "ماسک مو السیو لورآل اصل فرانسه",
+                    "کرم نرم‌کننده و بازسازی‌کننده ساقه مو لورآل"
+                )
+            } else if (analysis.isOfficialAgencyBrand) {
+                listOf(
+                    "شامپو کراتینه و تقویت‌کننده آگرادو اصل اسپانیا",
+                    "ماسک مو ترمیم‌کننده بدون سولفات آمالفی اسپانیا",
+                    "اسپری دوفاز محافظ حرارتی مو آمالفی",
+                    "شامپو موهای رنگ‌شده و آسیب‌دیده آگرادو"
+                )
+            } else {
+                listOf(
+                    "شامپو تخصصی ${analysis.detectedBrand} اصل ${analysis.originCountry}",
+                    "ماسک مو و نرم‌کننده ساقه مو ${analysis.detectedBrand}",
+                    "سرم مو و محافظ حرارتی اصل ${analysis.originCountry}",
+                    "محصولات مکمل مراقبت از مو در گلی کالا"
+                )
+            }
         } else {
-            listOf(
-                "لوسیون بدن آبرسان و نرم‌کننده سایرو",
-                "ژل بهداشتی بانوان آمالفی اسپانیا با pH تنظیم‌شده",
-                "کرم ضد آفتاب با محافظت حداکثری",
-                "سرم هیالورونیک اسید آبرسان عمیق پوست"
-            )
+            if (analysis.isOfficialAgencyBrand) {
+                listOf(
+                    "لوسیون بدن آبرسان و نرم‌کننده سایرو اصل اسپانیا",
+                    "ژل بهداشتی بانوان آمالفی اسپانیا با pH تنظیم‌شده",
+                    "کرم مرطوب‌کننده دست و ناخن آگرادو اصل",
+                    "شامپو بدن مغذی سایرو اصل اسپانیا"
+                )
+            } else {
+                listOf(
+                    "محصولات مراقبت روزانه برند ${analysis.detectedBrand} اصل ${analysis.originCountry}",
+                    "لوسیون و آبرسان ۲۴ ساعته پوست با گارانتی اصالت",
+                    "کرم ضد آفتاب با محافظت حداکثری در برابر اشعه UV",
+                    "سرم تخصصی تغذیه‌کننده پوست در فروشگاه گلی کالا"
+                )
+            }
         }
 
         val introHook = when (analysis.archetype) {
@@ -1462,6 +1558,7 @@ object ContentModuleProcessor {
     }
 
     fun analyzeProductVisionAndText(item: SiteItem): ProductVisionAnalysis {
+        val titleContext = (item.title + " " + item.imageAlt + " " + item.imageTitle + " " + item.slug).lowercase()
         val search = (item.title + " " + item.content + " " + item.excerpt + " " +
                 item.imageAlt + " " + item.imageTitle + " " + item.imageCaption + " " +
                 item.featuredImageUrl + " " + item.slug + " " +
@@ -1471,12 +1568,13 @@ object ContentModuleProcessor {
         val isElseve = search.contains("السیو") || search.contains("elseve")
         val isPurple = search.contains("بنفش") || search.contains("purple") || search.contains("هیالورونیک") || search.contains("hyaluron")
         val isPorcoz = search.contains("پورچز") || search.contains("porcoz") || search.contains("porçöz")
+        val isCif = search.contains("سیف") || search.contains("cif")
         val isAgrado = search.contains("آگرادو") || search.contains("agrado")
         val isAmalfi = search.contains("آمالفی") || search.contains("amalfi")
         val isSairo = search.contains("سایرو") || search.contains("sairo")
 
         return when {
-            isLoreal && (isElseve || isPurple || search.contains("شامپو")) -> {
+            isLoreal && (isElseve || isPurple || search.contains("شامپو")) && (search.contains("بنفش") || search.contains("purple") || search.contains("هیالورونیک") || search.contains("hyaluron")) -> {
                 ProductVisionAnalysis(
                     packagingFormFactor = "بطری بنفش یاسی شامپو لورال السیو با پمپ و برچسب هیالورونیک اسید ۷۲ ساعته",
                     ocrDetectedLabels = listOf(
@@ -1492,7 +1590,7 @@ object ContentModuleProcessor {
                     visionSummary = "شناسایی ۱۰۰٪ تصویر و بسته‌بندی: شامپو لورال السیو بنفش هیالورونیک اسید اصل فرانسه؛ تأیید عدم تطابق با ماسک مو و ثبت کاربری شستشوی مو و پوست سر."
                 )
             }
-            isPorcoz || search.contains("رسوب") || search.contains("جرمگیر") || search.contains("جرم گیر") -> {
+            (isPorcoz || search.contains("رسوب") || search.contains("جرمگیر") || search.contains("جرم گیر")) && (search.contains("رسوب") || search.contains("جرمگیر") || search.contains("جرم گیر") || search.contains("descaler") || isPorcoz) -> {
                 ProductVisionAnalysis(
                     packagingFormFactor = "بطری پلی‌اتیلن ارگونومیک قرمز با درپوش ایمنی دو مرحله‌ای قفل کودک",
                     ocrDetectedLabels = listOf(
@@ -1508,14 +1606,14 @@ object ContentModuleProcessor {
                     visionSummary = "شناسایی ۱۰۰٪ تصویر و برچسب قفل ایمنی: رسوب‌زدا و جرم‌گیر سطوح پورچز اصل لونت کیمیا ترکیه؛ فاقد هرگونه ارتباط با محصولات مراقبت مو یا پوست."
                 )
             }
-            search.contains("ماسک مو") || (search.contains("کاسه") && (isAmalfi || isAgrado)) -> {
+            titleContext.contains("ماسک مو") || (titleContext.contains("کاسه") && (isAmalfi || isAgrado)) -> {
                 ProductVisionAnalysis(
                     packagingFormFactor = "کاسه گرد دهانه گشاد ۵۰۰ میلی‌لیتری ماسک مو با درب پیچی محافظ رطوبت",
                     ocrDetectedLabels = listOf(
-                        if (isAmalfi) "Amalfi Mascarilla Capilar" else "Agrado Mascarilla",
+                        if (isAmalfi) "Amalfi Mascarilla Capilar" else if (isAgrado) "Agrado Mascarilla" else "Hair Mask Treatment",
                         "Sin Sal",
                         "Keratina / Argan",
-                        "Valencia - España"
+                        if (isAmalfi || isAgrado) "Valencia - España" else "European Standard"
                     ),
                     visualDominantColors = "سفید و طلایی مات با لوگوی رسمی اروپایی",
                     visualCategoryCues = "کرم تغذیه‌کننده غلیظ ساقه و نوک مو در حمام بدون مصرف روی کف سر",
@@ -1523,14 +1621,14 @@ object ContentModuleProcessor {
                     visionSummary = "شناسایی فرم کاسه‌ای ماسک مو: کرم غلیظ ترمیم ساقه مو با زمان مکث حمام ۳ الی ۵ دقیقه؛ تأیید تمایز با شامپو."
                 )
             }
-            search.contains("سرم") && (search.contains("دوفاز") || search.contains("اسپری")) -> {
+            titleContext.contains("سرم") && (titleContext.contains("دوفاز") || titleContext.contains("اسپری")) -> {
                 ProductVisionAnalysis(
                     packagingFormFactor = "بطری اسپری شفاف دوفاز با نازل پخش‌کننده مه‌پاش و درپوش محافظ",
                     ocrDetectedLabels = listOf(
-                        "Agrado Acondicionador Bifásico",
+                        if (isAgrado) "Agrado Acondicionador Bifásico" else "Biphasic Hair Conditioner",
                         "Protector Térmico",
                         "Agitar Antes de Usar",
-                        "Made in Spain"
+                        if (isAgrado || isAmalfi) "Made in Spain" else "CE Standard"
                     ),
                     visualDominantColors = "دوفاز آبی شفاف و سفید شیری با بدنه کریستالی",
                     visualCategoryCues = "سرم مایع دوفاز سبک ضد وز و محافظ حرارت سشوار بدون نیاز به آبکشی",
@@ -1538,7 +1636,7 @@ object ContentModuleProcessor {
                     visionSummary = "شناسایی دو فاز مایع و نازل اسپری: محافظ حرارتی ساقه مو بدون نیاز به آبکشی."
                 )
             }
-            search.contains("ضد آفتاب") || search.contains("sunscreen") -> {
+            titleContext.contains("ضد آفتاب") || titleContext.contains("ضدآفتاب") || titleContext.contains("sunscreen") -> {
                 ProductVisionAnalysis(
                     packagingFormFactor = "تیوب محافظ پرتوهای نوری با درب فلیپ‌تاپ ضد نشت",
                     ocrDetectedLabels = listOf(
@@ -1553,7 +1651,7 @@ object ContentModuleProcessor {
                     visionSummary = "شناسایی تیوب ضد آفتاب: محافظت UVA/UVB و فاقد چربی مازاد."
                 )
             }
-            search.contains("ژل بهداشتی") || search.contains("intimate") -> {
+            titleContext.contains("ژل بهداشتی") || titleContext.contains("بهداشتی بانوان") || titleContext.contains("intimate") -> {
                 ProductVisionAnalysis(
                     packagingFormFactor = "بطری پمپی بهداشتی مات با پمپ دیسپنسر کنترل دوز",
                     ocrDetectedLabels = listOf(
@@ -1568,28 +1666,53 @@ object ContentModuleProcessor {
                     visionSummary = "شناسایی شوینده ملایم بهداشتی بانوان با pH فیزیولوژیک جهت استعمال موضعی خارجی."
                 )
             }
-            search.contains("شامپو") || search.contains("shampoo") -> {
+            titleContext.contains("شامپو") || titleContext.contains("shampoo") -> {
+                val dominantColor = when {
+                    search.contains("قرمز") -> "قرمز درخشان با نوشته‌های سفید"
+                    search.contains("آبی") -> "آبی فیروزه‌ای و شفاف"
+                    search.contains("سبز") -> "سبز زیتونی و گیاهی"
+                    search.contains("مشکی") -> "مشکی مات متالیک"
+                    search.contains("طلایی") || search.contains("زرد") -> "طلایی و زرد براق"
+                    else -> "بدنه نیمه‌شفاف بهداشتی با طراحی شیک اروپایی"
+                }
                 ProductVisionAnalysis(
-                    packagingFormFactor = "بطری استاندارد شامپو با درب آسان‌ریز فشاری و بدنه خوش‌دست",
+                    packagingFormFactor = "بطری ارگونومیک شوینده مو با درپوش آسان‌ریز فشاری و بدنه خوش‌دست",
                     ocrDetectedLabels = listOf(
-                        "Daily Care Shampoo",
-                        "Gentle Cleansing Formula",
+                        if (isLoreal) "L'Oréal Paris" else if (isAgrado) "Agrado Daily Shampoo" else "Gentle Cleansing Shampoo",
                         "Dermatologically Tested",
+                        "Scalp & Hair Care",
                         "European Standard"
                     ),
-                    visualDominantColors = "بدنه نیمه‌شفاف بهداشتی با طراحی شیک اروپایی",
-                    visualCategoryCues = "شامپو پاک‌کننده ملایم چربی کف سر و تارهای مو",
-                    confidenceScore = 97,
-                    visionSummary = "شناسایی شامپو: شوینده تارهای مو و کنترل چربی پوست سر در حمام."
+                    visualDominantColors = dominantColor,
+                    visualCategoryCues = "شامپو پاک‌کننده ملایم چربی کف سر و تارهای مو بدون ایجاد خشکی ساقه",
+                    confidenceScore = 98,
+                    visionSummary = "شناسایی دقیق شامپو: شوینده اختصاصی تارهای مو و کنترل چربی پوست سر در حمام؛ تفکیک قطعی از ماسک مو."
+                )
+            }
+            titleContext.contains("چربی زدا") || titleContext.contains("چربی‌زدا") || titleContext.contains("degreaser") -> {
+                ProductVisionAnalysis(
+                    packagingFormFactor = "بطری اسپری تفنگی شوینده سطوح چرب با نازل دو حالته فوم و اسپری",
+                    ocrDetectedLabels = listOf(
+                        if (isPorcoz) "Porçöz Yağ Çözücü" else if (isCif) "Cif Power & Shine Degreaser" else "Heavy Duty Degreaser",
+                        "Fast Acting Grease Remover",
+                        "Kitchen & Oven Cleaner"
+                    ),
+                    visualDominantColors = "نارنجی و زرد اخطار با نوشته‌های پررنگ",
+                    visualCategoryCues = "اسپری حلال قوی چربی سوخته گاز و هود فاقد هرگونه کاربرد آرایشی یا انسانی",
+                    confidenceScore = 98,
+                    visionSummary = "شناسایی پاک‌کننده چربی سطوح آشپزخانه؛ تایید عدم ارتباط با فرآورده‌های پوستی و مو."
                 )
             }
             else -> {
+                val dynamicLabels = mutableListOf("Original Product", "Batch & Barcode Verified")
+                if (isAmalfi || isAgrado || isSairo) dynamicLabels.add("Valencia - España")
+                else dynamicLabels.add("European Standard")
                 ProductVisionAnalysis(
                     packagingFormFactor = "بسته‌بندی رسمی بهداشتی با پلمب فیزیکی و هولوگرام اصالت",
-                    ocrDetectedLabels = listOf("Original Product", "Batch & Barcode Verified", "CE European Standard"),
-                    visualDominantColors = "بسته‌بندی استاندارد بین‌المللی",
-                    visualCategoryCues = "محصول استاندارد بهداشتی با ضمانت اصالت ۱۰۰٪ فیزیکی",
-                    confidenceScore = 95,
+                    ocrDetectedLabels = dynamicLabels,
+                    visualDominantColors = "بسته‌بندی استاندارد بین‌المللی با بارکد رسمی",
+                    visualCategoryCues = "محصول استاندارد با ضمانت اصالت ۱۰۰٪ فیزیکی و آزمایشگاهی",
+                    confidenceScore = 96,
                     visionSummary = "تحلیل بصری و استخراج برچسب با موفقیت انجام شد و ضمانت اصالت فیزیکی تایید گردید."
                 )
             }
@@ -1604,11 +1727,11 @@ object ContentModuleProcessor {
             ProductArchetype.HAIR_SHAMPOO ->
                 PersianNormalizer.normalize("بطری ${item.title} برند ${analysis.detectedBrand} اصل ${analysis.originCountry} در گلی کالا")
             ProductArchetype.HAIR_MASK ->
-                PersianNormalizer.normalize("کاسه ${item.title} برند ${analysis.detectedBrand} اصل ${analysis.originCountry} در گلی کالا")
+                PersianNormalizer.normalize("ماسک مو ${item.title} برند ${analysis.detectedBrand} اصل ${analysis.originCountry} در گلی کالا")
             ProductArchetype.HAIR_SERUM_BIPHASIC ->
                 PersianNormalizer.normalize("اسپری دوفاز ${item.title} برند ${analysis.detectedBrand} اصل ${analysis.originCountry} در گلی کالا")
             ProductArchetype.DETERGENT_DESCALER ->
-                PersianNormalizer.normalize("بطری قرمز رسوب‌زدا و جرم‌گیر ${item.title} برند ${analysis.detectedBrand} اصل ترکیه در گلی کالا")
+                PersianNormalizer.normalize("رسوب‌زدا و جرم‌گیر ${item.title} برند ${analysis.detectedBrand} اصل ${analysis.originCountry} در گلی کالا")
             ProductArchetype.INTIMATE_HYGIENE ->
                 PersianNormalizer.normalize("بطری پمپی ${item.title} برند ${analysis.detectedBrand} با pH فیزیولوژیک در گلی کالا")
             ProductArchetype.SKIN_SUNSCREEN ->
